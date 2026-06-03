@@ -72,7 +72,12 @@ tools: Read, Grep, Glob, Bash, Write
       "owner_feature": "告警通知",
       "evidence_source": "code",
       "refs": ["pkg/notify/slack.go"],
-      "notes": "通过 Slack SDK 发送通知，与「告警通知」功能绑定"
+      "notes": "通过 Slack SDK 发送通知，与「告警通知」功能绑定",
+      "integration_context": {
+        "used_by": "运维在告警规则中配置 Slack 通道",
+        "failure_without": "告警仅落日志，值班无法即时收到",
+        "connection_mechanism": "HTTP Webhook + Bot Token，由 notify 模块异步投递"
+      }
     },
     {
       "target": "Prometheus",
@@ -90,10 +95,21 @@ tools: Read, Grep, Glob, Bash, Write
 }
 ```
 
+## 叙事深度（集成说明，非凑字数）
+
+每条 `integrations[]` 的 `notes`（及建议的 `integration_context`）须让读者听懂：
+
+- **谁在用**该集成（角色/场景）
+- **缺它会怎样**（可观察后果，一层因果即可）
+- **本项目如何对接**（协议/配置入口级，禁止函数名）
+
+`notes` 或 `integration_context` 中出现的缩写/专名须一句解释。禁止只写 SDK 名称而无用途。
+
 ## 自查清单（提交前）
 
 - [ ] 已 Read `feature-plan.json`，且每条 `feature-level` 的 `owner_feature` 都是 `feature-plan.json` 中的现有 `name`（拼写完全一致）。
 - [ ] 每条 `integrations[]` 至少有 1 条 `refs` 证据。
+- [ ] 每条 `notes` ≥ 20 字且非空泛；含 used_by / failure_without / connection 中至少 2 项（可在 `integration_context`）
 - [ ] 没有把 `internal-dependency` 误写入 `integrations[]`。
 - [ ] 编造的集成已删除；模糊未确认的集成已移到 `unconfirmed[]`。
 - [ ] 没有写出任何函数级调用链或函数名（红线 6）。
@@ -109,7 +125,7 @@ tools: Read, Grep, Glob, Bash, Write
 当主线程在 prompt 中附带 `quality-review/integrations-round-<N>.json` 的 `issues[]` 时：
 
 - **仅修订** `./analysis-report/integrations.json`（可覆盖写）。
-- 逐条处理 `severity ∈ {blocking, major}`：补全 `notes`/`refs`、修正 `owner_feature`、去除空泛描述。
+- 逐条处理 `severity ∈ {blocking, major}`：补全 `notes`/`integration_context`/`refs`、补术语解释、修正 `owner_feature`、去除空泛描述。
 - **禁止**修改 `feature-plan.json`；**禁止**新增 feature-level 集成若 `owner_feature` 不在 plan 中。
 - 完成后返回摘要并注明 `revision_round: <N>`。
 

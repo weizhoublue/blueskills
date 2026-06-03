@@ -25,6 +25,7 @@ tools: Read, Write, Glob
 4. 无法确认时必须明确写「未能从中间产物确认」。
 5. 当中间产物间存在冲突时，原文呈现冲突并指向各自来源，**不要自行裁决**（裁决已由各 digger 在 conflicts[] 中完成）。
 6. 不要输出函数级调用链。工作原理应描述为：用户流程、系统抽象流程、状态变化、外部交互。
+7. **禁止（R15）** 在 `overview.md` 中使用 markdown 表格（任何 `| ... |` 表行）。一级功能、集成能力、场景/痛点均用 `###`、有序/无序列表呈现。
 
 > 注：第 4、5 条相较 SKILL.md 的全局红线做了**有意的范围适配**——本 agent 仅消费中间产物，不接触原始文档/代码，因此条款锚定在「中间产物」而非「文档和代码」。请勿改回全局措辞。
 
@@ -53,6 +54,10 @@ tools: Read, Write, Glob
 
 **`Read` / `Glob` 仅允许作用于**：`project-overview.json`、`feature-plan.json`、`features/*.json`、`integrations.json`、`quality-review/**/*-final.json`。禁止读取源码 / 文档 / `boundary-review/` / `quality-review/*-round-*.json` / 其它中间产物。
 
+## 读者 persona
+
+读者未读过仓库，需在较短时间内理解：**谁在用、无本项目时会怎样、本项目如何打断因果链、专名含义**。不得为省篇幅把 narrative 压成表格或单句 slogan。
+
 ## NarrativeBlock 渲染规则
 
 对 `scenarios[]` / `problems_solved[]` 中每个对象（v7 NarrativeBlock）：
@@ -63,9 +68,15 @@ tools: Read, Write, Glob
 （证据层级: <evidence_tier>；refs: <refs 逗号分隔>）
 ```
 
-若 `background` 非空，在 narrative 后另起一段：**背景：** <background>
+若存在 `contrast`（无本项目/常见做法时的后果），在 narrative 后：**若无本能力：** <contrast>
 
-若 `terms[]` 非空，在 narrative 后另起一段：**术语：** 逐条 `term` — `glossary`（若 narrative 已充分解释可省略重复项）。
+若存在 `mechanism_at_a_glance`，另起：**本项目如何缓解（抽象）：** <mechanism_at_a_glance>
+
+若 `background` 非空，另起：**背景：** <background>
+
+若 `terms[]` 非空，另起：**术语：** 逐条 `term` — `glossary`（须说明作用，勿只重复英文全称）
+
+**禁止**把多条 scenario/problem 合并进一个表格单元格；每条独立 `###` 小节。
 
 `industry_context_notes` 仅在 §3「解决的问题与痛点」章末增加子节 `#### 行业背景补充（无项目内证据）`，逐条渲染，不并入主列表。
 
@@ -90,15 +101,16 @@ tools: Read, Write, Glob
 
 1. `{REPORT_ROOT}/quality-review/project-overview-final.json`
 2. `{REPORT_ROOT}/quality-review/integrations-final.json`
-3. 对每个 `feature-plan.json` 中的 `slug`：`{REPORT_ROOT}/quality-review/features/<slug>-final.json`
+3. `{REPORT_ROOT}/quality-review/overview-md-final.json`
+4. 对每个 `feature-plan.json` 中的 `slug`：`{REPORT_ROOT}/quality-review/features/<slug>-final.json`
 
-也可用 `Glob {REPORT_ROOT}/quality-review/**/*-final.json` 辅助发现，但**不得**把 glob 模式或「未发现文件」等技术说明写入 `overview.md`。
+**必须先** `Glob {REPORT_ROOT}/quality-review/**/*-final.json` 判断是否为空，再决定 §9 写法；**不得**把 glob 模式写入 `overview.md`。
 
 | 情况 | §9 中写法 |
 | --- | --- |
-| 上述文件**均不存在** | 写一句：「质量质审均在约定轮次内通过，无未闭合的 blocking/major 项。」**不要**单独起 `### 质审未闭合项` 标题，**不要**提及 `max_rounds_reached`、glob、`*-final.json`。 |
-| 存在且 `unresolved_issues` 非空 | 起 `### 质审未闭合项`，按 target 列出人类可读的未闭合摘要（severity / 问题 / 建议），**不要**粘贴 JSON 或磁盘路径。 |
-| 存在但 `unresolved_issues` 为空 | 视为异常；写「质审 final 记录异常（unresolved 为空），请检查 quality-review 审计文件。」 |
+| Glob **无任何** `*-final.json` | 写一句：「质量质审均在约定轮次内通过，无未闭合的 blocking/major 项。」**不要**单独起 `### 质审未闭合项` 标题。 |
+| Glob **存在任一** `*-final.json` | **必须**起 `### 质审未闭合项`，按 target（项目概览 / 某一级功能 / 集成 / 总体成稿）列出人类可读摘要；**禁止**同时写「全部通过」。 |
+| 某 final 存在但 `unresolved_issues` 为空 | 写「质审 final 记录异常（unresolved 为空），请检查 quality-review 审计文件。」 |
 
 ## 产物：`./analysis-report/overview.md`
 
@@ -189,6 +201,8 @@ tools: Read, Write, Glob
 - [ ] §9 未出现 glob 模式、`*-final.json` 路径、`max_rounds_reached` 等内部术语（除非在「未闭合项」业务描述中必要）。
 - [ ] 质审全部通过时未误报「未发现 final 文件」。
 - [ ] improvement-log 为空时 overview **无**「附录：流程执行与改进记录」；非空时已按 source 分组列出。
+- [ ] **全文无 markdown 表格**（R15）。
+- [ ] 存在 `project-overview.json` 时 **§6 功能模块与协作关系** 已渲染（非整节省略，除非 module_landscape 全缺失则写未能确认）。
 
 ## 返回给主线程
 

@@ -34,7 +34,7 @@ tools: Read, Grep, Glob, Bash
 - `Glob` 暴露面相关：`**/*.proto`、`**/openapi*.{yaml,json}`、`**/swagger*.{yaml,json}`、`**/*crd*.yaml`、`**/cli/*`、`**/cmd/*`、`**/api/*`、`**/sdk/*`、`**/web/*`、`**/ui/*`、`**/console/*`、`**/dashboard/*`。
 - `Glob` 配置 schema：`**/*config*.{go,py,ts,yaml,json}`、`**/*.schema.{json,yaml}`、`**/values.yaml`。
 - `Grep` 关键入口符号：`flag.String|flag.Bool|cobra.Command|argparse|click.command|@app.command|app.get|app.post|FastAPI|@RestController|GetMapping|PostMapping|router.|express()|defineCommand|defineEventHandler|crd|CustomResourceDefinition|kind: Custom`。
-- **整轮调用预算**：Read 总数 ≤ 35 次（每次 ≤ 200 行）；Grep 总数 ≤ 20 次，且每次需限定到具体路径或文件 glob（禁止 `Grep -r` 全仓搜索 / 不限路径的根级 Grep）；Glob 总数 ≤ 10 次，且首选 `docs/`、`*/README.md`、暴露面相关目录等高价值路径。Part 1 的 `module_landscape` / CHANGELOG / ADR 定向读取计入此预算，优先读 `CHANGELOG*`、`docs/architecture*`、`docs/design*`。
+- **整轮调用预算**：Read 总数默认 ≤ **35** 次；主线程 prompt 若带 `read_budget: 45`（大项目）则 ≤ **45** 次（每次 ≤ 200 行）。Grep 总数 ≤ 20 次，且每次需限定到具体路径或文件 glob（禁止 `Grep -r` 全仓搜索 / 不限路径的根级 Grep）；Glob 总数 ≤ 10 次，且首选 `docs/`、`*/README.md`、暴露面相关目录等高价值路径。Part 1 的 `module_landscape` / CHANGELOG / ADR 定向读取计入此预算，优先读 `CHANGELOG*`、`docs/architecture*`、`docs/design*`。
 
 **`Bash` 仅用于 `ls` / `stat` / `wc` 等元数据查询；禁止用于读取文件内容（读取一律走 `Read` / `Grep`）。**
 
@@ -91,17 +91,34 @@ tools: Read, Grep, Glob, Bash
   "scenarios": [
     {
       "title": "≤ 40 字",
-      "narrative": "150~400 字：须含情境、痛点/目标、背景（有则写）、术语解释见 terms",
+      "narrative": "连贯段落：由 causal_chain 合成；覆盖 L1 情境→L2 后果→L4 机制→L5 用户结果（复杂主题含 L3）",
+      "contrast": "≤ 80 字：无本能力/常见做法不足时的可观察坏结果",
+      "mechanism_at_a_glance": "≤ 100 字：本项目抽象缓解方式，禁止函数名",
+      "causal_chain": [
+        {"layer": 1, "statement": "谁、在什么部署/流量下", "refs": []},
+        {"layer": 2, "statement": "直接坏结果", "refs": []},
+        {"layer": 4, "statement": "本项目哪一阶段介入", "refs": []},
+        {"layer": 5, "statement": "用户可见改善", "refs": []}
+      ],
       "evidence_tier": "confirmed",
       "background": "≤ 120 字；无材料则 \"\"",
-      "terms": [{"term": "CRD", "glossary": "≤ 80 字"}],
+      "terms": [{"term": "CRD", "glossary": "≤ 80 字：是什么 + 在本条上下文中的作用"}],
       "refs": ["docs/foo.md:12", "pkg/controller/foo.go:88"]
     }
   ],
   "problems_solved": [
     {
       "title": "≤ 40 字",
-      "narrative": "150~400 字",
+      "narrative": "同上；problems_solved 建议含 L3",
+      "contrast": "≤ 80 字",
+      "mechanism_at_a_glance": "≤ 100 字",
+      "causal_chain": [
+        {"layer": 1, "statement": "...", "refs": []},
+        {"layer": 2, "statement": "...", "refs": []},
+        {"layer": 3, "statement": "为何默认方案不够", "refs": []},
+        {"layer": 4, "statement": "...", "refs": []},
+        {"layer": 5, "statement": "...", "refs": []}
+      ],
       "evidence_tier": "doc_declared",
       "background": "",
       "terms": [],
@@ -156,10 +173,24 @@ tools: Read, Grep, Glob, Bash
 
 ### NarrativeBlock 写作要求（Part 1 的 scenarios / problems_solved）
 
+**读者**：未读过仓库的工程师。深度 = **多层因果说得通 + 铺垫（对比）+ 术语不挡路 + refs 对齐**，不是堆字数。
+
+**两阶段（每条 scenario / problem 强制执行）：**
+
+1. **证据卡**（可先写在草稿，再写入 `causal_chain`）：3~5 条 `claim` + `ref` +「该 ref 证明了什么」；禁止无 ref 的 claim。
+2. **再写** `narrative` / `contrast` / `mechanism_at_a_glance`：仅允许改写证据卡，禁止引入无 ref 新主张。
+
+**七项自检（写入前逐条勾选）：** 情境(L1)、对比(contrast/L2)、因果链完整、机制(L4)、用户结果(L5)、术语首现已解释、refs 与主张对应。
+
+**浅 / 深对照（勿模仿浅例）：**
+
+- 浅：「KV-cache 利用率低，通过 scorer 实现智能调度。」
+- 深：「多副本推理网关后，相同 prefix 的请求若落到不同 Pod 会重复 prefill，表现为 GPU 占用高、延迟抖动。无 cache 感知时调度近似轮询（L3）。本项目在 Gateway 与后端之间由 EPP 经 ext-proc 获取请求上下文，在 Filter-Score-Select 阶段优先选 prefix 命中高的 Pod（L4，refs: …）。用户侧可见同会话后续请求更稳定（L5）。」
+
 - **条数下限**：`scenarios` ≥ 2；`problems_solved` ≥ 3。
 - **tier 规则**：`confirmed` 须 refs 含 code 或 schema 路径；`doc_declared` 须含 doc 路径；`industry_context` **只能**出现在 `industry_context_notes`（全项目 ≤ 3 条），**禁止**进入 `problems_solved` / `scenarios` 主列表。
 - **禁止**把无项目证据的行业常识标为 `confirmed`。
-- `module_landscape`：`architecture_layers` ≥ 2；`business_features` ≥ 1；`layer_to_feature_mapping` ≥ 1。
+- `module_landscape`：`architecture_layers` ≥ 2；`business_features` ≥ 1；`layer_to_feature_mapping` ≥ 1；`interaction` 须写清组件间抽象数据/控制流。
 
 **Part 2 - 候选一级功能清单**（结构化 JSON，可直接被主线程读取）：
 
@@ -193,7 +224,7 @@ tools: Read, Grep, Glob, Bash
 
 - **仅修订 Part 1** 项目级概览 JSON；**保持 Part 2 候选清单不变**（不重扫全仓、不增删候选 id、不改 Part 2 任何字段）。
 - **禁止**读取 `feature-plan.json`、`boundary-review/`。
-- 逐条处理 `severity ∈ {blocking, major}`：加深 NarrativeBlock、补 `module_landscape`、修正 tier/refs。
+- 逐条处理 `severity ∈ {blocking, major}`：按质询**补因果层（L1–L5）/ 术语 / refs**，禁止仅加长 `narrative`；补 `causal_chain`、`contrast`、`mechanism_at_a_glance`、`module_landscape`、修正 tier/refs。
 - 完成后在返回 markdown 中同时给出更新后的 Part 1 与**未改动的** Part 2，并注明 `revision_round: <N>`。
 
 ## 窄扫模式（targeted mode）—— 由 SKILL 阶段 3 用户 `add` 时触发

@@ -81,6 +81,8 @@ REPORT_ROOT = <当前工作目录绝对路径>/analysis-report
 - **R12（英文报告文件名）**：`overview.md` 与 `features/<slug>.md` 的文件名必须为英文 kebab-case（`slug`）；禁止以中文 `name` 作为磁盘文件名。
 - **R13（产物根目录）**：所有中间产物与报告 **必须** 写在 `REPORT_ROOT/` 下；委派 prompt **必须** 附带 `REPORT_ROOT` 的**绝对路径**；禁止写到其它目录。
 - **R14（改进记录免质审）**：各阶段可向 `{REPORT_ROOT}/improvement-log/` 追加执行困难/可疑点；`report-quality-challenger` **不得**据此提出 blocking/major，**不得**要求删除或「证实」这些记录。设计见 [`docs/superpowers/specs/2026-06-02-improvement-log-design.md`](../../../../docs/superpowers/specs/2026-06-02-improvement-log-design.md)。
+- **R15（用户报告禁表）**：`overview.md` 与 `features/<slug>.md` **禁止** markdown 表格（`| ... |`）；用 `###`、有序/无序列表、分组 bullet。编排文档内部表格不受限。
+- **R16（叙事深度）**：`scenarios` / `problems_solved` 须多层因果（L1 情境 → L2 后果 → [L3] → L4 本项目机制 → L5 用户结果）+ 专名首现解释；质审按 `report-quality-challenger.md` 执行；禁止为过关仅加长字数。
 
 ## 改进记录（improvement-log）
 
@@ -117,9 +119,24 @@ Write file
 
 **自检**：阶段 1 写入前，主线程应能 `Read` 或列出 `REPORT_ROOT` 目录；若不存在则回到步骤 3。
 
+### 大项目 Read 预算（主线程判定，写入委派 prompt）
+
+阶段 1 开始前在 `ANALYZE_CWD` 检测（满足**任一**即 `large_project: true`）：
+
+- `Glob` 得 `**/*crd*.yaml` 或 `**/charts/**` 命中 ≥ 3
+- 存在 `docs/architecture*` 或 `docs/design*`
+- 存在 `go.mod` 且同时存在 `**/deploy/**` 或 `**/config/crd/**`
+
+| 模式 | project-scout Read 上限 | feature-digger Read 上限 |
+| --- | --- | --- |
+| 默认 | ≤ 35 | ≤ 35 |
+| `large_project: true` | ≤ 45 | ≤ 45 |
+
+委派 `project-scout` / `feature-digger` 时 prompt 须带：`read_budget: <N>`。
+
 ### 阶段 1：勘察（project-scout）
 
-委派 `project-scout`，要求其：
+委派 `project-scout`（附带 `read_budget`），要求其：
 
 - 识别主语言、运行平台、总体架构。
 - 用 Glob/Grep 建立索引；**禁止全文读取所有文档与源码**。
@@ -131,6 +148,21 @@ Write file
 
 1. 由主线程把 Part 1（项目级概览）**原样写入** `{REPORT_ROOT}/project-overview.json`（不交给 agent）。
 2. 把 Part 2（候选清单）作为下一阶段（`feature-boundary-reviewer`）的输入。
+
+#### 阶段 1a：project-overview 预检（主线程，**必须**）
+
+写入 `project-overview.json` 后、进入 1b **之前**：
+
+```text
+1. 运行（若本机有 bash + jq）：
+   plugins/investigate-project/scripts/validate-analysis-report.sh "<REPORT_ROOT>"
+   失败 → 不进入 1b；将 stderr 整理为修订清单，回灌 project-scout 仅修订 Part 1，覆盖写入后重跑 1a
+2. 无 jq 时主线程手工核对：
+   - scenarios ≥ 2；problems_solved ≥ 3
+   - module_landscape.architecture_layers ≥ 2
+   - 每条 problems_solved 含 causal_chain（≥3 层 statement）或同时含 contrast + mechanism_at_a_glance
+   - 不满足 → 回灌 scout，不计入质审 round
+```
 
 #### 阶段 1b：project-overview 质审（report-quality-challenger）
 
@@ -428,7 +460,7 @@ write_json("./analysis-report/feature-plan.json", {
 
 ### 阶段 4：深挖（feature-digger × N，相互独立，可并行调用）
 
-对 `feature-plan.json` 中**每一个** feature 委派一次 `feature-digger`：
+对 `feature-plan.json` 中**每一个** feature 委派一次 `feature-digger`（附带与阶段 1 相同的 `read_budget`）：
 
 - 输入：该 feature 的单条记录（**不要传 `boundary-review/` 下的任何审计文件**）。
 - 要求其严格执行五维深挖（启用方式 / 主要处理阶段 / 状态变化 / 外部交互 / 最终结果），不追函数级调用链。
@@ -484,7 +516,34 @@ while round ≤ 5:
 - 读取 `{REPORT_ROOT}` 下中间产物；质审未闭合项按 `report-writer.md`「§9 质审未闭合项规则」处理（final 仅三种固定路径：`quality-review/project-overview-final.json`、`integrations-final.json`、`quality-review/features/<slug>-final.json`；**通过则无 final 文件，属正常**）。
 - **不得新增、删除、合并、拆分、重命名一级功能**：overview 的一级功能清单**严格来自** `feature-plan.json`，名称、顺序一致。
 - 缺失或质量不足的 feature → 标注「未能从中间产物确认」，禁止补造。
-- 输出 `./analysis-report/overview.md`，并在「一级功能」一节链接到 `features/<slug>.md`（展示文本用 `name`）。
+- 输出 `{REPORT_ROOT}/overview.md`（**唯一**总体报告路径；勿用仓库根 `README.md` 替代），并在「一级功能」一节链接到 `features/<slug>.md`（展示文本用 `name`）。
+- 复述 R15：成稿禁止表格；§2/§3 为 `###` 小节；必须含 §6。
+
+### 阶段 6b：overview 成稿质审（report-quality-challenger，**必须**）
+
+```text
+target ← "overview-md"
+round ← 1
+prior_issues ← null
+while round ≤ 5:
+    委派 report-quality-challenger(target, round, prior_issues)
+    若 status == passed: break
+    若 round == 5 且有 blocking/major:
+        告知 challenger round==5；由 challenger Write quality-review/overview-md-final.json
+        break
+    prior_issues ← 本轮 issues[]（blocking/major）
+    回灌 report-writer：仅修订 overview.md（不得改 feature-plan / 中间 JSON）
+    round ← round + 1
+未通过 max_rounds 也可进入出口门禁，但 overview §9 须反映 overview-md 与既有 *-final 未闭合项
+```
+
+### 阶段 6 出口门禁（主线程自查，**必须**）
+
+- [ ] 运行 `validate-analysis-report.sh "<REPORT_ROOT>"`（有 jq 时）；失败则回灌 writer/scout 后重跑 6b
+- [ ] `{REPORT_ROOT}/overview.md` 存在且无 markdown 表格
+- [ ] 含 §6；§2 至少 2 个 `###`；§3 至少 3 个 `###`（与 project-overview 条数一致或标注未能确认）
+- [ ] 一级功能条数 == `feature-plan.json`
+- [ ] **Glob** `quality-review/**/*-final.json`：若**任一**存在，overview §9 **必须**有 `### 质审未闭合项` 且**禁止**写「质量质审均在约定轮次内通过」
 
 ## 完成后
 
@@ -493,5 +552,13 @@ while round ≤ 5:
 - 一级功能总数（与 `feature-plan.json` 一致）
 - 写入产物路径（`REPORT_ROOT` 绝对路径，默认 `<被分析项目>/analysis-report/`）
 - 冲突 / 未确认项总数
-- 质审未闭合项（若有；全部通过则一句说明即可）
+- 质审未闭合项（若有；**存在任何 *-final.json 时不得报「全部通过」**）
 - improvement-log 条目总数（供维护者改进 skill）
+
+### 完成后抽检（「三问」，主线程或向用户展示）
+
+从报告中各抽 1 项，用业务语言自问（两题答不上则提示报告深度可能不足）：
+
+1. **痛点**：随机 1 条 `problems_solved` — 遮住项目名，能否说清「没有该项目时会怎样」？
+2. **证据**：随机 1 条 `refs` — 能否对应 narrative 里的哪一句主张？
+3. **边界**：随机 1 个一级功能 — 能否说清与相邻功能的差异（不靠目录名）？

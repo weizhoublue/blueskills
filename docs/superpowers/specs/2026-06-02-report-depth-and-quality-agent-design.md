@@ -356,7 +356,7 @@ if round > 5 and 仍有 blocking issues:
 
 ## 11. 非目标（YAGNI）
 
-- 不质审 `report-writer` 成稿 markdown 文风（仅消费中间产物）。
+- ~~不质审 `report-writer` 成稿 markdown~~ → **v7.1 已增** `overview-md` 质审（结构、禁表、与 JSON 不缩水）；不质审文风修辞。
 - 不引入第二个 digger agent（不采用「facts + narrative」双 agent 方案）。
 - 不自动修改用户已确认的 `feature-plan.json`。
 - 不做跨 feature 的全局叙事一致性推理（除非 integration 质审涉及 owner_feature 名称）。
@@ -368,3 +368,12 @@ if round > 5 and 仍有 blocking issues:
 3. 任意 `features/<slug>.md` 的「应用场景」「痛点」「二级功能」均为多段落 + 证据标注。
 4. `quality-review/` 存在至少 project-overview 与每个 feature 的 round 记录；人工可追踪 5 轮内回灌历史。
 5. 无 confirmed 条目 refs 为空；industry_context 条数不超过上限。
+
+## 13. v7.1 增量（2026-06-03，B1–B3 落地）
+
+- **多层因果 L1–L5** + 术语质审；`causal_chain` / `contrast` / `mechanism_at_a_glance`；`addressed_by_principle_dims`（功能级）。
+- **R15** 用户报告禁表；**R16** 禁止凑字数。
+- **阶段 1a** `validate-analysis-report.sh` 预检；**阶段 6b** 强制 `overview-md` 质审；出口门禁 + **三问**抽检。
+- **大项目** scout/digger Read 45。
+- 集成 `integration_context`；round JSON `metrics` / `causal_audit`。
+- 详见 [`2026-06-03-report-quality-optimization-checklist.md`](./2026-06-03-report-quality-optimization-checklist.md)。
