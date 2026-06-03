@@ -141,6 +141,8 @@ all-merged.json
 }
 ```
 
+`table_rows` 建议 ≤8 条；供 `report-writer` 转为**嵌套 bullet 列表**（**禁止**渲染为 markdown 表格，见主 spec **R15**）。
+
 `findings-final` 中 P0–P2 成立项 **必须**含 `peer_comparison` 且 `peer_line_resolution == accepted`（或 audit 末轮显式确认 `not_applicable`）。
 
 ## 5. 降级矩阵与检查项
@@ -159,7 +161,7 @@ all-merged.json
 
 ## 6. 终稿报告
 
-`fix_mark_should_fix` 时在 **复现概率** 之后输出 **同类路径比较**（来自 `peer_comparison`，与 `peer-comparisons.json` / `peer-challenges` 一致）。
+`fix_mark_should_fix` 时在 **复现概率** 之后输出 **同类路径比较**（来自 `peer_comparison`，与 `peer-comparisons.json` / `peer-challenges` 一致；**列表表述，禁止表格**，R15）。
 
 ## 7. Token 与轮次预算
 
