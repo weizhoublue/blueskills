@@ -1,0 +1,16 @@
+{
+  "name": "blueskills",
+  "owner": {
+    "name": "weizhoublue"
+  },
+  "metadata": {
+    "description": "Blue Skills — Claude Code marketplace for coding agents and skills."
+  },
+  "plugins": [
+    {
+      "name": "investigate-project",
+      "source": "./plugins/investigate-project",
+      "description": "Investigate an open-source codebase and produce business-feature reports (report-features skill + six sub-agents)."
+    }
+  ]
+}

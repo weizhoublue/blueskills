@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 把 code-analyzer 插件「人工确认阶段」从一次性表单改造为多轮 review-modify-confirm 循环；新增 `add` 动作；落地审计文件按轮拆开。
+**Goal:** 把 investigate-project 插件「人工确认阶段」从一次性表单改造为多轮 review-modify-confirm 循环；新增 `add` 动作；落地审计文件按轮拆开。
 
 **Architecture:** 单 agent 双模式（`project-scout` 加 `targeted` 窄扫节；`feature-boundary-reviewer` 每轮被调用一次做全量重审）+ 主线程在 SKILL.md 里完成多轮循环编排、自然语言归一化与审计文件写入。所有红线（不编造、不函数级、不目录等同业务）原样保留。
 
 **Tech Stack:** Markdown（Claude Code 插件提示词工程；无运行时代码），`claude plugin validate` 做结构校验。
 
-**Spec 来源:** [`docs/superpowers/specs/2026-06-02-iterative-confirmation-v6.md`](../specs/2026-06-02-iterative-confirmation-v6.md)；同步 [`docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md`](../specs/2026-06-02-code-analyzer-plugin-design.md) v5 → v6。
+**Spec 来源:** [`docs/superpowers/specs/2026-06-02-iterative-confirmation-v6.md`](../specs/2026-06-02-iterative-confirmation-v6.md)；同步 [`docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`](../specs/2026-06-03-blueskills-plugin-design.md) v5 → v6。
 
 ---
 
@@ -16,10 +16,10 @@
 
 | 文件 | 责任 | 改动类型 |
 | --- | --- | --- |
-| `agents/project-scout.md` | 加「窄扫模式（targeted mode）」节，定义 input/output/预算 | 修改：追加新节 + 自查清单补 1 行 |
-| `agents/feature-boundary-reviewer.md` | 红线 + origin 中立判定 + 重审预算说明 | 修改：红线补 1 条 + 「重审说明」节 + 自查清单补 1 行 |
-| `skills/analyze-codebase/SKILL.md` | 阶段 3 整段改为多轮循环；阶段 1、2 中提到的引用同步 | 修改：阶段 3 整段替换 + 阶段 1/2 引用 |
-| `docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md` | 主 spec v5 → v6 同步（按 v6 spec §11 改动清单） | 修改：头部状态、§3 / §3.1 / §3.3 / §6 / §6.3.1 / §7 |
+| `plugins/investigate-project/agents/project-scout.md` | 加「窄扫模式（targeted mode）」节，定义 input/output/预算 | 修改：追加新节 + 自查清单补 1 行 |
+| `plugins/investigate-project/agents/feature-boundary-reviewer.md` | 红线 + origin 中立判定 + 重审预算说明 | 修改：红线补 1 条 + 「重审说明」节 + 自查清单补 1 行 |
+| `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` | 阶段 3 整段改为多轮循环；阶段 1、2 中提到的引用同步 | 修改：阶段 3 整段替换 + 阶段 1/2 引用 |
+| `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md` | 主 spec v5 → v6 同步（按 v6 spec §11 改动清单） | 修改：头部状态、§3 / §3.1 / §3.3 / §6 / §6.3.1 / §7 |
 
 > 没有"测试目录"——本项目是提示词与 markdown，**每个 task 用 `claude plugin validate .` 做结构校验，外加肉眼检查清单**作为验证手段。
 
@@ -28,9 +28,9 @@
 ## Task 1: `project-scout` 追加「窄扫模式」节
 
 **Files:**
-- Modify: `agents/project-scout.md`（追加在「自查清单」节**之前**，即文档末尾自查清单上方）
+- Modify: `plugins/investigate-project/agents/project-scout.md`（追加在「自查清单」节**之前**，即文档末尾自查清单上方）
 
-- [ ] **Step 1: 用 Read 工具读取 `agents/project-scout.md` 全文**，记住当前行号布局，找到「## 自查清单（提交前）」之前的最后一行。
+- [ ] **Step 1: 用 Read 工具读取 `plugins/investigate-project/agents/project-scout.md` 全文**，记住当前行号布局，找到「## 自查清单（提交前）」之前的最后一行。
 
 - [ ] **Step 2: 在「## 自查清单（提交前）」之前插入下面整段新节**
 
@@ -151,7 +151,7 @@ Expected: `✔ Validation passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add agents/project-scout.md
+git add plugins/investigate-project/agents/project-scout.md
 git commit -m "feat(scout): add targeted mode for user-add evidence verification
 
 新增「窄扫模式（targeted mode）」节：
@@ -168,9 +168,9 @@ git commit -m "feat(scout): add targeted mode for user-add evidence verification
 ## Task 2: `feature-boundary-reviewer` 红线 + origin 中立判定 + 重审预算
 
 **Files:**
-- Modify: `agents/feature-boundary-reviewer.md`
+- Modify: `plugins/investigate-project/agents/feature-boundary-reviewer.md`
 
-- [ ] **Step 1: 用 Read 工具读取 `agents/feature-boundary-reviewer.md` 全文**，定位「## 硬性红线」节最后一条（当前是红线 6）和「## 标注规范」节、「## 自查清单」节。
+- [ ] **Step 1: 用 Read 工具读取 `plugins/investigate-project/agents/feature-boundary-reviewer.md` 全文**，定位「## 硬性红线」节最后一条（当前是红线 6）和「## 标注规范」节、「## 自查清单」节。
 
 - [ ] **Step 2: 在「## 硬性红线」节末尾追加红线 7**
 
@@ -220,7 +220,7 @@ Expected: `✔ Validation passed`
 - [ ] **Step 6: Commit**
 
 ```bash
-git add agents/feature-boundary-reviewer.md
+git add plugins/investigate-project/agents/feature-boundary-reviewer.md
 git commit -m "feat(reviewer): origin-neutral judgment + subsequent-review guidance
 
 - 新增红线 7：origin 字段中立判定，不准因 user-added/user-split-from
@@ -238,9 +238,9 @@ git commit -m "feat(reviewer): origin-neutral judgment + subsequent-review guida
 ## Task 3: `SKILL.md` 阶段 3 整段重写为多轮循环
 
 **Files:**
-- Modify: `skills/analyze-codebase/SKILL.md`（替换「### 阶段 3：人工确认（在主线程中完成，不委派 agent）」整节；同步「### 阶段 1：勘察」与「### 阶段 2：功能边界校准」节里的引用）
+- Modify: `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md`（替换「### 阶段 3：人工确认（在主线程中完成，不委派 agent）」整节；同步「### 阶段 1：勘察」与「### 阶段 2：功能边界校准」节里的引用）
 
-- [ ] **Step 1: 用 Read 工具读取 `skills/analyze-codebase/SKILL.md` 全文**，记住「### 阶段 3」起止行号，以及「### 阶段 1」「### 阶段 2」结尾位置。
+- [ ] **Step 1: 用 Read 工具读取 `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` 全文**，记住「### 阶段 3」起止行号，以及「### 阶段 1」「### 阶段 2」结尾位置。
 
 - [ ] **Step 2: 用 StrReplace 替换阶段 3 整段**
 
@@ -475,7 +475,7 @@ write_json("./analysis-report/feature-plan.json", {
 
 委派 `feature-boundary-reviewer` 做**初审**（**不重读全仓**），仅基于 project-scout 的候选清单与证据样本，对每条候选给出 `keep | exclude | merge | split` 标注 + 简短理由 + 证据引用。
 
-> 注：同一个 agent 会在阶段 3 的多轮循环里被**反复调用**做全量重审；详见 §阶段 3 与 `agents/feature-boundary-reviewer.md` 的「重审说明」节。
+> 注：同一个 agent 会在阶段 3 的多轮循环里被**反复调用**做全量重审；详见 §阶段 3 与 `plugins/investigate-project/agents/feature-boundary-reviewer.md` 的「重审说明」节。
 ```
 
 - [ ] **Step 4: 校验**
@@ -492,7 +492,7 @@ Expected: `✔ Validation passed`
 - [ ] 全文搜索没有遗留 "boundary-review.json"（顶层文件名）出现在新逻辑里——应改为子目录形式 `boundary-review/...`。
 
 ```bash
-grep -n 'boundary-review' skills/analyze-codebase/SKILL.md
+grep -n 'boundary-review' plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md
 ```
 
 Expected: 所有匹配都形如 `boundary-review/round-N.json` 或 `boundary-review/final.json`，**不再有**裸 `boundary-review.json`（除非在历史伪代码或描述里明确说明是 v5 旧产物）。
@@ -500,7 +500,7 @@ Expected: 所有匹配都形如 `boundary-review/round-N.json` 或 `boundary-rev
 - [ ] **Step 5: Commit**
 
 ```bash
-git add skills/analyze-codebase/SKILL.md
+git add plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md
 git commit -m "feat(skill): iterate user confirmation as multi-round loop
 
 阶段 3「人工确认」从一次性表单改为多轮 review-modify-confirm 循环：
@@ -520,7 +520,7 @@ git commit -m "feat(skill): iterate user confirmation as multi-round loop
 ## Task 4: 主 spec v5 → v6 同步
 
 **Files:**
-- Modify: `docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md`
+- Modify: `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`
 
 - [ ] **Step 1: 用 Read 工具读取主 spec 全文**，定位以下区块：
   - 文档头部（标题、日期、状态、历史）
@@ -570,7 +570,7 @@ git commit -m "feat(skill): iterate user confirmation as multi-round loop
 在 §3.1 当前最后一句"Part 2 一级功能候选清单：每项含编号、名称、简述、用户暴露面、代码路径、文档路径、3~8 条证据样本。"之后追加：
 
 ```markdown
-- [v6] `project-scout` 同一个 agent 文件还支持 `mode: targeted` 窄扫模式，由阶段 3 用户 `add` 时触发；窄扫只对一个用户提名的功能名做定向证据搜索，预算 ≤ 初次扫描的 1/3；三态返回 `found` / `duplicate` / `not_found`。详见 `agents/project-scout.md` 的「窄扫模式」节与 [`2026-06-02-iterative-confirmation-v6.md`](./2026-06-02-iterative-confirmation-v6.md) §7。
+- [v6] `project-scout` 同一个 agent 文件还支持 `mode: targeted` 窄扫模式，由阶段 3 用户 `add` 时触发；窄扫只对一个用户提名的功能名做定向证据搜索，预算 ≤ 初次扫描的 1/3；三态返回 `found` / `duplicate` / `not_found`。详见 `plugins/investigate-project/agents/project-scout.md` 的「窄扫模式」节与 [`2026-06-02-iterative-confirmation-v6.md`](./2026-06-02-iterative-confirmation-v6.md) §7。
 ```
 
 - [ ] **Step 5: 用 StrReplace 重写 §3.3 人工确认阶段**
@@ -686,7 +686,7 @@ Expected: `✔ Validation passed`
 肉眼检查：
 
 ```bash
-grep -n 'v6\|v5\|round-\|targeted' docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md | head -30
+grep -n 'v6\|v5\|round-\|targeted' docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md | head -30
 ```
 
 Expected:
@@ -701,7 +701,7 @@ Expected:
 - [ ] **Step 10: Commit**
 
 ```bash
-git add docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md
+git add docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md
 git commit -m "docs(spec): sync main spec v5 -> v6 (multi-round confirmation)
 
 - 头部状态改为 v6；历史补一行

@@ -1,4 +1,4 @@
-# analyze-code
+# blueskills
 
 
 制作一个分析开源项目代码的 claude code 的 plugin 
@@ -55,11 +55,11 @@ plugin 最终输出多份报告：
 
 ## 安装
 
-本仓库本身就是一个 Claude Code **marketplace**（`.claude-plugin/marketplace.json` + `.claude-plugin/plugin.json`），添加一次即可安装其中的 `code-analyzer` 插件：
+本仓库是 Claude Code **marketplace**（根目录 `.claude-plugin/marketplace.json`）；首个 plugin 在 `plugins/investigate-project/`。添加 marketplace 后安装 plugin：
 
 ```text
-/plugin marketplace add weizhoublue/analyze-code
-/plugin install code-analyzer@analyze-code
+/plugin marketplace add weizhoublue/blueskills
+/plugin install investigate-project@blueskills
 /reload-plugins
 ```
 
@@ -70,7 +70,7 @@ plugin 最终输出多份报告：
 在 Claude Code 中加载本目录作为插件后，对**待分析项目**目录运行以下指令：
 
 ```text
-/code-analyzer:analyze-codebase
+/investigate-project:report-features
 ```
 
 执行流程：
@@ -104,4 +104,4 @@ plugin 最终输出多份报告：
     └── <slug>.json
 ```
 
-设计依据：`docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md`。
+设计依据：`docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`。

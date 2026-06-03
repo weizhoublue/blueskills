@@ -2,7 +2,7 @@
 
 - 日期：2026-06-03
 - 状态：**已批准**（A + D + G + K + 三层命名；`plugin.json` version = **0.1.0**）
-- 上游：`2026-06-02-code-analyzer-plugin-design.md`（v7/v8 能力不变）
+- 上游：`2026-06-03-blueskills-plugin-design.md`（v7/v8 能力不变）
 - 目标：`weizhoublue/blueskills` 作为 marketplace 可安装；首个 plugin `investigate-project`；入口 skill `report-features`。
 
 ## 1. 三层命名（canonical）
@@ -44,7 +44,7 @@ blueskills/                                      # marketplace 根
 │       │   └── plugin.json                      # name: investigate-project, version: 0.1.0
 │       ├── skills/
 │       │   └── report-features/
-│       │       └── SKILL.md                     # 编排入口（原 analyze-codebase 逻辑）
+│       │       └── SKILL.md                     # 编排入口（原 report-features 逻辑）
 │       └── agents/
 │           ├── project-scout.md
 │           ├── feature-boundary-reviewer.md
@@ -107,18 +107,18 @@ marketplace 根**不得**包含 `plugin.json`。
 
 ## 5. 全局替换映射
 
-自旧仓库（`analyze-code` / `code-analyzer` / `analyze-codebase`）迁移时，**按顺序**执行：
+自旧仓库（`blueskills` / `investigate-project` / `report-features`）迁移时，**按顺序**执行：
 
 | 序号 | 旧 | 新 |
 | --- | --- | --- |
-| 1 | `/code-analyzer:analyze-codebase` | `/investigate-project:report-features` |
-| 2 | `code-analyzer@analyze-code` | `investigate-project@blueskills` |
-| 3 | `analyze-codebase` | `report-features`（仅 skill/目录语境；plugin 名用 investigate-project） |
-| 4 | `weizhoublue/analyze-code` | `weizhoublue/blueskills` |
-| 5 | `code-analyzer` | `investigate-project`（plugin 语境）或 `blueskills`（若原指 marketplace/repo，需人工判断） |
-| 6 | `analyze-code` | `blueskills`（marketplace/repo 语境） |
+| 1 | `/investigate-project:report-features` | `/investigate-project:report-features` |
+| 2 | `investigate-project@blueskills` | `investigate-project@blueskills` |
+| 3 | `report-features` | `report-features`（仅 skill/目录语境；plugin 名用 investigate-project） |
+| 4 | `weizhoublue/blueskills` | `weizhoublue/blueskills` |
+| 5 | `investigate-project` | `investigate-project`（plugin 语境）或 `blueskills`（若原指 marketplace/repo，需人工判断） |
+| 6 | `blueskills` | `blueskills`（marketplace/repo 语境） |
 
-**注意 `code-analyzer` → 两种新名：** 实施时用上下文区分 marketplace vs plugin，避免一律替换。建议先替换行 1–4，再对剩余 `code-analyzer` 按「安装标识 / 斜杠前缀 / 页脚插件名」分别改为 `investigate-project` 或 `blueskills`。
+**注意 `investigate-project` → 两种新名：** 实施时用上下文区分 marketplace vs plugin，避免一律替换。建议先替换行 1–4，再对剩余 `investigate-project` 按「安装标识 / 斜杠前缀 / 页脚插件名」分别改为 `investigate-project` 或 `blueskills`。
 
 **显式不替换：** `analysis-report`、`REPORT_ROOT`。
 
@@ -128,25 +128,25 @@ marketplace 根**不得**包含 `plugin.json`。
 
 | 旧 | 新 |
 | --- | --- |
-| `weizhoublue/analyze-code` | `weizhoublue/blueskills` |
-| `code-analyzer@analyze-code` | `investigate-project@blueskills` |
-| `/code-analyzer:analyze-codebase` | `/investigate-project:report-features` |
+| `weizhoublue/blueskills` | `weizhoublue/blueskills` |
+| `investigate-project@blueskills` | `investigate-project@blueskills` |
+| `/investigate-project:report-features` | `/investigate-project:report-features` |
 
 ## 6. 文件迁移（实施顺序）
 
 1. `mkdir -p plugins/investigate-project/.claude-plugin plugins/investigate-project/skills/report-features`
 2. 写入 §4 两个 JSON。
 3. `git mv agents plugins/investigate-project/agents`
-4. `git mv skills/analyze-codebase plugins/investigate-project/skills/report-features`（或等价路径）
+4. `git mv skills/report-features plugins/investigate-project/skills/report-features`（或等价路径）
 5. 更新 `SKILL.md` 标题为 `# report-features`；cwd 检测指向 marketplace/plugin 路径。
 6. agents 页脚：`investigate-project` 插件；improvement-log 指向 `report-features` skill。
 7. 全仓 §5 替换 + 架构图路径更新。
-8. 主 spec：`2026-06-02-code-analyzer-plugin-design.md` → `2026-06-03-blueskills-plugin-design.md`（内容同步三层命名与 `plugins/investigate-project/` 树）。
+8. 主 spec：`2026-06-03-blueskills-plugin-design.md` → `2026-06-03-blueskills-plugin-design.md`（内容同步三层命名与 `plugins/investigate-project/` 树）。
 9. `docs/`、`README.md` 留在 marketplace 根。
 
 ## 7. Skill 要点（`report-features`）
 
-- 正文逻辑沿用原 `analyze-codebase` 编排（六 agent、多轮确认、质审、improvement-log）。
+- 正文逻辑沿用原 `report-features` 编排（六 agent、多轮确认、质审、improvement-log）。
 - 阶段 0：`REPORT_ROOT = <cwd>/analysis-report` 不变。
 - 若 cwd 在本 marketplace 克隆内（存在 `plugins/investigate-project/.claude-plugin/plugin.json`），提示用户 `cd` 到待分析项目。
 
@@ -158,9 +158,9 @@ marketplace 根**不得**包含 `plugin.json`。
 test -f .claude-plugin/marketplace.json
 test ! -f .claude-plugin/plugin.json
 test -f plugins/investigate-project/.claude-plugin/plugin.json
-test -f plugins/investigate-project/skills/report-features/SKILL.md
+test -f plugins/investigate-project/plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md
 test -d plugins/investigate-project/agents
-! test -d skills/analyze-codebase
+! test -f plugins/investigate-project/skills/report-features/SKILL.md
 ! test -d plugins/blueskills
 
 python3 -c "
@@ -173,8 +173,8 @@ p=json.load(open('plugins/investigate-project/.claude-plugin/plugin.json'))
 assert p['name']=='investigate-project' and p['version']=='0.1.0'
 "
 
-rg -n 'analyze-codebase|code-analyzer@analyze-code|/code-analyzer:|blueskills@blueskills|/blueskills:' --glob '!*.git' && exit 1 || true
-rg -n 'weizhoublue/analyze-code' && exit 1 || true
+rg -n 'report-features|investigate-project@blueskills|/investigate-project:|blueskills@blueskills|/blueskills:' --glob '!*.git' && exit 1 || true
+rg -n 'weizhoublue/blueskills' && exit 1 || true
 ```
 
 ### 8.2 Smoke test

@@ -105,7 +105,7 @@ tools: Read, Write, Glob
 ```markdown
 # 项目总体分析报告
 
-> 本报告由 `code-analyzer` 插件自动生成，所有结论均基于代码与文档双源印证。
+> 本报告由 `investigate-project` 插件自动生成，所有结论均基于代码与文档双源印证。
 > 当文档与代码冲突时，以代码实现与用户可见入口为准；无法确认的事项已显式标注。
 
 ## 1. 基本信息
@@ -170,7 +170,7 @@ tools: Read, Write, Glob
 
 （仅当 improvement-log 合并后 entries 非空时出现；否则**省略整章**。）
 
-> 本节记录流水线执行中的困难与可疑点，**不属于**业务分析结论，质审员**不核实**本节；供维护者迭代改进 `analyze-codebase` skill。
+> 本节记录流水线执行中的困难与可疑点，**不属于**业务分析结论，质审员**不核实**本节；供维护者迭代改进 `report-features` skill。
 
 ### <source 名，如 project-scout>
 - [<kind>] <summary>

@@ -63,7 +63,7 @@
 
 附录说明行（固定）：
 
-> 本节记录流水线执行中的困难与可疑点，**不属于**业务分析结论，质审员**不核实**本节；供维护者迭代改进 `analyze-codebase` skill。
+> 本节记录流水线执行中的困难与可疑点，**不属于**业务分析结论，质审员**不核实**本节；供维护者迭代改进 `report-features` skill。
 
 ## 5. 红线 R14
 
@@ -71,4 +71,4 @@
 
 ## 6. 文档位置说明
 
-improvement-log 的写入契约已**内嵌**在各 agent 正文的「改进记录（improvement-log）」小节（`agents/project-scout.md` 等），**不要**在 `agents/` 下另放片段文件——该目录仅放带 `name:` frontmatter 的 sub-agent 定义，否则易被插件自动发现或造成误解。维护时以本文 + 各 agent 内嵌节为准。
+improvement-log 的写入契约已**内嵌**在各 agent 正文的「改进记录（improvement-log）」小节（`plugins/investigate-project/agents/project-scout.md` 等），**不要**在 `agents/` 下另放片段文件——该目录仅放带 `name:` frontmatter 的 sub-agent 定义，否则易被插件自动发现或造成误解。维护时以本文 + 各 agent 内嵌节为准。

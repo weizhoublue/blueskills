@@ -2,8 +2,8 @@
 
 - 日期：2026-06-02
 - 状态：初稿（brainstorming 产物，待用户审阅后进入 writing-plans）
-- 上游文档：[`2026-06-02-code-analyzer-plugin-design.md`](./2026-06-02-code-analyzer-plugin-design.md) v5
-- 修订范围：`code-analyzer` 插件的「人工确认阶段（§3.3）」从一次性确认改为多轮迭代，新增 `add` 动作与 `project-scout` 窄扫模式
+- 上游文档：[`2026-06-03-blueskills-plugin-design.md`](./2026-06-03-blueskills-plugin-design.md) v5
+- 修订范围：`investigate-project` 插件的「人工确认阶段（§3.3）」从一次性确认改为多轮迭代，新增 `add` 动作与 `project-scout` 窄扫模式
 
 ## 1. 背景与目标
 
@@ -273,7 +273,7 @@ existing_candidates_summary:
 
 ### 7.5 复用同一个 agent 文件
 
-不新增 agent。在 `agents/project-scout.md` 末尾追加「窄扫模式（targeted mode）」节，包含 7.1–7.4 全部约束。主线程在 prompt 头部声明 `mode: targeted` 即触发对应分支。
+不新增 agent。在 `plugins/investigate-project/agents/project-scout.md` 末尾追加「窄扫模式（targeted mode）」节，包含 7.1–7.4 全部约束。主线程在 prompt 头部声明 `mode: targeted` 即触发对应分支。
 
 ## 8. `feature-boundary-reviewer` 全量重审
 
@@ -283,7 +283,7 @@ existing_candidates_summary:
 
 ### 8.2 origin 字段不许影响判定
 
-写入 `agents/feature-boundary-reviewer.md` 的硬性红线：
+写入 `plugins/investigate-project/agents/feature-boundary-reviewer.md` 的硬性红线：
 
 > reviewer 在打 `keep` / `exclude` / `merge` / `split` 标签时，必须仅依据业务功能判定规则与证据样本，**不得**因为某条 `origin = user-added` 或 `origin = user-split-from-*` 而调整判定。
 > origin 字段仅用于审计回溯，不进入判定逻辑。
@@ -383,7 +383,7 @@ existing_candidates_summary:
 
 ## 11. 对主 spec（v5）的具体改动清单
 
-将在 writing-plans / 实施阶段同步落到 [`2026-06-02-code-analyzer-plugin-design.md`](./2026-06-02-code-analyzer-plugin-design.md) 中：
+将在 writing-plans / 实施阶段同步落到 [`2026-06-03-blueskills-plugin-design.md`](./2026-06-03-blueskills-plugin-design.md) 中：
 
 | v5 章节 | 改动 |
 | --- | --- |

@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在仓库根目录构建 Claude Code 插件 `code-analyzer`：一个 Skill 编排 + 五个 sub-agent，对被分析项目产出业务功能分析报告。
+**Goal:** 在仓库根目录构建 Claude Code 插件 `investigate-project`：一个 Skill 编排 + 五个 sub-agent，对被分析项目产出业务功能分析报告。
 
-**Architecture:** 仓库根即插件根。`skills/analyze-codebase/SKILL.md` 在主线程编排；五个 agent 通过中间 JSON 文件协作（`boundary-review.json` → `feature-plan.json` → `features/*.json` + `integrations.json` → `overview.md`）；功能边界校准后插入人工确认。
+**Architecture:** 仓库根即插件根。`plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` 在主线程编排；五个 agent 通过中间 JSON 文件协作（`boundary-review.json` → `feature-plan.json` → `features/*.json` + `integrations.json` → `overview.md`）；功能边界校准后插入人工确认。
 
 **Tech Stack:** Claude Code plugin (`.claude-plugin/plugin.json`)、Skill (`SKILL.md` YAML frontmatter)、Sub-agents（Markdown + YAML frontmatter）；agent 工具仅限 `Read`、`Grep`、`Glob`、`Bash`、`Write`。
 
-**Reference:** 设计 spec 位于 `docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md`（v4）。执行人请在每个任务开始前对照 spec 中对应章节。
+**Reference:** 设计 spec 位于 `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`（v4）。执行人请在每个任务开始前对照 spec 中对应章节。
 
 **Conventions:**
 
@@ -24,12 +24,12 @@
 | 路径 | 职责 | 任务 |
 |---|---|---|
 | `.claude-plugin/plugin.json` | 插件清单 | Task 1 |
-| `skills/analyze-codebase/SKILL.md` | 主线程编排 + 人工确认 + 写 `feature-plan.json` | Task 2 |
-| `agents/project-scout.md` | 勘察员：索引 + 候选清单 + 3~8 条证据样本/项 | Task 3 |
-| `agents/feature-boundary-reviewer.md` | 边界校准员：keep/exclude/merge/split 标注 | Task 4 |
-| `agents/feature-digger.md` | 深挖员：单功能深挖 + md + json | Task 5 |
-| `agents/integration-analyst.md` | 集成分析员：三分类（feature / project / internal）| Task 6 |
-| `agents/report-writer.md` | 报告撰写员：严格依据 `feature-plan.json` | Task 7 |
+| `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` | 主线程编排 + 人工确认 + 写 `feature-plan.json` | Task 2 |
+| `plugins/investigate-project/agents/project-scout.md` | 勘察员：索引 + 候选清单 + 3~8 条证据样本/项 | Task 3 |
+| `plugins/investigate-project/agents/feature-boundary-reviewer.md` | 边界校准员：keep/exclude/merge/split 标注 | Task 4 |
+| `plugins/investigate-project/agents/feature-digger.md` | 深挖员：单功能深挖 + md + json | Task 5 |
+| `plugins/investigate-project/agents/integration-analyst.md` | 集成分析员：三分类（feature / project / internal）| Task 6 |
+| `plugins/investigate-project/agents/report-writer.md` | 报告撰写员：严格依据 `feature-plan.json` | Task 7 |
 | `README.md`（追加小节） | 用户使用说明 | Task 8 |
 
 执行人请在每个 task 内**完整粘贴**给定文本（不要省略），仅做必要的格式调整。
@@ -54,7 +54,7 @@ mkdir -p .claude-plugin
 
 ```json
 {
-  "name": "code-analyzer",
+  "name": "investigate-project",
   "displayName": "Code Analyzer",
   "version": "0.1.0",
   "description": "分析开源项目代码，梳理面向用户的业务功能并产出综合分析报告（一个 Skill + 五个 sub-agent 协作）",
@@ -68,16 +68,16 @@ mkdir -p .claude-plugin
 Run:
 
 ```bash
-test -f .claude-plugin/plugin.json && python3 -c "import json; d=json.load(open('.claude-plugin/plugin.json')); assert d['name']=='code-analyzer'; print('OK', d['name'], d['version'])"
+test -f .claude-plugin/plugin.json && python3 -c "import json; d=json.load(open('.claude-plugin/plugin.json')); assert d['name']=='investigate-project'; print('OK', d['name'], d['version'])"
 ```
 
-Expected: `OK code-analyzer 0.1.0`
+Expected: `OK investigate-project 0.1.0`
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add .claude-plugin/plugin.json
-git commit -m "feat(plugin): add code-analyzer plugin manifest"
+git commit -m "feat(plugin): add investigate-project plugin manifest"
 ```
 
 ---
@@ -86,24 +86,24 @@ git commit -m "feat(plugin): add code-analyzer plugin manifest"
 
 **Files:**
 
-- Create: `skills/analyze-codebase/SKILL.md`
+- Create: `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md`
 
 - [ ] **Step 1: 创建目录**
 
 ```bash
-mkdir -p skills/analyze-codebase
+mkdir -p plugins/investigate-project/skills/report-features
 ```
 
-- [ ] **Step 2: 写入 `skills/analyze-codebase/SKILL.md`**
+- [ ] **Step 2: 写入 `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md`**
 
-**完整内容**（直接粘贴，正文为中文；frontmatter 只需 `description`，目录名 `analyze-codebase` 自动作为 skill name）：
+**完整内容**（直接粘贴，正文为中文；frontmatter 只需 `description`，目录名 `report-features` 自动作为 skill name）：
 
 ````markdown
 ---
 description: 分析当前目录的开源项目，梳理面向用户的业务功能（一级/二级），产出综合分析报告。当用户希望理解一个项目「提供了哪些用户级别的业务能力」、「能与什么集成」、「优缺点」时使用。本 skill 在主线程编排 project-scout / feature-boundary-reviewer / feature-digger / integration-analyst / report-writer 五个 sub-agent，并在功能边界校准后插入一次人工确认。
 ---
 
-# analyze-codebase
+# report-features
 
 你是当前对话的**主编排者**。你的任务是按下述工作流，依次委派 5 个 sub-agent，将一个开源项目的代码与文档转化为面向用户的业务功能分析报告。
 
@@ -232,12 +232,12 @@ description: 分析当前目录的开源项目，梳理面向用户的业务功�
 Run:
 
 ```bash
-test -f skills/analyze-codebase/SKILL.md \
-  && grep -q "^description:" skills/analyze-codebase/SKILL.md \
-  && grep -q "禁止把代码目录结构直接等同于业务功能结构" skills/analyze-codebase/SKILL.md \
-  && grep -q "feature-plan.json" skills/analyze-codebase/SKILL.md \
-  && grep -q "boundary-review.json" skills/analyze-codebase/SKILL.md \
-  && grep -q "三分类" skills/analyze-codebase/SKILL.md \
+test -f plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md \
+  && grep -q "^description:" plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md \
+  && grep -q "禁止把代码目录结构直接等同于业务功能结构" plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md \
+  && grep -q "feature-plan.json" plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md \
+  && grep -q "boundary-review.json" plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md \
+  && grep -q "三分类" plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md \
   && echo OK
 ```
 
@@ -246,8 +246,8 @@ Expected: `OK`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add skills/analyze-codebase/SKILL.md
-git commit -m "feat(skill): add analyze-codebase orchestrator skill"
+git add plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md
+git commit -m "feat(skill): add report-features orchestrator skill"
 ```
 
 ---
@@ -256,7 +256,7 @@ git commit -m "feat(skill): add analyze-codebase orchestrator skill"
 
 **Files:**
 
-- Create: `agents/project-scout.md`
+- Create: `plugins/investigate-project/agents/project-scout.md`
 
 - [ ] **Step 1: 创建目录**
 
@@ -264,7 +264,7 @@ git commit -m "feat(skill): add analyze-codebase orchestrator skill"
 mkdir -p agents
 ```
 
-- [ ] **Step 2: 写入 `agents/project-scout.md`**
+- [ ] **Step 2: 写入 `plugins/investigate-project/agents/project-scout.md`**
 
 **完整内容**（直接粘贴）：
 
@@ -383,13 +383,13 @@ tools: Read, Grep, Glob, Bash
 Run:
 
 ```bash
-test -f agents/project-scout.md \
-  && grep -q "^name: project-scout$" agents/project-scout.md \
-  && grep -q "^model: inherit$" agents/project-scout.md \
-  && grep -q "^tools: Read, Grep, Glob, Bash$" agents/project-scout.md \
-  && grep -q "禁止全文读取" agents/project-scout.md \
-  && grep -q "3~8 条" agents/project-scout.md \
-  && grep -q "evidence_samples" agents/project-scout.md \
+test -f plugins/investigate-project/agents/project-scout.md \
+  && grep -q "^name: project-scout$" plugins/investigate-project/agents/project-scout.md \
+  && grep -q "^model: inherit$" plugins/investigate-project/agents/project-scout.md \
+  && grep -q "^tools: Read, Grep, Glob, Bash$" plugins/investigate-project/agents/project-scout.md \
+  && grep -q "禁止全文读取" plugins/investigate-project/agents/project-scout.md \
+  && grep -q "3~8 条" plugins/investigate-project/agents/project-scout.md \
+  && grep -q "evidence_samples" plugins/investigate-project/agents/project-scout.md \
   && echo OK
 ```
 
@@ -398,7 +398,7 @@ Expected: `OK`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add agents/project-scout.md
+git add plugins/investigate-project/agents/project-scout.md
 git commit -m "feat(agent): add project-scout (read-only, indexed scouting)"
 ```
 
@@ -408,9 +408,9 @@ git commit -m "feat(agent): add project-scout (read-only, indexed scouting)"
 
 **Files:**
 
-- Create: `agents/feature-boundary-reviewer.md`
+- Create: `plugins/investigate-project/agents/feature-boundary-reviewer.md`
 
-- [ ] **Step 1: 写入 `agents/feature-boundary-reviewer.md`**
+- [ ] **Step 1: 写入 `plugins/investigate-project/agents/feature-boundary-reviewer.md`**
 
 **完整内容**（直接粘贴）：
 
@@ -508,11 +508,11 @@ tools: Read, Grep, Glob
 Run:
 
 ```bash
-test -f agents/feature-boundary-reviewer.md \
-  && grep -q "^name: feature-boundary-reviewer$" agents/feature-boundary-reviewer.md \
-  && grep -q "^tools: Read, Grep, Glob$" agents/feature-boundary-reviewer.md \
-  && grep -q "不重读全仓" agents/feature-boundary-reviewer.md \
-  && grep -q "keep | exclude | merge | split" agents/feature-boundary-reviewer.md \
+test -f plugins/investigate-project/agents/feature-boundary-reviewer.md \
+  && grep -q "^name: feature-boundary-reviewer$" plugins/investigate-project/agents/feature-boundary-reviewer.md \
+  && grep -q "^tools: Read, Grep, Glob$" plugins/investigate-project/agents/feature-boundary-reviewer.md \
+  && grep -q "不重读全仓" plugins/investigate-project/agents/feature-boundary-reviewer.md \
+  && grep -q "keep | exclude | merge | split" plugins/investigate-project/agents/feature-boundary-reviewer.md \
   && echo OK
 ```
 
@@ -521,7 +521,7 @@ Expected: `OK`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add agents/feature-boundary-reviewer.md
+git add plugins/investigate-project/agents/feature-boundary-reviewer.md
 git commit -m "feat(agent): add feature-boundary-reviewer (lightweight feature gating)"
 ```
 
@@ -531,9 +531,9 @@ git commit -m "feat(agent): add feature-boundary-reviewer (lightweight feature g
 
 **Files:**
 
-- Create: `agents/feature-digger.md`
+- Create: `plugins/investigate-project/agents/feature-digger.md`
 
-- [ ] **Step 1: 写入 `agents/feature-digger.md`**
+- [ ] **Step 1: 写入 `plugins/investigate-project/agents/feature-digger.md`**
 
 **完整内容**（直接粘贴）：
 
@@ -695,15 +695,15 @@ tools: Read, Grep, Glob, Bash, Write
 Run:
 
 ```bash
-test -f agents/feature-digger.md \
-  && grep -q "^name: feature-digger$" agents/feature-digger.md \
-  && grep -q "^tools: Read, Grep, Glob, Bash, Write$" agents/feature-digger.md \
-  && grep -q "禁止读取" agents/feature-digger.md \
-  && grep -q "activation_flow" agents/feature-digger.md \
-  && grep -q "processing_stages" agents/feature-digger.md \
-  && grep -q "state_changes" agents/feature-digger.md \
-  && grep -q "external_interactions" agents/feature-digger.md \
-  && grep -q "user_outcomes" agents/feature-digger.md \
+test -f plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "^name: feature-digger$" plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "^tools: Read, Grep, Glob, Bash, Write$" plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "禁止读取" plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "activation_flow" plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "processing_stages" plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "state_changes" plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "external_interactions" plugins/investigate-project/agents/feature-digger.md \
+  && grep -q "user_outcomes" plugins/investigate-project/agents/feature-digger.md \
   && echo OK
 ```
 
@@ -712,7 +712,7 @@ Expected: `OK`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add agents/feature-digger.md
+git add plugins/investigate-project/agents/feature-digger.md
 git commit -m "feat(agent): add feature-digger (5-dim deep dive per feature)"
 ```
 
@@ -722,9 +722,9 @@ git commit -m "feat(agent): add feature-digger (5-dim deep dive per feature)"
 
 **Files:**
 
-- Create: `agents/integration-analyst.md`
+- Create: `plugins/investigate-project/agents/integration-analyst.md`
 
-- [ ] **Step 1: 写入 `agents/integration-analyst.md`**
+- [ ] **Step 1: 写入 `plugins/investigate-project/agents/integration-analyst.md`**
 
 **完整内容**（直接粘贴）：
 
@@ -826,13 +826,13 @@ tools: Read, Grep, Glob, Bash, Write
 Run:
 
 ```bash
-test -f agents/integration-analyst.md \
-  && grep -q "^name: integration-analyst$" agents/integration-analyst.md \
-  && grep -q "^tools: Read, Grep, Glob, Bash, Write$" agents/integration-analyst.md \
-  && grep -q "feature-level" agents/integration-analyst.md \
-  && grep -q "project-level" agents/integration-analyst.md \
-  && grep -q "internal-dependency" agents/integration-analyst.md \
-  && grep -q "owner_feature" agents/integration-analyst.md \
+test -f plugins/investigate-project/agents/integration-analyst.md \
+  && grep -q "^name: integration-analyst$" plugins/investigate-project/agents/integration-analyst.md \
+  && grep -q "^tools: Read, Grep, Glob, Bash, Write$" plugins/investigate-project/agents/integration-analyst.md \
+  && grep -q "feature-level" plugins/investigate-project/agents/integration-analyst.md \
+  && grep -q "project-level" plugins/investigate-project/agents/integration-analyst.md \
+  && grep -q "internal-dependency" plugins/investigate-project/agents/integration-analyst.md \
+  && grep -q "owner_feature" plugins/investigate-project/agents/integration-analyst.md \
   && echo OK
 ```
 
@@ -841,7 +841,7 @@ Expected: `OK`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add agents/integration-analyst.md
+git add plugins/investigate-project/agents/integration-analyst.md
 git commit -m "feat(agent): add integration-analyst with 3-way scope classification"
 ```
 
@@ -851,9 +851,9 @@ git commit -m "feat(agent): add integration-analyst with 3-way scope classificat
 
 **Files:**
 
-- Create: `agents/report-writer.md`
+- Create: `plugins/investigate-project/agents/report-writer.md`
 
-- [ ] **Step 1: 写入 `agents/report-writer.md`**
+- [ ] **Step 1: 写入 `plugins/investigate-project/agents/report-writer.md`**
 
 **完整内容**（直接粘贴）：
 
@@ -905,7 +905,7 @@ tools: Read, Write
 ```markdown
 # 项目总体分析报告
 
-> 本报告由 `code-analyzer` 插件自动生成，所有结论均基于代码与文档双源印证。
+> 本报告由 `investigate-project` 插件自动生成，所有结论均基于代码与文档双源印证。
 > 当文档与代码冲突时，以代码实现与用户可见入口为准；无法确认的事项已显式标注。
 
 ## 1. 基本信息
@@ -974,13 +974,13 @@ tools: Read, Write
 Run:
 
 ```bash
-test -f agents/report-writer.md \
-  && grep -q "^name: report-writer$" agents/report-writer.md \
-  && grep -q "^tools: Read, Write$" agents/report-writer.md \
-  && grep -q "严格来自" agents/report-writer.md \
-  && grep -q "不得新增、删除、合并、拆分、重命名" agents/report-writer.md \
-  && grep -q "未能从中间产物确认" agents/report-writer.md \
-  && ! grep -q "boundary-review.json" agents/report-writer.md \
+test -f plugins/investigate-project/agents/report-writer.md \
+  && grep -q "^name: report-writer$" plugins/investigate-project/agents/report-writer.md \
+  && grep -q "^tools: Read, Write$" plugins/investigate-project/agents/report-writer.md \
+  && grep -q "严格来自" plugins/investigate-project/agents/report-writer.md \
+  && grep -q "不得新增、删除、合并、拆分、重命名" plugins/investigate-project/agents/report-writer.md \
+  && grep -q "未能从中间产物确认" plugins/investigate-project/agents/report-writer.md \
+  && ! grep -q "boundary-review.json" plugins/investigate-project/agents/report-writer.md \
   && echo OK
 ```
 
@@ -991,7 +991,7 @@ Expected: `OK`
 - [ ] **Step 3: Commit**
 
 ```bash
-git add agents/report-writer.md
+git add plugins/investigate-project/agents/report-writer.md
 git commit -m "feat(agent): add report-writer (strict feature-plan.json consumer)"
 ```
 
@@ -1010,18 +1010,18 @@ Run:
 ```bash
 echo "=== Files ===" && \
 ls -la .claude-plugin/plugin.json \
-       skills/analyze-codebase/SKILL.md \
-       agents/project-scout.md \
-       agents/feature-boundary-reviewer.md \
-       agents/feature-digger.md \
-       agents/integration-analyst.md \
-       agents/report-writer.md && \
+       plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md \
+       plugins/investigate-project/agents/project-scout.md \
+       plugins/investigate-project/agents/feature-boundary-reviewer.md \
+       plugins/investigate-project/agents/feature-digger.md \
+       plugins/investigate-project/agents/integration-analyst.md \
+       plugins/investigate-project/agents/report-writer.md && \
 echo "=== plugin.json ===" && \
-python3 -c "import json; d=json.load(open('.claude-plugin/plugin.json')); assert d['name']=='code-analyzer'; print('manifest OK')" && \
+python3 -c "import json; d=json.load(open('.claude-plugin/plugin.json')); assert d['name']=='investigate-project'; print('manifest OK')" && \
 echo "=== agent frontmatter names ===" && \
-for f in agents/*.md; do head -8 "$f" | grep -E "^name: " ; done && \
+for f in plugins/investigate-project/agents/*.md; do head -8 "$f" | grep -E "^name: " ; done && \
 echo "=== red-line presence ===" && \
-for f in skills/analyze-codebase/SKILL.md agents/*.md; do \
+for f in plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md plugins/investigate-project/agents/*.md; do \
   grep -q "禁止把代码目录结构直接等同于业务功能结构" "$f" && echo "RED-LINE-1 OK: $f" || echo "MISSING RED-LINE in $f"; \
 done
 ```
@@ -1041,7 +1041,7 @@ Expected：所有文件存在、`manifest OK`、5 个 agent name 全部输出、
 在 Claude Code 中加载本目录作为插件后，对**待分析项目**目录运行以下指令：
 
 ```
-/code-analyzer:analyze-codebase
+/investigate-project:report-features
 ```
 
 执行流程：
@@ -1066,7 +1066,7 @@ Expected：所有文件存在、`manifest OK`、5 个 agent name 全部输出、
     └── <一级功能名>.json
 ```
 
-设计依据：`docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md`（v4）。
+设计依据：`docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`（v4）。
 ```
 
 - [ ] **Step 3: 校验 README 仍包含原需求**
@@ -1076,7 +1076,7 @@ Run:
 ```bash
 grep -q "制作一个分析开源项目代码的 claude code 的 plugin" README.md \
   && grep -q "## 使用方式（plugin 安装后）" README.md \
-  && grep -q "/code-analyzer:analyze-codebase" README.md \
+  && grep -q "/investigate-project:report-features" README.md \
   && echo OK
 ```
 
@@ -1089,18 +1089,18 @@ Run:
 ```bash
 echo "=== spec referenced files all exist ===" && \
 test -f .claude-plugin/plugin.json && \
-test -d skills/analyze-codebase && test -f skills/analyze-codebase/SKILL.md && \
+test -f plugins/investigate-project/skills/report-features/SKILL.md && test -f plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md && \
 test -d agents && \
-test -f agents/project-scout.md && \
-test -f agents/feature-boundary-reviewer.md && \
-test -f agents/feature-digger.md && \
-test -f agents/integration-analyst.md && \
-test -f agents/report-writer.md && \
+test -f plugins/investigate-project/agents/project-scout.md && \
+test -f plugins/investigate-project/agents/feature-boundary-reviewer.md && \
+test -f plugins/investigate-project/agents/feature-digger.md && \
+test -f plugins/investigate-project/agents/integration-analyst.md && \
+test -f plugins/investigate-project/agents/report-writer.md && \
 echo "structure OK" && \
 echo "=== feature-plan.json mentions ===" && \
-grep -l "feature-plan.json" skills/analyze-codebase/SKILL.md agents/feature-digger.md agents/integration-analyst.md agents/report-writer.md && \
+grep -l "feature-plan.json" plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md plugins/investigate-project/agents/feature-digger.md plugins/investigate-project/agents/integration-analyst.md plugins/investigate-project/agents/report-writer.md && \
 echo "=== five-dim presence in digger ===" && \
-grep -E "activation_flow|processing_stages|state_changes|external_interactions|user_outcomes" agents/feature-digger.md | wc -l
+grep -E "activation_flow|processing_stages|state_changes|external_interactions|user_outcomes" plugins/investigate-project/agents/feature-digger.md | wc -l
 ```
 
 Expected: `structure OK`；feature-plan.json grep 命中 4 个文件；5 维关键词 wc -l ≥ 5。
@@ -1140,7 +1140,7 @@ git commit -m "docs: append plugin usage section to README"
 
 ### 类型/命名一致性
 
-- 文件 / 目录命名一致（`agents/`、`skills/analyze-codebase/`、`.claude-plugin/`）。
+- 文件 / 目录命名一致（`agents/`、`plugins/investigate-project/skills/report-features/`、`.claude-plugin/`）。
 - 字段命名一致（`feature-plan.json`、`boundary-review.json`、`integrations.json`、`features/<名>.{md,json}`）。
 - 五维字段命名在 Task 5 与 Task 2 SKILL 中保持一致：`activation_flow` / `processing_stages` / `state_changes` / `external_interactions` / `user_outcomes`。
 - 三分类标签一致：`feature-level` / `project-level` / `internal-dependency`。
@@ -1149,7 +1149,7 @@ git commit -m "docs: append plugin usage section to README"
 
 ## 执行交接
 
-Plan 完整并已保存到 `docs/superpowers/plans/2026-06-02-code-analyzer-plugin-implementation.md`。两种执行方式：
+Plan 完整并已保存到 `docs/superpowers/plans/2026-06-02-investigate-project-plugin-implementation.md`。两种执行方式：
 
 1. **Subagent-Driven（推荐）** — 每个 task 派一个干净的 subagent，task 间评审，迭代快。
 2. **Inline Execution** — 在当前会话内分批执行，按 checkpoint 回审。

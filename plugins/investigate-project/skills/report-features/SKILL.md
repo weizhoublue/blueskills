@@ -2,7 +2,7 @@
 description: 分析当前工作目录下的开源项目，产出写入 <cwd>/analysis-report/ 的综合报告（阶段 0 锁定 REPORT_ROOT 绝对路径）。编排六个 sub-agent + 多轮人工确认 + 质审（≤5 轮）。使用前请先 cd 到待分析项目根目录。
 ---
 
-# analyze-codebase
+# report-features
 
 你是当前对话的**主编排者**。你的任务是按下述工作流，依次委派 6 个 sub-agent（`project-scout`、`feature-boundary-reviewer`、`feature-digger`、`integration-analyst`、`report-writer`、`report-quality-challenger`），将一个开源项目的代码与文档转化为面向用户的业务功能分析报告。
 
@@ -80,7 +80,7 @@ REPORT_ROOT = <当前工作目录绝对路径>/analysis-report
 - **R11（质审轮次）**：每个质审 target 的 challenger 调用 **≤ 5 轮**；第 5 轮后若仍有 blocking/major，由 **challenger** 写 `*-final.json`（`max_rounds_reached`）并**继续**流水线（不阻塞出报告）。
 - **R12（英文报告文件名）**：`overview.md` 与 `features/<slug>.md` 的文件名必须为英文 kebab-case（`slug`）；禁止以中文 `name` 作为磁盘文件名。
 - **R13（产物根目录）**：所有中间产物与报告 **必须** 写在 `REPORT_ROOT/` 下；委派 prompt **必须** 附带 `REPORT_ROOT` 的**绝对路径**；禁止写到其它目录。
-- **R14（改进记录免质审）**：各阶段可向 `{REPORT_ROOT}/improvement-log/` 追加执行困难/可疑点；`report-quality-challenger` **不得**据此提出 blocking/major，**不得**要求删除或「证实」这些记录。设计见 [`docs/superpowers/specs/2026-06-02-improvement-log-design.md`](../../docs/superpowers/specs/2026-06-02-improvement-log-design.md)。
+- **R14（改进记录免质审）**：各阶段可向 `{REPORT_ROOT}/improvement-log/` 追加执行困难/可疑点；`report-quality-challenger` **不得**据此提出 blocking/major，**不得**要求删除或「证实」这些记录。设计见 [`docs/superpowers/specs/2026-06-02-improvement-log-design.md`](../../../../docs/superpowers/specs/2026-06-02-improvement-log-design.md)。
 
 ## 改进记录（improvement-log）
 
@@ -106,7 +106,8 @@ Write file
 
 ```text
 1. 执行 pwd（或等价）得到 ANALYZE_CWD（被分析项目根目录的绝对路径）
-   - 若 cwd 像是插件仓库 analyze-code（含 .claude-plugin/ 且无待分析项目特征），
+   - 若 cwd 在本 marketplace 克隆内（例如存在 `plugins/investigate-project/.claude-plugin/plugin.json`
+     或根目录 `.claude-plugin/marketplace.json` 且无待分析项目特征），
      提示用户先 cd 到待分析项目再运行本 skill，不要继续写产物
 2. REPORT_ROOT ← ANALYZE_CWD + "/analysis-report"
 3. mkdir -p REPORT_ROOT/{features,boundary-review,quality-review,quality-review/features,improvement-log,improvement-log/features}
@@ -157,7 +158,7 @@ while round ≤ 5:
 
 委派 `feature-boundary-reviewer` 做**初审**（**不重读全仓**），仅基于 project-scout 的候选清单与证据样本，对每条候选给出 `keep | exclude | merge | split` 标注 + 简短理由 + 证据引用。**初审时所有 candidate 的 `origin == scout-initial`**。
 
-> 注：同一个 agent 会在阶段 3 的多轮循环里被**反复调用**做全量重审，并接收 `prev_reviews` 作为稳定性比对偏好；详见 §阶段 3.4 与 `agents/feature-boundary-reviewer.md` 的「重审说明」节。
+> 注：同一个 agent 会在阶段 3 的多轮循环里被**反复调用**做全量重审，并接收 `prev_reviews` 作为稳定性比对偏好；详见 §阶段 3.4 与 `plugins/investigate-project/agents/feature-boundary-reviewer.md` 的「重审说明」节。
 
 ### 阶段 3：人工确认（多轮循环，在主线程中完成）
 
@@ -210,7 +211,7 @@ while round ≤ 5:
 - `rename`：只改 `name`，`origin` 与 **`slug`（若已存在）** 不动。
 - `exclude`：直接从 candidates 移除；编号写入 `user_decision_summary.excluded_ids` 供审计。**不进入** `final.json.candidates`（与 §3.5 伪代码 `apply_exclude` 行为一致）。
 
-`origin` 仅用于审计与下游 digger 报告引用，**禁止**进入 reviewer 判定（见 `agents/feature-boundary-reviewer.md` 红线 7）。
+`origin` 仅用于审计与下游 digger 报告引用，**禁止**进入 reviewer 判定（见 `plugins/investigate-project/agents/feature-boundary-reviewer.md` 红线 7）。
 
 **`slug`（v7.1）**：人工确认阶段 candidates **可不**带 `slug`；在生成 `feature-plan.json` 时由主线程统一赋值。若某条在循环中已临时带有 `slug`（例如上轮 split 子项），`merge` 到目标项时**保留目标的 slug**，被合并项的 slug 废弃。
 
@@ -221,7 +222,7 @@ while round ≤ 5:
 - `candidates`：本轮处理后的完整新清单，每条带 `origin`。
 - `prev_reviews`（可选）：上一轮（或初审）的 `{<id>: {decision, reason}}`，**仅供 reviewer 做稳定性比对偏好**，不作为判定来源。如果某条的 `evidence_samples` 没变且 `origin == scout-initial`，鼓励 reviewer 保留原判定；否则 reviewer 仍按规则独立判定。
 
-> 该契约与 `agents/feature-boundary-reviewer.md` 的「重审说明」节对齐。
+> 该契约与 `plugins/investigate-project/agents/feature-boundary-reviewer.md` 的「重审说明」节对齐。
 
 #### 3.5 主线程循环（伪代码）
 

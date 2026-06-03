@@ -4,7 +4,7 @@
 
 **Goal:** 将仓库改造为可安装的 `weizhoublue/blueskills` marketplace，首个 plugin 为 `investigate-project`，入口 skill 为 `report-features`，并全仓替换旧标识。
 
-**Architecture:** marketplace 根仅含 `marketplace.json`；plugin 位于 `plugins/investigate-project/`（`plugin.json` + `skills/report-features/SKILL.md` + `agents/`）。用户安装 `investigate-project@blueskills`，调用 `/investigate-project:report-features`。产物仍为 `<cwd>/analysis-report/`。
+**Architecture:** marketplace 根仅含 `marketplace.json`；plugin 位于 `plugins/investigate-project/`（`plugin.json` + `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` + `agents/`）。用户安装 `investigate-project@blueskills`，调用 `/investigate-project:report-features`。产物仍为 `<cwd>/analysis-report/`。
 
 **Tech Stack:** Claude Code plugin/marketplace JSON、Skill/agent Markdown、bash/rg 校验。
 
@@ -18,13 +18,13 @@
 | --- | --- |
 | `.claude-plugin/marketplace.json` | 新建 |
 | `plugins/investigate-project/.claude-plugin/plugin.json` | 新建 |
-| `plugins/investigate-project/skills/report-features/SKILL.md` | 自 `skills/analyze-codebase/SKILL.md` 迁移+改 |
-| `plugins/investigate-project/agents/*.md` | 自 `agents/` 迁移+改 |
+| `plugins/investigate-project/plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` | 自 `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` 迁移+改 |
+| `plugins/investigate-project/plugins/investigate-project/agents/*.md` | 自 `agents/` 迁移+改 |
 | `skills/`、`agents/`（根） | 删除（迁移后） |
 | `README.md` | 重写 |
 | `docs/installation.md`、`docs/README.md` | 修改 |
 | `docs/superpowers/specs/*.md`、`plans/*.md` | 全量替换旧名；主 spec 重命名 |
-| `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md` | 自 `2026-06-02-code-analyzer-plugin-design.md` 重命名+更新 |
+| `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md` | 自 `2026-06-03-blueskills-plugin-design.md` 重命名+更新 |
 
 ---
 
@@ -60,26 +60,26 @@ git commit -m "feat(marketplace): add blueskills catalog and investigate-project
 
 **Files:**
 - Move: `agents/` → `plugins/investigate-project/agents/`
-- Move: `skills/analyze-codebase/` → `plugins/investigate-project/skills/report-features/`
+- Move: `plugins/investigate-project/skills/report-features/` → `plugins/investigate-project/plugins/investigate-project/skills/report-features/`
 
 - [ ] **Step 1:**
 
 ```bash
 mkdir -p plugins/investigate-project/skills
 git mv agents plugins/investigate-project/agents
-git mv skills/analyze-codebase plugins/investigate-project/skills/report-features
+git mv skills/report-features plugins/investigate-project/skills/report-features
 rmdir skills 2>/dev/null || true
 ```
 
-- [ ] **Step 2:** 编辑 `plugins/investigate-project/skills/report-features/SKILL.md`
+- [ ] **Step 2:** 编辑 `plugins/investigate-project/plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md`
   - 标题 `# report-features`
   - frontmatter `description` 提及 `report-features` / `investigate-project`
   - 防误写：检测 `plugins/investigate-project` 或 marketplace 克隆路径
   - 保留 `analysis-report` / `REPORT_ROOT` 全文
 
-- [ ] **Step 3:** 编辑 `plugins/investigate-project/agents/report-writer.md` 页脚与 improvement-log 行（`investigate-project` 插件、`report-features` skill）
+- [ ] **Step 3:** 编辑 `plugins/investigate-project/plugins/investigate-project/agents/report-writer.md` 页脚与 improvement-log 行（`investigate-project` 插件、`report-features` skill）
 
-- [ ] **Step 4:** 其余 agent 若含 `code-analyzer` / `analyze-codebase` 先不改（Task 3 统一替换）
+- [ ] **Step 4:** 其余 agent 若含 `investigate-project` / `report-features` 先不改（Task 3 统一替换）
 
 - [ ] **Step 5:** Commit
 
@@ -95,20 +95,20 @@ git commit -m "refactor(plugin): move agents and report-features skill under inv
 **Files:** 所有 `*.md`、`*.json`（含 `docs/superpowers/**`）
 
 - [ ] **Step 1:** 按 spec §5 **顺序** 执行替换（建议 `rg -l` 列出文件后分批）：
-  1. `/code-analyzer:analyze-codebase` → `/investigate-project:report-features`
-  2. `code-analyzer@analyze-code` → `investigate-project@blueskills`
-  3. `analyze-codebase` → `report-features`（注意勿误改已正确的 `investigate-project` 目录名）
-  4. `weizhoublue/analyze-code` → `weizhoublue/blueskills`
-  5. 剩余 `code-analyzer`：安装/斜杠/页脚 → `investigate-project`；marketplace/repo → `blueskills`
-  6. `analyze-code` → `blueskills`（repo/marketplace 语境）
+  1. `/investigate-project:report-features` → `/investigate-project:report-features`
+  2. `investigate-project@blueskills` → `investigate-project@blueskills`
+  3. `report-features` → `report-features`（注意勿误改已正确的 `investigate-project` 目录名）
+  4. `weizhoublue/blueskills` → `weizhoublue/blueskills`
+  5. 剩余 `investigate-project`：安装/斜杠/页脚 → `investigate-project`；marketplace/repo → `blueskills`
+  6. `blueskills` → `blueskills`（repo/marketplace 语境）
 
 - [ ] **Step 2:** 架构图目录树改为 `blueskills/` + `plugins/investigate-project/` 结构
 
 - [ ] **Step 3:** 残留检查
 
 ```bash
-rg -n 'analyze-codebase|code-analyzer@analyze-code|/code-analyzer:|blueskills@blueskills|/blueskills:' --glob '!*.git' || echo OK
-rg -n 'weizhoublue/analyze-code' --glob '!*.git' || echo OK
+rg -n 'report-features|investigate-project@blueskills|/investigate-project:|blueskills@blueskills|/blueskills:' --glob '!*.git' || echo OK
+rg -n 'weizhoublue/blueskills' --glob '!*.git' || echo OK
 ```
 
 - [ ] **Step 4:** Commit
@@ -123,7 +123,7 @@ git commit -m "chore: rename identifiers to blueskills marketplace and investiga
 ## Task 4: 主 spec 重命名与 README
 
 **Files:**
-- Rename: `docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md` → `2026-06-03-blueskills-plugin-design.md`
+- Rename: `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md` → `2026-06-03-blueskills-plugin-design.md`
 - Modify: `README.md`, `docs/README.md`, `docs/installation.md`
 - Modify: 所有指向旧 spec 文件名的链接
 
@@ -155,7 +155,7 @@ git commit -m "docs: align README and installation with blueskills marketplace l
   - `/plugin install investigate-project@blueskills`
   - `/investigate-project:report-features`
 
-- [ ] **Step 4:** 确认 `plugins/investigate-project/skills/report-features/SKILL.md` 阶段 0 仍写 `analysis-report`
+- [ ] **Step 4:** 确认 `plugins/investigate-project/plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` 阶段 0 仍写 `analysis-report`
 
 ---
 

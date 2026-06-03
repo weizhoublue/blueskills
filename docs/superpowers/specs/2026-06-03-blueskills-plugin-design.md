@@ -1,4 +1,4 @@
-# 设计文档：code-analyzer Claude Code 插件
+# 设计文档：blueskills marketplace — investigate-project 插件
 
 - 日期：2026-06-02
 - 状态：修订 v7（在 v6 基础上补充：NarrativeBlock 叙事深度、`module_landscape` 双层模块、`report-quality-challenger` 三检查点质审 ≤5 轮/target；详见 [`2026-06-02-report-depth-and-quality-agent-design.md`](./2026-06-02-report-depth-and-quality-agent-design.md)）
@@ -19,22 +19,27 @@
 
 ## 2. 整体架构
 
-仓库根目录本身即插件。采用「主对话 Skill 编排 + 多只读 subagent 分工 + 人工确认裁剪」模式，以降低单 agent 的上下文压力，让每个 agent 产出更专注、准确，并避免对「不是用户关心的功能」做无谓深挖。
+仓库根为 **marketplace**；首个 plugin 位于 `plugins/investigate-project/`。采用「主对话 Skill 编排 + 多只读 subagent 分工 + 人工确认裁剪」模式。
 
 ```text
-analyze-code/                         # 插件根
+blueskills/                              # marketplace 根
 ├── .claude-plugin/
-│   └── plugin.json                   # 清单 (name: code-analyzer)
-├── skills/
-│   └── analyze-codebase/
-│       └── SKILL.md                  # 编排入口: /code-analyzer:analyze-codebase
-├── agents/
-│   ├── project-scout.md              # 项目勘察员 (只读)
-│   ├── feature-boundary-reviewer.md  # 功能边界校准员 (只读，轻量) [新增]
-│   ├── feature-digger.md             # 功能深挖员 (只读 + 写报告+中间产物，可并行复用)
-│   ├── integration-analyst.md        # 集成分析员 (只读 + 写 integrations.json)
-│   ├── report-writer.md              # 报告撰写员 (可写 overview.md)
-│   └── report-quality-challenger.md  # 报告质量质审员 (v7) [新增]
+│   └── marketplace.json                 # name: blueskills
+├── plugins/
+│   └── investigate-project/             # plugin 根 (name: investigate-project)
+│       ├── .claude-plugin/
+│       │   └── plugin.json
+│       ├── skills/
+│       │   └── report-features/
+│       │       └── SKILL.md             # /investigate-project:report-features
+│       └── agents/
+│           ├── project-scout.md
+│           ├── feature-boundary-reviewer.md
+│           ├── feature-digger.md
+│           ├── integration-analyst.md
+│           ├── report-writer.md
+│           └── report-quality-challenger.md
+├── docs/
 └── README.md
 ```
 
@@ -70,7 +75,7 @@ project-scout
    - 返回两部分（结构化）：
      - **Part 1 项目级概览**：`main_language` / `runtime_platforms` / `overall_responsibility` / `scenarios` / `problems_solved`（**NarrativeBlock[]**，每条 150~400 字）/ `industry_context_notes` / `pros` / `cons` / `architecture_summary` / **`module_landscape`**（双层模块）；主线程**原样写入** `./analysis-report/project-overview.json`；阶段 1b 经 `report-quality-challenger` 质审。Schema 见 §6.3.5。
      - **Part 2 一级功能候选清单**：每项含编号、名称、简述、用户暴露面、代码路径、文档路径、3~8 条证据样本。
-   - [v6] `project-scout` 同一个 agent 文件还支持 `mode: targeted` 窄扫模式，由阶段 3 用户 `add` 时触发；窄扫只对一个用户提名的功能名做定向证据搜索，预算上限约为初次扫描的 1/3 ~ 1/2 量级（Glob/Grep ~40%、Read 总次数 ~27%、Read 总行数 ~13%，具体见 `agents/project-scout.md` §C 与 [`2026-06-02-iterative-confirmation-v6.md`](./2026-06-02-iterative-confirmation-v6.md) §7.3 预算表）；三态返回 `found` / `duplicate` / `not_found`。详见 `agents/project-scout.md` 的「窄扫模式」节。
+   - [v6] `project-scout` 同一个 agent 文件还支持 `mode: targeted` 窄扫模式，由阶段 3 用户 `add` 时触发；窄扫只对一个用户提名的功能名做定向证据搜索，预算上限约为初次扫描的 1/3 ~ 1/2 量级（Glob/Grep ~40%、Read 总次数 ~27%、Read 总行数 ~13%，具体见 `plugins/investigate-project/agents/project-scout.md` §C 与 [`2026-06-02-iterative-confirmation-v6.md`](./2026-06-02-iterative-confirmation-v6.md) §7.3 预算表）；三态返回 `found` / `duplicate` / `not_found`。详见 `plugins/investigate-project/agents/project-scout.md` 的「窄扫模式」节。
 
 2. **功能边界校准阶段** [新增] → 调用 `feature-boundary-reviewer`（只读、轻量）：
    - 输入：`project-scout` 产出的候选清单与少量证据样本（**不重读全仓**）。
@@ -296,7 +301,7 @@ project-scout
 
 #### 6.3.3 `features/<slug>.json`
 
-v7 使用 **NarrativeBlock**（见 [`2026-06-02-report-depth-and-quality-agent-design.md`](./2026-06-02-report-depth-and-quality-agent-design.md) §3）作为 `scenarios[]` / `problems_solved[]` 元素；完整 JSON 示例见 `agents/feature-digger.md`。
+v7 使用 **NarrativeBlock**（见 [`2026-06-02-report-depth-and-quality-agent-design.md`](./2026-06-02-report-depth-and-quality-agent-design.md) §3）作为 `scenarios[]` / `problems_solved[]` 元素；完整 JSON 示例见 `plugins/investigate-project/agents/feature-digger.md`。
 
 ```json
 {
@@ -365,7 +370,7 @@ v7 使用 **NarrativeBlock**（见 [`2026-06-02-report-depth-and-quality-agent-d
 
 #### 6.3.5 `project-overview.json`（项目级概览；overview.md §1–§6 数据源）
 
-v7 使用 **NarrativeBlock**（见 [`2026-06-02-report-depth-and-quality-agent-design.md`](./2026-06-02-report-depth-and-quality-agent-design.md) §3）作为 `scenarios[]` / `problems_solved[]` 元素；另含 `industry_context_notes[]`（≤3）、`module_landscape`（双层模块，§4）。完整 JSON 示例见 `agents/project-scout.md` Part 1。
+v7 使用 **NarrativeBlock**（见 [`2026-06-02-report-depth-and-quality-agent-design.md`](./2026-06-02-report-depth-and-quality-agent-design.md) §3）作为 `scenarios[]` / `problems_solved[]` 元素；另含 `industry_context_notes[]`（≤3）、`module_landscape`（双层模块，§4）。完整 JSON 示例见 `plugins/investigate-project/agents/project-scout.md` Part 1。
 
 字段说明：
 - 由 `project-scout` 返回 Part 1；主线程写入后由 `report-quality-challenger` 质审（≤5 轮）。

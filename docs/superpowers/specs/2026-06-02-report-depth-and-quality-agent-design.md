@@ -2,7 +2,7 @@
 
 - 日期：2026-06-02
 - 状态：已实现（见 plan [`2026-06-02-report-depth-and-quality-agent-v7.md`](../plans/2026-06-02-report-depth-and-quality-agent-v7.md)）
-- 上游文档：[`2026-06-02-code-analyzer-plugin-design.md`](./2026-06-02-code-analyzer-plugin-design.md) v6
+- 上游文档：[`2026-06-03-blueskills-plugin-design.md`](./2026-06-03-blueskills-plugin-design.md) v6
 - 修订范围：加深项目级/功能级「应用场景」「痛点」叙事；`overview.md` 新增「功能模块与协作关系」；新增 `report-quality-challenger` 与多检查点质审循环（每目标最多 5 轮）
 
 ## 1. 背景与目标
@@ -286,7 +286,7 @@ if round > 5 and 仍有 blocking issues:
 
 - Part 1：`scenarios` / `problems_solved` 改为 `NarrativeBlock[]`；新增 `module_landscape`；可选 `industry_context_notes[]`。
 - 删除「每条 ≤ 80 字」限制。
-- Read 预算：Part 1 相关 **+5 次**（用于 CHANGELOG / ADR / architecture 文档）；总 Read 仍受 scout 全局上限约束，需在 `agents/project-scout.md` 写明新上限数字。
+- Read 预算：Part 1 相关 **+5 次**（用于 CHANGELOG / ADR / architecture 文档）；总 Read 仍受 scout 全局上限约束，需在 `plugins/investigate-project/agents/project-scout.md` 写明新上限数字。
 
 ### 7.3 `feature-digger` 变更
 
@@ -300,7 +300,7 @@ if round > 5 and 仍有 blocking issues:
 - 读取质审 final（**仅** `project-overview-final.json`、`integrations-final.json`、`features/<slug>-final.json`；**仅** `max_rounds_reached` 时存在）。全部通过时无 final 文件属正常；overview §9 **禁止**写 glob/路径等技术说明。
 - **仍禁止**补造 confirmed 内容；缺字段仍写「未能从中间产物确认」。
 
-### 7.5 `skills/analyze-codebase/SKILL.md` 编排
+### 7.5 `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` 编排
 
 在阶段 1 主线程写入 `project-overview.json` 后插入：
 
@@ -346,13 +346,13 @@ if round > 5 and 仍有 blocking issues:
 
 ## 10. 对主规格文档的合并指引
 
-实现完成后，将本文 §3–§9 合并进 `2026-06-02-code-analyzer-plugin-design.md` 升为 **v7**，并更新：
+实现完成后，将本文 §3–§9 合并进 `2026-06-03-blueskills-plugin-design.md` 升为 **v7**，并更新：
 
 - §3 工作流图（插入质审节点）
 - §4 Agent 表
 - §6.1 / §6.2 / §6.3.5 schema
 - §7 红线
-- `agents/*.md`、`skills/analyze-codebase/SKILL.md`、`docs/README.md`
+- `plugins/investigate-project/plugins/investigate-project/agents/*.md`、`plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md`、`docs/README.md`
 
 ## 11. 非目标（YAGNI）
 
@@ -363,7 +363,7 @@ if round > 5 and 仍有 blocking issues:
 
 ## 12. 验收标准
 
-1. 跑完 analyze-codebase 后，`project-overview.json` 含 `module_landscape` 且 `problems_solved` 为 NarrativeBlock 数组。
+1. 跑完 report-features 后，`project-overview.json` 含 `module_landscape` 且 `problems_solved` 为 NarrativeBlock 数组。
 2. `overview.md` 存在 §6 双层模块说明，§3 痛点为段落级而非单句。
 3. 任意 `features/<slug>.md` 的「应用场景」「痛点」「二级功能」均为多段落 + 证据标注。
 4. `quality-review/` 存在至少 project-overview 与每个 feature 的 round 记录；人工可追踪 5 轮内回灌历史。

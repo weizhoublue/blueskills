@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown 提示词（Claude Code 插件）；校验命令 `claude plugin validate .`（若 CLI 可用）+ `rg` 契约检查。
 
-**Spec 来源:** [`docs/superpowers/specs/2026-06-02-report-depth-and-quality-agent-design.md`](../specs/2026-06-02-report-depth-and-quality-agent-design.md)；完成后合并 [`docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md`](../specs/2026-06-02-code-analyzer-plugin-design.md) v6 → v7。
+**Spec 来源:** [`docs/superpowers/specs/2026-06-02-report-depth-and-quality-agent-design.md`](../specs/2026-06-02-report-depth-and-quality-agent-design.md)；完成后合并 [`docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`](../specs/2026-06-03-blueskills-plugin-design.md) v6 → v7。
 
 ---
 
@@ -16,13 +16,13 @@
 
 | 文件 | 责任 | 改动类型 |
 | --- | --- | --- |
-| `agents/project-scout.md` | Part 1 v7 schema、`module_landscape`、NarrativeBlock 写作指引、Read 预算 30→35 | 修改 |
-| `agents/report-quality-challenger.md` | 新 agent：质审清单、issue schema、红线 R9–R11 落地 | **新增** |
-| `agents/feature-digger.md` | v7 JSON/md 模板、sub_features 加厚、Read 25→35 | 修改 |
-| `agents/report-writer.md` | 渲染 NarrativeBlock、overview §6、读 quality-review final | 修改 |
-| `agents/integration-analyst.md` | 质审回灌修订说明（issues 输入契约） | 修改（小） |
-| `skills/analyze-codebase/SKILL.md` | 三处质审循环伪代码、全局 R9–R11、agent 数量 5→6 | 修改 |
-| `docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md` | 主 spec v6→v7 合并 | 修改 |
+| `plugins/investigate-project/agents/project-scout.md` | Part 1 v7 schema、`module_landscape`、NarrativeBlock 写作指引、Read 预算 30→35 | 修改 |
+| `plugins/investigate-project/agents/report-quality-challenger.md` | 新 agent：质审清单、issue schema、红线 R9–R11 落地 | **新增** |
+| `plugins/investigate-project/agents/feature-digger.md` | v7 JSON/md 模板、sub_features 加厚、Read 25→35 | 修改 |
+| `plugins/investigate-project/agents/report-writer.md` | 渲染 NarrativeBlock、overview §6、读 quality-review final | 修改 |
+| `plugins/investigate-project/agents/integration-analyst.md` | 质审回灌修订说明（issues 输入契约） | 修改（小） |
+| `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md` | 三处质审循环伪代码、全局 R9–R11、agent 数量 5→6 | 修改 |
+| `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md` | 主 spec v6→v7 合并 | 修改 |
 | `docs/README.md` | 工作流与产物目录 | 修改 |
 | `.claude-plugin/plugin.json` | description 提及 6 个 sub-agent | 修改 |
 | `.claude-plugin/marketplace.json` | 同上 | 修改 |
@@ -33,9 +33,9 @@
 ## Task 1: `project-scout` Part 1 v7 schema
 
 **Files:**
-- Modify: `agents/project-scout.md`
+- Modify: `plugins/investigate-project/agents/project-scout.md`
 
-- [ ] **Step 1: Read `agents/project-scout.md` 全文**，定位 Part 1 JSON 块（约 L84–L101）与预算行（约 L37）。
+- [ ] **Step 1: Read `plugins/investigate-project/agents/project-scout.md` 全文**，定位 Part 1 JSON 块（约 L84–L101）与预算行（约 L37）。
 
 - [ ] **Step 2: 将整轮 Read 预算 `≤ 30` 改为 `≤ 35`**，并在同段追加一句：「Part 1 的 `module_landscape` / CHANGELOG / ADR 定向读取计入此预算，优先读 `CHANGELOG*`、`docs/architecture*`、`docs/design*`。」
 
@@ -130,8 +130,8 @@
 Run:
 
 ```bash
-cd /Users/weizhoulan/Documents/git/analyze-code
-rg -n '≤ 80 字' agents/project-scout.md
+cd /path/to/blueskills
+rg -n '≤ 80 字' plugins/investigate-project/agents/project-scout.md
 ```
 
 Expected: **无匹配**（已删除旧限制）。
@@ -143,7 +143,7 @@ claude plugin validate . 2>/dev/null || echo "skip if CLI unavailable"
 - [ ] **Step 7: Commit**
 
 ```bash
-git add agents/project-scout.md
+git add plugins/investigate-project/agents/project-scout.md
 git commit -m "$(cat <<'EOF'
 feat(scout): v7 NarrativeBlock and module_landscape in Part 1
 
@@ -157,9 +157,9 @@ EOF
 ## Task 2: 新增 `report-quality-challenger` agent
 
 **Files:**
-- Create: `agents/report-quality-challenger.md`
+- Create: `plugins/investigate-project/agents/report-quality-challenger.md`
 
-- [ ] **Step 1: 创建 `agents/report-quality-challenger.md`**，全文如下（可直接 Write）：
+- [ ] **Step 1: 创建 `plugins/investigate-project/agents/report-quality-challenger.md`**，全文如下（可直接 Write）：
 
 ```markdown
 ---
@@ -297,7 +297,7 @@ Schema：
 - [ ] **Step 2: 验证文件存在**
 
 ```bash
-test -f agents/report-quality-challenger.md && wc -l agents/report-quality-challenger.md
+test -f plugins/investigate-project/agents/report-quality-challenger.md && wc -l plugins/investigate-project/agents/report-quality-challenger.md
 ```
 
 Expected: ≥ 120 行。
@@ -305,7 +305,7 @@ Expected: ≥ 120 行。
 - [ ] **Step 3: Commit**
 
 ```bash
-git add agents/report-quality-challenger.md
+git add plugins/investigate-project/agents/report-quality-challenger.md
 git commit -m "$(cat <<'EOF'
 feat(agents): add report-quality-challenger for v7 review loops
 
@@ -319,9 +319,9 @@ EOF
 ## Task 3: `feature-digger` v7 叙事与二级功能加厚
 
 **Files:**
-- Modify: `agents/feature-digger.md`
+- Modify: `plugins/investigate-project/agents/feature-digger.md`
 
-- [ ] **Step 1: Read `agents/feature-digger.md`**，定位 Read 预算（约 L55）、JSON 示例（约 L105–L136）、md 模板（约 L65–L101）。
+- [ ] **Step 1: Read `plugins/investigate-project/agents/feature-digger.md`**，定位 Read 预算（约 L55）、JSON 示例（约 L105–L136）、md 模板（约 L65–L101）。
 
 - [ ] **Step 2: Read 预算 `25` → `35`**，并加注释：「优先用增量 Read 读 CHANGELOG、设计 doc、ADR。」
 
@@ -403,7 +403,7 @@ EOF
 - [ ] **Step 7: 验证**
 
 ```bash
-rg -n '"scenarios": \["\.\.\."' agents/feature-digger.md
+rg -n '"scenarios": \["\.\.\."' plugins/investigate-project/agents/feature-digger.md
 ```
 
 Expected: **无匹配**（旧 string[] 已移除）。
@@ -411,7 +411,7 @@ Expected: **无匹配**（旧 string[] 已移除）。
 - [ ] **Step 8: Commit**
 
 ```bash
-git add agents/feature-digger.md
+git add plugins/investigate-project/agents/feature-digger.md
 git commit -m "$(cat <<'EOF'
 feat(digger): v7 NarrativeBlock scenarios, problems, sub_features
 
@@ -425,9 +425,9 @@ EOF
 ## Task 4: `SKILL.md` 质审循环编排 + R9–R11
 
 **Files:**
-- Modify: `skills/analyze-codebase/SKILL.md`
+- Modify: `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md`
 
-- [ ] **Step 1: Read `skills/analyze-codebase/SKILL.md`**。更新文首 description 与 §「你是主编排者」：sub-agent 数量 **5 → 6**，列出 `report-quality-challenger`。
+- [ ] **Step 1: Read `plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md`**。更新文首 description 与 §「你是主编排者」：sub-agent 数量 **5 → 6**，列出 `report-quality-challenger`。
 
 - [ ] **Step 2: 在「全局约束」末追加 R9–R11**（原文来自 design spec §9）。
 
@@ -482,7 +482,7 @@ while round ≤ 5:
 - [ ] **Step 7: 验证**
 
 ```bash
-rg -n 'report-quality-challenger|阶段 1b|阶段 5b|R9' skills/analyze-codebase/SKILL.md | head -20
+rg -n 'report-quality-challenger|阶段 1b|阶段 5b|R9' plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md | head -20
 ```
 
 Expected: 至少 4 处匹配。
@@ -490,7 +490,7 @@ Expected: 至少 4 处匹配。
 - [ ] **Step 8: Commit**
 
 ```bash
-git add skills/analyze-codebase/SKILL.md
+git add plugins/investigate-project/plugins/investigate-project/skills/report-features/SKILL.md
 git commit -m "$(cat <<'EOF'
 feat(skill): orchestrate v7 quality-review loops at three checkpoints
 
@@ -504,9 +504,9 @@ EOF
 ## Task 5: `report-writer` 渲染 v7 中间产物
 
 **Files:**
-- Modify: `agents/report-writer.md`
+- Modify: `plugins/investigate-project/agents/report-writer.md`
 
-- [ ] **Step 1: Read `agents/report-writer.md`**。
+- [ ] **Step 1: Read `plugins/investigate-project/agents/report-writer.md`**。
 
 - [ ] **Step 2: 在「工作步骤」第 1 步后插入「NarrativeBlock 渲染规则」**：
 
@@ -557,7 +557,7 @@ EOF
 - [ ] **Step 6: Commit**
 
 ```bash
-git add agents/report-writer.md
+git add plugins/investigate-project/agents/report-writer.md
 git commit -m "$(cat <<'EOF'
 feat(report-writer): render v7 NarrativeBlock and module_landscape §6
 
@@ -571,7 +571,7 @@ EOF
 ## Task 6: `integration-analyst` 质审回灌契约
 
 **Files:**
-- Modify: `agents/integration-analyst.md`
+- Modify: `plugins/investigate-project/agents/integration-analyst.md`
 
 - [ ] **Step 1: 在文末「返回给主线程」之前插入**：
 
@@ -589,7 +589,7 @@ EOF
 - [ ] **Step 2: Commit**
 
 ```bash
-git add agents/integration-analyst.md
+git add plugins/investigate-project/agents/integration-analyst.md
 git commit -m "$(cat <<'EOF'
 docs(integration-analyst): add quality-review revision contract
 EOF
@@ -601,7 +601,7 @@ EOF
 ## Task 7: 主 spec v6→v7 + 文档与插件元数据同步
 
 **Files:**
-- Modify: `docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md`
+- Modify: `docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`
 - Modify: `docs/README.md`
 - Modify: `.claude-plugin/plugin.json`
 - Modify: `.claude-plugin/marketplace.json`
@@ -625,7 +625,7 @@ EOF
 - [ ] **Step 5: 全仓残留检查**
 
 ```bash
-cd /Users/weizhoulan/Documents/git/analyze-code
+cd /path/to/blueskills
 rg -n '每条 ≤ 80 字|五个 sub-agent' --glob '*.md' --glob '*.json'
 ```
 
@@ -634,7 +634,7 @@ Expected: **无匹配**（或仅历史 plan 文件可保留）。
 - [ ] **Step 6: Commit**
 
 ```bash
-git add docs/superpowers/specs/2026-06-02-code-analyzer-plugin-design.md \
+git add docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md \
   docs/README.md .claude-plugin/plugin.json .claude-plugin/marketplace.json \
   docs/superpowers/specs/2026-06-02-report-depth-and-quality-agent-design.md
 git commit -m "$(cat <<'EOF'
@@ -667,10 +667,10 @@ EOF
 - [ ] **Step 2: 运行契约 grep**
 
 ```bash
-cd /Users/weizhoulan/Documents/git/analyze-code
+cd /path/to/blueskills
 rg -l 'report-quality-challenger' agents skills docs
-rg -c 'NarrativeBlock|module_landscape|industry_context_notes' agents/project-scout.md agents/feature-digger.md
-ls agents/report-quality-challenger.md
+rg -c 'NarrativeBlock|module_landscape|industry_context_notes' plugins/investigate-project/agents/project-scout.md plugins/investigate-project/agents/feature-digger.md
+ls plugins/investigate-project/agents/report-quality-challenger.md
 ```
 
 Expected: challenger 被 3+ 文件引用；scout+digger 均含 module_landscape 或 NarrativeBlock 说明。
