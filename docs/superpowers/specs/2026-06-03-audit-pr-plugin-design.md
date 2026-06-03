@@ -68,21 +68,36 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 - `gh` 失败时：GitHub MCP `pull_request_read` / `issue_read` 补全；仍失败则退出。
 - 历史 issue/PR 检索（支撑 `fix_mark_ignore` §1）：`gh search issues` / `gh pr list`；必要时 MCP `search_issues`。
 
-### 4.3 阶段 2：本地 commit 与 diff 范围（策略 D）
+### 4.3 阶段 2：本地 commit 与 diff 范围（省 token / 少 API）
+
+**原则：** commit 定位由 **主编排只跑 Shell** 完成；**禁止**把长 `git log` 原文贴进任何 sub-agent prompt。阶段 1 的 **一次** `gh pr view` 已含 `mergeCommit`，阶段 2 优先用该 SHA 在本地校验，避免「本地扫 500 条 + API 再对一遍」的双重开销。
 
 ```text
 1. git pull（当前分支，缺省分支）
-2. N ← pr number
-3. git log --oneline -n 500  匹配 #N / PR #N / pull request #N（可配置 patterns）
-4. 若唯一命中 commit C：
-     parent ← C^（或 merge 第一 parent 规则见 4.4）
-   否则：
-     C ← pr-context.mergeCommit.oid；若无 mergeCommit（rebase-only）→ gh commits 首尾 SHA
-5. 若本地无 C：git fetch origin && 再 cat-file / show
-6. 最后手段：gh pr diff <PR_URL> 写入 $AUDIT_TMP/patch-fallback.diff
-7. 写 $AUDIT_TMP/diff-scope.json：
-     { commit, parent, files[], stats, source: local|api-fallback }
+2. N ← pr number；merge_sha ← pr-context.mergeCommit.oid（阶段 1 已有，不再为定位 commit 单独打 gh）
+
+3. 【路径 A — 常见、零 log 扫描】若 merge_sha 非空：
+     git cat-file -e merge_sha  → 成功则 C ← merge_sha，source ← local-merge-sha
+     失败则 git fetch origin merge_sha（或 fetch 缺省分支）后再 cat-file
+
+4. 【路径 B — 仅当 A 不可用】主编排 Shell 有界 grep（结果只写入 diff-scope.json，不把 log 灌给模型）：
+     按顺序执行，每种模式 --max-count=5，命中即停：
+       git log --format=%H -n 1 --grep="Merge pull request #${N}\b"
+       git log --format=%H -n 1 --grep="(#${N})\b"
+       git log --format=%H -n 1 --grep="#${N}\b"
+     若仍 0 条：git log --format=%H -n 5 --grep="#${N}"  → Shell 去重后若唯一则采用
+     若 >1 条：写入 diff-scope.json 的 commit_resolution: ambiguous，取 merge_sha 或第一条并 flagged
+
+5. 【路径 C — 仍无 C】使用 pr-context 已带的 commits[] 首尾（阶段 1 JSON，无额外 gh）
+
+6. 【路径 D — 最后手段】gh pr diff → $AUDIT_TMP/patch-fallback.diff
+
+7. 确定 C 后，Shell 生成 diff-scope.json（不让 agent 跑 git）：
+     git diff --stat parent..C 、git diff --name-only parent..C
+     仅把 { commit, parent, files[], stats, source, commit_resolution } 写入 JSON
 ```
+
+**Token 预算：** 进入 sub-agent 的与 commit 相关的上下文 **≤ 1KB**（`diff-scope.json` 摘要字段），不含 `git log` 列表。
 
 **Merge 样式补充（实施时写进 SKILL）：**
 
@@ -227,11 +242,18 @@ for F in all（按 severity 降序，blocking 优先）:
   "round": 1,
   "challenges": [
     {
-      "challenge_type": "shallow_call_chain|no_prod_trigger|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
+      "challenge_type": "shallow_call_chain|trigger_unreachable_in_prod|impact_overstated|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
       "question": "质疑内容",
       "required_evidence": "proposer 必须补充的证据形式"
     }
   ],
+  "severity_review": {
+    "original_severity": "P0",
+    "proposed_severity": "P2",
+    "trigger_verdict": "reachable|unreachable|uncertain",
+    "impact_verdict": "as_stated|overstated|uncertain",
+    "rationale": "一句话：为何维持或下调"
+  },
   "resolution": "pending|withdrawn|accepted|downgraded|inconclusive",
   "resolution_reason": "...",
   "adjusted_severity": "P2|null"
@@ -251,15 +273,20 @@ for F in all（按 severity 降序，blocking 优先）:
 
 ## 7. `audit-challenger` 质询清单（硬性）
 
-每轮至少检查：
+质询目标不仅是「有没有问题」，还包括 **严重等级是否诚实**：触发条件在生产环境是否成立、声称的后果是否被夸大。
 
-- [ ] **调用链深度**：proposer 的 `reachability_stages` 是否少于 3 个阶段且未解释上游守卫？
-- [ ] **生产可达**：是否仅靠单测/假设配置？能否引用上游封装或部署默认值否定？
-- [ ] **严重性**：P0/P1 是否靠 panic/数据丢失支撑？降级后是否仍为 should_fix？
-- [ ] **作者意图**：`intent.author_stated_positions` 与行内 comment 是否已覆盖？
-- [ ] **历史已修**：`gh search` 是否显示同类已合入修复（支撑 ignore §1）？
+每轮必须输出 `severity_review`（见 §6.4），并至少检查：
 
-`round == 5` 且仍有 `blocking` 级争议 → `resolution: inconclusive`，默认不进入 `fix_mark_should_fix`。
+- [ ] **调用链深度**：`reachability_stages` 是否过浅？上游守卫/封装是否已使问题不可达？
+- [ ] **触发可达性（核实打分前提）**：proposer 的 `trigger.prod_reachable` 是否有代码路径支撑？是否仅为单测/臆测配置？若不可达 → 质疑类型 `trigger_unreachable_in_prod`，建议 `withdrawn` 或 severity 下调。
+- [ ] **后果是否夸大**：P0/P1 声称 panic、数据丢失、配置失效等，是否与可达路径一致？若最高可达后果仅为 P2/P3 → `impact_overstated` / `severity_inflated`，给出 `adjusted_severity`。
+- [ ] **严重等级一致性**：对照 README 的 P0–P3 定义；无生产触发依据的 panic 类默认不得维持 P0。
+- [ ] **作者意图**：`intent.author_stated_positions` 与行内 comment；有意为之 → `withdrawn` 或降级。
+- [ ] **历史已修**（仅当主编排已写入 pr-context 检索摘要时）：是否同类已合入修复。
+
+**质询输出要求：** 每轮 challenger 必须填写 `severity_review.proposed_severity`（认可、下调、或 withdrawn）；proposer 回应须更新 `trigger` / `impact` / `severity` 字段，不得只改措辞。
+
+`round == 5` 且 severity 仍争议 → `resolution: inconclusive`，默认不进入 `fix_mark_should_fix`。
 
 ## 8. 工具与预算
 
@@ -325,7 +352,9 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | 环境 | Claude Code only |
 | 插件 / skill | `audit` / `audit-pr` |
 | PR 输入 | URL |
-| 代码来源 | 本地缺省分支 commit，D 策略 + API fallback |
+| 代码来源 | mergeCommit 本地校验优先；有界 grep（≤5/模式）；`gh` 仅阶段 1 一次 + 最后 diff fallback |
+| commit 定位 token | 禁止长 log 进 prompt；仅 diff-scope.json 摘要 |
+| 质询 | 每条 ≤5 轮；含 **severity_review**（触发可达 + 后果夸大） |
 | GitHub | `gh` 主，MCP 兜底 |
 | 终稿 | stdout only |
 | 中间产物 | `mktemp -d` |
