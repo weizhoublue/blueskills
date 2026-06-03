@@ -11,7 +11,7 @@ tools: Read
 
 ## 可读
 
-- `$AUDIT_TMP/findings-final.json`（**仅** P0–P2 成立项）
+- `$AUDIT_TMP/findings-final.json`（**仅** P0–P2 成立项；含 `peer_comparison`、`peer_line_resolution`）
 - `$AUDIT_TMP/pr-context.json`
 - `$AUDIT_TMP/intent.json`
 
@@ -31,6 +31,7 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 - PR 背景
 - 问题种类（1/2/3）
 - 问题描述、问题后果、复现概率（须有代码依据）
+- **同类路径比较**（来自 `peer_comparison.report_blurb_zh` 与/或 `table_rows`：其它等同路径是否也涉及；若否，为何本路径要改；须有 path:line）
 - 严重等级（取 final 中最高 P0–P2）
 - 背景知识（用户功能，非代码解释）
 - 解决方案、代码修改量、方案风险、方案信心（百分比）
