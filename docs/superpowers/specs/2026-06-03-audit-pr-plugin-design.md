@@ -1,7 +1,7 @@
 # 设计文档：blueskills marketplace — `audit` 插件与 `audit-merged-pr` skill
 
 - 日期：2026-06-03
-- 状态：已审阅（v8：6a′ 对照 + 6a″ peer-parity-challenger ≤3 轮 + 6b audit ≤5 轮，见 [`2026-06-03-audit-peer-path-comparison-design.md`](./2026-06-03-audit-peer-path-comparison-design.md)）
+- 状态：已审阅（v9：质询双文书辩驳 rebuttals，见 [`2026-06-03-audit-adversarial-debate-design.md`](./2026-06-03-audit-adversarial-debate-design.md)；v8 peer-path 见 [`2026-06-03-audit-peer-path-comparison-design.md`](./2026-06-03-audit-peer-path-comparison-design.md)）
 - 来源需求：[`docs/README.md`](../../README.md)（PR 静态审计经验与报告结构；**不含** llm 会话 / resume CLI 一节）
 - 运行环境：**仅 Claude Code**（`/plugin install audit@blueskills`，`/audit:audit-merged-pr <PR_URL>`）
 
@@ -269,7 +269,7 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 
 **时机：** 6a′ 之后、6b 之前。
 
-**轮次：** 每条 finding **最多 3 轮**；proposer 为 `F.source_agent`；Write 仅 `$AUDIT_TMP/peer-challenges/**`。
+**轮次：** 每条 finding **最多 3 轮**；每轮 `needs_rebuttal` 后 proposer 写 `$AUDIT_TMP/rebuttals/peer/**`（见 adversarial-debate spec）；Write 仅 `$AUDIT_TMP/peer-challenges/**`。
 
 **结案：** `peer-challenges/<finding_id>-final.json`（`peer_line_resolution`）。
 
@@ -823,6 +823,7 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | 路径一致性 | 阶段 4 强制 §5.8；`two_phase_yield` 启发式；finding 可选 `path_consistency` |
 | 后续修复 | 阶段 6a `subsequent-fix-scout`；`already_fixed`/`fix_in_progress` → `subsequent_fix` 淘汰 |
 | 等同路径比较 | 6a′ `peer-path-comparator`（1 pass）→ 6a″ `peer-parity-challenger`（≤3 轮，M13/M14）→ 6b audit（≤5 轮，peer 交叉验证）；终稿 **同类路径比较** |
+| 质询辩驳 | 方案 B：challenge → `rebuttals/` → 终裁；`finding-defense-mode`；challenger 须回应 `counterclaims` |
 | GitHub | `gh` 主，MCP 兜底 |
 | 终稿 | **最终报告** stdout only；中间允许简短进度（§4.10） |
 | 中间产物 | `mktemp -d` |

@@ -49,5 +49,11 @@ rg -q '同类路径比较' plugins/audit/agents/report-writer.md
 rg -q 'R15' plugins/audit/agents/report-writer.md
 rg -q '禁止.*markdown.*表格' plugins/audit/agents/report-writer.md
 rg -q 'R15' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'rebuttals' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'needs_rebuttal' plugins/audit/agents/audit-challenger.md
+rg -q 'debate_summary' plugins/audit/agents/audit-challenger.md
+rg -q 'finding-defense-mode' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'counterclaims' plugins/audit/agents/finding-defense-mode.md
+test -f plugins/audit/agents/finding-defense-mode.md
 
 echo "OK: audit plugin structure"

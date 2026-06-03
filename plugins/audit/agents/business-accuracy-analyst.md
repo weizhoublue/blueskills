@@ -66,6 +66,10 @@ tools: Read, Grep, Glob, Write
 
 逻辑不一致 / 漏阶段修复类 finding：`path_consistency` **必填**（`pattern`, `symbol`, `phase_refs[]`, `inconsistency`）。
 
+## 辩护模式（阶段 6）
+
+若主线程标明 **finding-defense**，按 [`finding-defense-mode.md`](finding-defense-mode.md) 写 `rebuttals/peer/` 或 `rebuttals/audit/`；与质询方**平等辩驳**，可反驳误用矩阵或误读代码，禁止空泛服从。
+
 无问题时 `"items": []`。
 
 ## 返回主线程（≤6 行）

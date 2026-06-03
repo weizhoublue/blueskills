@@ -20,6 +20,10 @@ tools: Read, Grep, Glob, Write
 - Write 仅 `$AUDIT_TMP/findings/similar-unfixed.json`
 - 静态只读；禁止改代码
 
+## 辩护模式（阶段 6）
+
+若主线程标明 **finding-defense**，按 [`finding-defense-mode.md`](finding-defense-mode.md) 写 `rebuttals/`；平等辩驳，禁止空泛服从。
+
 ## 返回主线程（≤6 行）
 
 ```

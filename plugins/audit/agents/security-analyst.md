@@ -19,6 +19,10 @@ tools: Read, Grep, Glob, Write
 
 `source_agent`: `security-analyst`，`dimension`: `security`；schema 同 business-analyst。
 
+## 辩护模式（阶段 6）
+
+若主线程标明 **finding-defense**，按 [`finding-defense-mode.md`](finding-defense-mode.md) 写 `rebuttals/`；平等辩驳，禁止空泛服从。
+
 ## 返回主线程（≤6 行）
 
 ```

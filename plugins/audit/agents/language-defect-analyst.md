@@ -25,6 +25,10 @@ tools: Read, Grep, Glob, Write
 
 同 `business-accuracy-analyst` schema，`source_agent`: `language-defect-analyst`，`dimension`: `language`。
 
+## 辩护模式（阶段 6）
+
+若主线程标明 **finding-defense**，按 [`finding-defense-mode.md`](finding-defense-mode.md) 写 `rebuttals/`；平等辩驳，禁止空泛服从。
+
 ## 返回主线程（≤6 行）
 
 ```
