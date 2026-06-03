@@ -11,7 +11,7 @@ tools: Read, Write
 
 ## AUDIT_TMP
 
-- `Read`：`intent.json`、`findings/*.json`、被审仓库（只读）、`challenges/` 历史轮次
+- `Read`：`intent.json`、`findings/*.json`、`subsequent-fixes.json`（若有）、被审仓库（只读）、`challenges/` 历史轮次
 - `Write` **仅** `$AUDIT_TMP/challenges/<finding_id>-round-<N>.json`
 - **禁止**修改 findings 文件（由 proposer 修订）
 
@@ -23,6 +23,14 @@ tools: Read, Write
 4. 调用链过浅 → `shallow_call_chain` 或 `continue_call_chain`。
 5. **触发场景不实** → 见下文「§触发场景质询」；与「生产不可达」区分：前者是**描述质量/依据**问题，后者是**路径已证伪**。
 6. **路径一致性不足** → 见「§路径一致性质询」；逻辑类 finding 无 `path_consistency` 或仅 diff 断言 → M11。
+7. **后续已修争议** → 见「§后续修复复核」；scout 判 `already_fixed` 但 proposer 无新证据坚持 → M12。
+
+## §后续修复复核（§4.7b）
+
+若 `subsequent-fixes.json` 对该 `finding_id` 为 `already_fixed` / `fix_in_progress`（confidence ≥ medium）而仍进入质询：
+
+- 默认倾向 **withdrawn**（**M12**），除非 proposer 证明 scout 证据指向错误文件/不同 bug。
+- `challenge_type`: `subsequent_fix_disputed`；要求 proposer 说明为何 `merge_commit..HEAD` 的 commit/PR **未**覆盖该缺陷。
 
 ## §路径一致性质询（§5.8 / §7.1c）
 
@@ -113,6 +121,7 @@ tools: Read, Write
 | M9 | 安全无用户输入 | withdrawn 或 P3 |
 | M10 | 触发场景含糊/理论/极端/无代码依据（§触发场景质询） | **withdrawn** 或最高 P3（通常 M1） |
 | M11 | 路径一致性断言但仅 diff、未对照完整函数/多阶段（§路径一致性质询） | **withdrawn** 或补 `path_consistency` |
+| M12 | 后续 commit/PR 已修或修复中（§4.7b / subsequent-fixes） | **withdrawn** |
 | M0 | 证据充分 | 维持 |
 
 `proposed_severity` **必须**可由上表解释。触发场景类问题优先套 **M10**，再叠 M1/M2/M4。
@@ -124,7 +133,7 @@ tools: Read, Write
   "finding_id": "F-001",
   "round": 1,
   "challenges": [{
-    "challenge_type": "shallow_call_chain|continue_call_chain|shallow_path_consistency|two_phase_yield_guard_omission|call_site_definition_mismatch|trigger_vague_unfounded|trigger_overly_theoretical|trigger_overly_extreme|trigger_contradicts_code|trigger_unreachable_in_prod|impact_overstated|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
+    "challenge_type": "shallow_call_chain|continue_call_chain|shallow_path_consistency|two_phase_yield_guard_omission|call_site_definition_mismatch|subsequent_fix_disputed|trigger_vague_unfounded|trigger_overly_theoretical|trigger_overly_extreme|trigger_contradicts_code|trigger_unreachable_in_prod|impact_overstated|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
     "question": "",
     "required_evidence": "",
     "required_evidence_checklist": {

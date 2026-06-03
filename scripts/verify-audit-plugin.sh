@@ -6,7 +6,8 @@ cd "$root"
 test -f plugins/audit/.claude-plugin/plugin.json
 test -f plugins/audit/skills/audit-merged-pr/SKILL.md
 for a in pr-intent-analyst business-accuracy-analyst language-defect-analyst \
-  security-analyst edge-effect-analyst similar-defect-scout audit-challenger report-writer; do
+  security-analyst edge-effect-analyst similar-defect-scout subsequent-fix-scout \
+  audit-challenger report-writer; do
   test -f "plugins/audit/agents/${a}.md"
 done
 
@@ -32,5 +33,9 @@ rg -q 'two_phase_yield' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'path_consistency' plugins/audit/agents/business-accuracy-analyst.md
 rg -q 'shallow_path_consistency' plugins/audit/agents/audit-challenger.md
 rg -q 'M11' plugins/audit/agents/audit-challenger.md
+rg -q 'subsequent-fix-scout' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'subsequent_fix' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'already_fixed' plugins/audit/agents/subsequent-fix-scout.md
+rg -q 'M12' plugins/audit/agents/audit-challenger.md
 
 echo "OK: audit plugin structure"

@@ -193,16 +193,26 @@ finding 字段见 spec §6.4（含 `upstream_guards_considered`, `trigger.prod_e
 
 仅当 `intent.pr_kind == bugfix` → `findings/similar-unfixed.json`
 
-### 阶段 6：合并与逐条质询
+### 阶段 6：合并、后续修复排查与逐条质询
 
 ```text
 all ← 合并 findings/*.json，分配 finding_id（F-001…）
+写入 $AUDIT_TMP/findings/all-merged.json
 rejected ← []；survivors ← []
 
 # 预检：author_intended → rejected
 # 初始 severity==P3 → rejected（p3_below_threshold, skip_challenge）
 
-for F in all（severity 降序）:
+# 阶段 6a：后续修复排查（对齐 README fix_mark_ignore.1）
+委派 subsequent-fix-scout → $AUDIT_TMP/subsequent-fixes.json
+for F in all:
+  若 subsequent-fixes[F].verdict ∈ {already_fixed, fix_in_progress}
+     且 confidence ∈ {high, medium}
+    → rejected（disposition: subsequent_fix, 附 evidence 摘要）
+    → 不进入质询
+  uncertain → 进入质询（challenger 可读 subsequent-fixes 复核）
+
+for F in all \ rejected（severity 降序）:
   round ← 1
   while round <= 5:
     委派 audit-challenger(F, round, prior)
@@ -231,7 +241,7 @@ for F in all（severity 降序）:
 
 ### fix_mark 要点（主编排）
 
-**fix_mark_ignore** 当：无 P0–P2 成立项；或 issues 已修；或非严重缺陷；或无清晰方案；或作者 comment 表明接受；或生产不可达等（README 全文）。
+**fix_mark_ignore** 当：无 P0–P2 成立项；或 **subsequent-fix-scout** 证实问题已在后续 commit/PR 修复或修复中；或 issues 已修；或非严重缺陷；或无清晰方案；或作者 comment 表明接受；或生产不可达等（README 全文）。
 
 **fix_mark_should_fix** 当：存在 P0–P2 成立项且有清晰修复方案。
 
@@ -270,5 +280,6 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | security-analyst | findings/security.json |
 | edge-effect-analyst | findings/edge-effects.json |
 | similar-defect-scout | findings/similar-unfixed.json |
+| subsequent-fix-scout | subsequent-fixes.json（阶段 6a，已修/修复中则淘汰） |
 | audit-challenger | challenges/*-round-*.json（含触发场景含糊/理论/极端质询，M10） |
 | report-writer | 返回 Markdown（不写盘） |
