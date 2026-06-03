@@ -28,5 +28,9 @@ rg -q 'severity_review' plugins/audit/agents/audit-challenger.md
 rg -q 'matrix_rule_id' plugins/audit/agents/audit-challenger.md
 rg -q 'trigger_vague_unfounded' plugins/audit/agents/audit-challenger.md
 rg -q 'M10' plugins/audit/agents/audit-challenger.md
+rg -q 'two_phase_yield' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'path_consistency' plugins/audit/agents/business-accuracy-analyst.md
+rg -q 'shallow_path_consistency' plugins/audit/agents/audit-challenger.md
+rg -q 'M11' plugins/audit/agents/audit-challenger.md
 
 echo "OK: audit plugin structure"

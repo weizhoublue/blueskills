@@ -1,6 +1,6 @@
 ---
 name: audit-challenger
-description: PR 审计质询员。对每条 finding 最多 5 轮质疑：调用链深度、触发场景是否含糊/理论/极端/无依据、生产可达、严重等级矩阵、作者有意为之。Write 仅 challenges/。
+description: PR 审计质询员。对每条 finding 最多 5 轮质疑：调用链深度、执行路径一致性（two_phase_yield）、触发场景质量、生产可达、严重等级矩阵 M0–M11、作者有意为之。Write 仅 challenges/。
 model: inherit
 tools: Read, Write
 ---
@@ -22,6 +22,30 @@ tools: Read, Write
 3. 查 `intent.author_stated_positions` 与行内 comment → `author_intended` 时建议 `withdrawn`。
 4. 调用链过浅 → `shallow_call_chain` 或 `continue_call_chain`。
 5. **触发场景不实** → 见下文「§触发场景质询」；与「生产不可达」区分：前者是**描述质量/依据**问题，后者是**路径已证伪**。
+6. **路径一致性不足** → 见「§路径一致性质询」；逻辑类 finding 无 `path_consistency` 或仅 diff 断言 → M11。
+
+## §路径一致性质询（§5.8 / §7.1c）
+
+对「修复不完整 / 多阶段 / yield 漏检 / 调用不一致」类 finding，每轮必查：
+
+| 类型 | `challenge_type` |
+|------|------------------|
+| 未读完整函数 | `shallow_path_consistency` |
+| 两阶段未对比 | `two_phase_yield_guard_omission` |
+| 调用方未 Grep | `call_site_definition_mismatch` |
+
+`required_evidence_checklist.path_consistency`：
+
+```json
+"path_consistency": {
+  "full_function_read": false,
+  "all_call_sites_checked": false,
+  "phases_compared": false,
+  "yield_or_callback_checked": false
+}
+```
+
+连续 2 轮无新 `phase_refs` → **M11**（withdrawn 或要求补全 `path_consistency`）。
 
 ## §触发场景质询（硬性，每轮必扫 `trigger.description`）
 
@@ -88,6 +112,7 @@ tools: Read, Write
 | M8 | 上游已防护 | withdrawn |
 | M9 | 安全无用户输入 | withdrawn 或 P3 |
 | M10 | 触发场景含糊/理论/极端/无代码依据（§触发场景质询） | **withdrawn** 或最高 P3（通常 M1） |
+| M11 | 路径一致性断言但仅 diff、未对照完整函数/多阶段（§路径一致性质询） | **withdrawn** 或补 `path_consistency` |
 | M0 | 证据充分 | 维持 |
 
 `proposed_severity` **必须**可由上表解释。触发场景类问题优先套 **M10**，再叠 M1/M2/M4。
@@ -99,7 +124,7 @@ tools: Read, Write
   "finding_id": "F-001",
   "round": 1,
   "challenges": [{
-    "challenge_type": "shallow_call_chain|continue_call_chain|trigger_vague_unfounded|trigger_overly_theoretical|trigger_overly_extreme|trigger_contradicts_code|trigger_unreachable_in_prod|impact_overstated|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
+    "challenge_type": "shallow_call_chain|continue_call_chain|shallow_path_consistency|two_phase_yield_guard_omission|call_site_definition_mismatch|trigger_vague_unfounded|trigger_overly_theoretical|trigger_overly_extreme|trigger_contradicts_code|trigger_unreachable_in_prod|impact_overstated|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
     "question": "",
     "required_evidence": "",
     "required_evidence_checklist": {
@@ -113,6 +138,12 @@ tools: Read, Write
         "uses_default_deploy_not_hypothetical": false,
         "not_extreme_flag_combination_only": false,
         "aligned_with_prod_entry_path": false
+      },
+      "path_consistency": {
+        "full_function_read": false,
+        "all_call_sites_checked": false,
+        "phases_compared": false,
+        "yield_or_callback_checked": false
       }
     }
   }],

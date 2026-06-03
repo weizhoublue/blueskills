@@ -13,6 +13,7 @@ tools: Read, Grep, Glob, Write
 
 - 声称漏洞须给出 **用户可控输入** 到危险点的阶段路径；否则最高 P3 或不应上报（M9）。
 - 仅 `effective_files`；Write 仅 `findings/security.json`
+- §5.8：若 authz/输入校验在阶段 1 执行，危险操作在阶段 2（yield/callback/API handler 后半段），须核对阶段 2 是否重复或有不变量保证
 
 ## finding
 
