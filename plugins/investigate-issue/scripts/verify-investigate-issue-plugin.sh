@@ -35,7 +35,9 @@ grep -q 'R17' "$SKILL" || err "SKILL missing R17 conditional rigor"
 grep -q 'when_does_not_trigger\|when_triggers' "$ROOT/agents/code-tracer.md" || err "code-tracer missing trigger polarity"
 grep -q '不触发\|反向' "$ROOT/agents/issue-writer.md" || err "writer missing reverse trigger sections"
 grep -q 'R17\|conditional_rigor' "$ROOT/agents/issue-challenger.md" || err "challenger missing R17 checks"
-grep -q 'non_trigger_scenarios' "$ROOT/agents/business-context-analyst.md" || err "business-context missing non_trigger_scenarios"
+grep -q 'R19\|REVIEW_RESULT' "$SKILL" || err "SKILL missing R19 verdict"
+grep -q '仅一行\|禁止.*其他' "$ROOT/agents/issue-writer.md" || err "writer must require verdict one line only"
+grep -q 'R19\|verdict' "$ROOT/agents/issue-challenger.md" || err "challenger missing R19 verdict"
 
 # no investigate-project paths in plugin content
 if rg -q 'REPORT_ROOT|analysis-report' "$ROOT/agents" "$ROOT/skills" 2>/dev/null; then

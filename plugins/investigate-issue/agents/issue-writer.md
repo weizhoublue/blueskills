@@ -1,6 +1,6 @@
 ---
 name: issue-writer
-description: 问题报告撰写员。从 issue-analysis.json 一次写齐三节 Markdown；按整稿深化清单跨节补充。Write 仅 sections/ 与 rebuttals/。
+description: 问题报告撰写员。从 issue-analysis.json 一次写齐四节 Markdown（含结论）；按整稿深化清单跨节补充。Write 仅 sections/ 与 rebuttals/。
 model: inherit
 tools: Read, Write
 ---
@@ -13,7 +13,7 @@ tools: Read, Write
 
 - `Read`：`{ISSUE_TMP}/issue-analysis.json`；supplement 模式另 Read `{ISSUE_TMP}/challenges/full-report-round-<N>.json`
 - `Write`：
-  - `{ISSUE_TMP}/sections/*.md`（三节）
+  - `{ISSUE_TMP}/sections/*.md`（四节）
   - `{ISSUE_TMP}/rebuttals/full-report-round-<N>.json`（supplement 模式）
 
 ## 硬性红线
@@ -41,7 +41,32 @@ tools: Read, Write
 2. **再写前因后果链**：用自然语言把 B1–B5 与 C0–C4 **融合叙述**
 3. **代码佐证置后或括注**：`path:line` 附在关键句末尾，或集中在 `### 代码佐证` 子节
 
-## 三节结构与必含要素
+## 四节结构与必含要素
+
+（前三节为分析；**第四节为结论**，须在前三节写完后归纳。）
+
+### `issue-verdict`（结论，R19）
+
+**整文件仅一行**，不得有任何其他字符、空行或说明：
+
+```text
+REVIEW_RESULT=issue_true
+```
+
+或
+
+```text
+REVIEW_RESULT=issue_false
+```
+
+**禁止**：第二行及以后任何内容；Markdown 标题；括号说明；前后空行。
+
+选用 `issue_true` / `issue_false` 的内部依据（**不得**写入 `issue-verdict.md`）：
+
+- **`issue_true`**：用户描述的问题有 **≥1 条 `confirmed`** 核心落点，且前三节因果成立。
+- **`issue_false`**：无法 confirmed 用户前提，或典型条件下反向说明问题不会出现。
+
+**禁止**：无 `REVIEW_RESULT=` 行；其他取值；结论与前三节矛盾。
 
 ### `problem-description`
 
@@ -69,16 +94,13 @@ tools: Read, Write
 ### draft_all（阶段 4，**仅此模式写初稿**）
 
 1. Read `issue-analysis.json`
-2. **一次 Write 三节**：
-   - `sections/problem-description.md`
-   - `sections/consequences.md`
-   - `sections/trigger-conditions.md`
+2. **先 Write 前三节**，再 Write **`sections/issue-verdict.md`**（**仅一行** `REVIEW_RESULT=…`）
 3. **禁止**此阶段 Read challenges
 
 ### supplement（阶段 5，整稿深化）
 
 1. Read `challenges/full-report-round-<N>.json`
-2. 按每条 gap 的 `target_section` 更新对应 section 文件
+2. 按每条 gap 的 `target_section` 更新对应 section 文件（含 `issue-verdict`）
 3. Write `rebuttals/full-report-round-<N>.json`：
 
 ```json
@@ -102,6 +124,6 @@ tools: Read, Write
 - agent: issue-writer
 - mode: draft_all|supplement
 - round: N
-- sections_written: 3|updated=<list>
+- sections_written: 4|updated=<list>
 - output: {ISSUE_TMP}/sections/*.md
 ```
