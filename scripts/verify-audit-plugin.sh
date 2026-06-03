@@ -7,6 +7,7 @@ test -f plugins/audit/.claude-plugin/plugin.json
 test -f plugins/audit/skills/audit-merged-pr/SKILL.md
 for a in pr-intent-analyst business-accuracy-analyst language-defect-analyst \
   security-analyst edge-effect-analyst similar-defect-scout subsequent-fix-scout \
+  peer-path-comparator peer-parity-challenger \
   audit-challenger report-writer; do
   test -f "plugins/audit/agents/${a}.md"
 done
@@ -37,5 +38,13 @@ rg -q 'subsequent-fix-scout' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'subsequent_fix' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'already_fixed' plugins/audit/agents/subsequent-fix-scout.md
 rg -q 'M12' plugins/audit/agents/audit-challenger.md
+rg -q 'peer-path-comparator' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'peer-parity-challenger' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'peer-challenges' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q '6a″' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'peer-comparisons.json' plugins/audit/agents/peer-path-comparator.md
+rg -q 'peer_reopened_by_audit' plugins/audit/agents/audit-challenger.md
+rg -q 'M13' plugins/audit/agents/peer-parity-challenger.md
+rg -q '同类路径比较' plugins/audit/agents/report-writer.md
 
 echo "OK: audit plugin structure"
