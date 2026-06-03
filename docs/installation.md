@@ -49,11 +49,10 @@
    - scout 收集和问题相关的线索；
    - code-tracer 从配置/输入往下追函数级调用链；
    - business-context-analyst 看业务上下游、和兄弟路径有什么不同；
-   - module-background-analyst 补软件和行业背景（不讲代码细节）；
-   - writer 一次写好四节报告：问题描述、后果、触发条件、背景知识。
-3. **审计 agent 反馈**：issue-challenger 通读整份四节报告，看叙事是否清楚、触发条件是否严谨、背景有没有写成代码导读，驱动 writer 补全（整稿最多 3 轮）。
+   - writer 一次写好三节报告：问题描述、后果、触发条件。
+3. **审计 agent 反馈**：issue-challenger 通读整份报告，看叙事是否清楚、触发条件是否严谨，驱动 writer 补全（整稿最多 3 轮）。
 
-终稿只输出到 stdout，不落盘。
+终稿只输出到 stdout，三节：问题描述、问题后果、触发条件。
 
 ---
 
