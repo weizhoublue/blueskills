@@ -64,5 +64,7 @@ rg -q '最多 2 轮' plugins/audit/agents/peer-parity-challenger.md
 rg -q '最多 3 轮' plugins/audit/agents/audit-challenger.md
 rg -q 'peer_round <= 2' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'round <= 3' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'config_consistency' plugins/audit/agents/edge-effect-analyst.md
+rg -q '隐式传播' plugins/audit/agents/edge-effect-analyst.md
 
 echo "OK: audit plugin structure"

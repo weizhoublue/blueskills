@@ -200,7 +200,7 @@ gh pr view "$PR_URL" --json number,title,body,state,mergedAt,mergeCommit,baseRef
 | business-accuracy-analyst | findings/business.json | 多阶段业务规则、修复是否只改一阶段 |
 | language-defect-analyst | findings/language.json | yield/闭包/defer、迭代器 continue |
 | security-analyst | findings/security.json | 分阶段 authz/输入校验是否重复 |
-| edge-effect-analyst | findings/edge-effects.json | 未改调用方/兄弟分支、共享状态 |
+| edge-effect-analyst | findings/edge-effects.json | 未改调用方/兄弟分支；配置依赖、同类配置语义、默认值隐式传播 |
 
 finding 字段见 spec §6.4（含 `upstream_guards_considered`, `trigger.prod_entry_ref`, 逻辑类必填 `path_consistency`）。
 

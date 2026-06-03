@@ -471,7 +471,7 @@ for F in all（按 severity 降序）:
 | Agent | 主责 |
 |-------|------|
 | `business-accuracy-analyst` | 多阶段业务规则是否一致；修复是否只改了一阶段 |
-| `edge-effect-analyst` | 未修改调用方/兄弟分支是否仍假设旧语义；共享状态 |
+| `edge-effect-analyst` | 未改调用方/兄弟分支；**配置**：文件间依赖、同类 key 语义一致、默认值隐式传播 |
 | `language-defect-analyst` | `yield`/defer/panic/recover、闭包捕获、迭代器提前 continue |
 | `security-analyst` | 分阶段校验时，危险操作前是否重复 authz/输入校验 |
 
@@ -479,7 +479,7 @@ for F in all（按 severity 降序）:
 
 ```json
 "path_consistency": {
-  "pattern": "two_phase_yield|call_site_mismatch|multi_phase_eligibility|yield_guard_omission",
+  "pattern": "two_phase_yield|call_site_mismatch|multi_phase_eligibility|yield_guard_omission|config_cross_file_mismatch|config_semantic_drift|implicit_default_propagation",
   "symbol": "PreferSameNode",
   "phase_refs": [
     { "path": "pkg/x.go", "line": 10, "role": "phase1_eligibility" },
