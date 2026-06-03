@@ -160,7 +160,12 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 
 ### 4.8 阶段 6：合并与逐条质询（≤5 轮 / finding）→ **仅保留成立项**
 
-**原则：** 质询是为了**淘汰不成立**的 finding。`withdrawn` / `inconclusive` / 质询前已否决项 **不得** 进入 `findings-final.json`，也 **不得** 进入阶段 7 打分与终稿问题列表。阶段 7 只处理 **问题成立** 的条目（`accepted` 或 `downgraded` 后仍认为存在真实缺陷）。
+**原则：** 质询用于**淘汰不成立**与**优先级过低**的 finding。下列项 **不得** 进入 `findings-final.json` 或阶段 7：
+
+- 不成立：`withdrawn`、`inconclusive`、质询前 `author_intended`
+- **严重等级 P3**（轻微级，低于本 skill 报告阈值）
+
+阶段 7 / 终稿 **仅保留 P0、P1、P2** 且质询成立的条目。
 
 ```text
 all ← 合并 findings/*.json 的 items[]，分配全局 finding_id
@@ -172,6 +177,10 @@ rejected ← []   # 仅审计追溯，不进终稿
 survivors ← []
 
 for F in all（按 severity 降序）:
+  if F.severity == P3:
+    rejected.append(F + { disposition: p3_below_threshold, reason: "skip_challenge" })
+    goto next F                    # 不进入质询，直接淘汰
+
   proposer ← F.source_agent
   round ← 1
   while round <= 5:
@@ -182,36 +191,44 @@ for F in all（按 severity 降序）:
        goto next F                    # 不成立，直接淘汰
     if resolution == accepted:
        F.disposition ← accepted
-       survivors.append(F)
-       goto next F
+       goto finalize_F
     if resolution == downgraded:
        F.severity ← adjusted_severity
-       F.disposition ← downgraded      # 仍成立，仅降级
-       survivors.append(F)
-       goto next F
+       F.disposition ← downgraded
+       goto finalize_F
     委派 proposer 修订（§7.1 证据）
     round++
   # 5 轮仍无法证明成立
   rejected.append(F + { disposition: inconclusive })
+  goto next F
+
+  finalize_F:
+    if F.severity == P3:
+      rejected.append(F + { disposition: p3_below_threshold, reason: "after_challenge" })
+    else:
+      survivors.append(F)              # 仅 P0|P1|P2
   next F:
 
-写入 $AUDIT_TMP/findings-final.json      # 仅 survivors[]
+写入 $AUDIT_TMP/findings-final.json      # 仅 survivors[]，severity ∈ {P0,P1,P2}
 写入 $AUDIT_TMP/findings-rejected.json   # 可选，供调试；不得进入阶段 7
 ```
 
-**`downgraded` vs `withdrawn`：**
+**质询结果与是否进入 final：**
 
-| resolution | 是否进入 `findings-final` | 含义 |
-|------------|---------------------------|------|
-| `accepted` | 是 | 成立，维持 severity |
-| `downgraded` | 是 | 成立，按矩阵下调后仍须修复或写入报告 |
-| `withdrawn` | **否** | 不成立（误报、无入口、作者有意、M1/M8 等） |
-| `inconclusive` | **否** | 5 轮仍证不出生产可达/后果，视为不成立 |
+| resolution / 条件 | 进入 `findings-final` | 含义 |
+|-------------------|----------------------|------|
+| `accepted` 且 severity ∈ {P0,P1,P2} | 是 | 成立，维持或上调后仍达报告阈值 |
+| `downgraded` 至 P0/P1/P2 | 是 | 成立，仅降级但仍达报告阈值 |
+| `downgraded` 至 **P3** 或质询前即为 P3 | **否** | 成立但优先级过低，写入 `findings-rejected`（`p3_below_threshold`） |
+| `withdrawn` | **否** | 不成立 |
+| `inconclusive` | **否** | 5 轮仍证不出，视为不成立 |
+
+**与 §7.2 矩阵：** M2/M3/M4/M9 等将项定为 P3 时，质询结束后由 `finalize_F` 自动淘汰，**不必**再进入 should_fix 报告正文（与 `fix_mark_ignore` 一致）。
 
 ### 4.9 阶段 7：打分与最终报告（stdout）
 
 - **仅读取** `findings-final.json`（`survivors`）；**禁止**把 `findings-rejected.json` 或原始 `findings/*.json` 未质询项当作 should_fix 依据。
-- 若 `findings-final.items` 为空 → `AUDIT_RESULT=fix_mark_ignore`（可 stdout 一句「质询后无成立缺陷」）。
+- 若 `findings-final.items` 为空 → `AUDIT_RESULT=fix_mark_ignore`（可 stdout 一句「质询后无 P0–P2 成立缺陷」；P3-only 淘汰不计入）。
 - 主编排应用 [`docs/README.md`](../../README.md) 的 `fix_mark_ignore` / `fix_mark_should_fix` 规则，并结合 §5.7 校验最高 severity 与等级定义一致。
 - 委派 `report-writer`：只读 `$AUDIT_TMP/**`，**返回 Markdown 字符串**（不写仓库、不写持久 report 路径）。
 - 主线程将 **§9 结构的审计报告** 作为 **唯一一次完整终稿** 写入 stdout（见 §4.10）。
@@ -275,6 +292,8 @@ for F in all（按 severity 降序）:
 | **P1** | 严重 | 不崩溃但**核心功能错误**：数据错误/丢失（非测试数据）、主路径配置**静默不生效**、严重安全漏洞（可利用且影响生产） | 错误同步导致 DB 脏数据、RBAC 失效、密钥泄漏、主 API 返回错误状态且无降级 |
 | **P2** | 普通 | **非主路径**或需**特定配置/边缘触发**的功能错误；有 workaround；性能明显退化但不阻断 | 边缘 API 行为错误、非默认 flag 组合下失败、可恢复的间歇错误、资源泄漏可重启恢复 |
 | **P3** | 轻微 | **不影响功能正确性**：观测/日志/文案/指标偏差；极难触发的理论问题；仅开发体验 | 日志级别不当、metric 标签错误、错误 message 误导、极低频 race 且上游可重试成功 |
+
+**本 skill 报告阈值：** P3 可在阶段 4 由 analyst 提出并参与质询（矩阵常将夸大项降至 P3），但阶段 6 结束后 **一律不进入** `findings-final` 与 stdout 问题列表。analyst/challenger 仍可用 P3 作为「成立但忽略」的定级手段。
 
 **硬性约束（与矩阵联动）：**
 
@@ -425,7 +444,7 @@ for F in all（按 severity 降序）:
 }
 ```
 
-- `items[]`：**仅** `disposition ∈ { accepted, downgraded }` 的 finding；每条含最终 `severity`（§5.7）。
+- `items[]`：**仅** `disposition ∈ { accepted, downgraded }` 且 **`severity ∈ { P0, P1, P2 }`** 的 finding。
 - 不成立项只在 `findings-rejected.json` + `challenges/` 留痕。
 
 ### 6.6b `findings-rejected.json`（可选，不进阶段 7）
@@ -435,7 +454,7 @@ for F in all（按 severity 降序）:
   "items": [
     {
       "finding_id": "F-002",
-      "disposition": "withdrawn|inconclusive|author_intended_precheck",
+      "disposition": "withdrawn|inconclusive|author_intended_precheck|p3_below_threshold",
       "last_round": 2,
       "reason": "..."
     }
