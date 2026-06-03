@@ -15,7 +15,7 @@
 3. **触发条件** — 用户配置/输入 → 调用链 → 缺陷落点
 4. **背景知识** — 出问题模块在整软件中的功能定位
 
-采用 **Skill 编排 + 6 sub-agent + 双文书质审（每节 ≤3 轮）**；**终稿仅 stdout**；中间 JSON 写入 `ISSUE_TMP` 临时目录。
+采用 **Skill 编排 + 6 sub-agent + 双轮报告深化（每节 ≤3 轮）**；**终稿仅 stdout**；中间 JSON 写入 `ISSUE_TMP` 临时目录。
 
 ### 1.1 与 `investigate-project` 的关键差异
 
@@ -24,8 +24,8 @@
 | 分析对象 | 整个项目的业务功能 | 单个具体问题 |
 | 调用链 | **禁止**函数级调用链（R6） | **必须** C0–C4 可还原 |
 | 终稿 | 落盘 `analysis-report/` | **仅 stdout** |
-| 质审 | 单向 issues 清单 | **双文书辩驳**（对标 `audit-challenger`） |
-| 范围 | 业务功能梳理 | 缺陷 + 行为 + 架构/设计；**报告全文可质疑** |
+| 报告深化 | 单向 issues 清单 | **双轮协作**（提问 → 补充；复用 audit 文件格式，**非对抗性质询**） |
+| 范围 | 业务功能梳理 | 缺陷 + 行为疑问 + 架构/设计；**报告全文可迭代补全** |
 
 ## 2. Brainstorming 决策摘要
 
@@ -34,11 +34,11 @@
 | 输入 | **A** 自由文本描述问题 |
 | 终稿交付 | **B** 仅 stdout |
 | 中间产物 | **A** `ISSUE_TMP=$(mktemp -d)`，默认删除；`ISSUE_KEEP_TMP=1` 保留 |
-| 问题范围 | **C** 缺陷 + 行为疑问 + 架构/设计；报告中所有内容可被审计质疑 |
+| 问题范围 | **C** 缺陷 + 行为疑问 + 架构/设计；报告任一细节不足均可被深化 |
 | 证据标准 | **B** 代码优先 `path:line`；设计/对比允许文档+行业常识，须显式「未能从代码确认」 |
 | Agent 编制 | **C** 6 agent + 主编排 |
-| 质审粒度 | **B** 四节各独立 ≤3 轮（最多 12 轮） |
-| 辩驳模式 | **B** challenge → rebuttal → 终裁 |
+| 深化粒度 | **B** 四节各独立 ≤3 轮（最多 12 轮） |
+| 协作模式 | **B** 提问清单 → writer 补充稿 → 终裁（**优化可读性**，非辩驳淘汰） |
 | 人工确认 | **A** 全自动，不暂停 |
 | 架构方案 | **A** 分析 → 合并 JSON → 分节 write↔challenger |
 
@@ -123,7 +123,7 @@ ISSUE_TMP/
 | 允许（对话内） | 禁止 |
 | --- | --- |
 | 阶段一行摘要 | 完整 JSON / 长调用链 |
-| 质审摘要（如「问题描述 2/3 accepted」） | 终稿写入仓库或 ISSUE_TMP 外 |
+| 深化摘要（如「问题描述 2/3 complete」） | 终稿写入仓库或 ISSUE_TMP 外 |
 | 错误一行 + 可选 ISSUE_TMP 路径 | |
 
 sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
@@ -136,8 +136,8 @@ sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
 | **code-tracer** | 函数级调用链、config/env 触发路径、错误分支 | `trace.json` |
 | **business-context-analyst** | 业务上下游；兄弟分支/同类模块对比 | `business-context.json` |
 | **module-background-analyst** | 模块在整软件中的功能定位 | `background.json` |
-| **issue-writer** | 按节从 `issue-analysis.json` 扩写；回应 challenger | `sections/*.md`, `rebuttals/*.json` |
-| **issue-challenger** | 质疑因果深度、证据、术语、局部化；双文书终裁 | `challenges/*.json` |
+| **issue-writer** | 按节从 `issue-analysis.json` 扩写；按深化清单补充缺失细节 | `sections/*.md`, `rebuttals/*.json` |
+| **issue-challenger** | **报告深化员**：以「未读过仓库的新手能否读懂」为标准，**提问**并指出缺失的因果层/术语/证据/上下文，驱动 writer **补全**报告；非对抗性质疑 | `challenges/*.json` |
 
 **四节与素材映射**：
 
@@ -212,18 +212,18 @@ sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
 
 ### 8.1 单节 write↔challenger 循环
 
-**`MAX_ROUNDS_PER_SECTION = 3`**（四节独立计数，全 skill 最多 12 轮质审）。
+**`MAX_ROUNDS_PER_SECTION = 3`**（四节独立计数，全 skill 最多 12 轮深化）。
 
 ```text
 round ← 1
 委派 issue-writer(section, round=1)    # 首轮写 sections/<section>.md
 while round ≤ 3:
-  委派 issue-challenger(section, round)
-  if resolution in [accepted, withdrawn]: break
-  if resolution == needs_rebuttal:
-    委派 issue-writer(section, mode=rebuttal, round)
+  委派 issue-challenger(section, round)   # 输出缺失清单与提问
+  if resolution in [complete, partial]: break
+  if resolution == needs_enrichment:
+    委派 issue-writer(section, mode=supplement, round)   # 按清单补写
   round ← round + 1
-if round==3 且仍有 blocking/major:
+if round==3 且仍有 blocking/major 未补全:
   challenger 写 challenges/<section>-final.json (max_rounds_reached)
 ```
 
@@ -236,11 +236,28 @@ if round==3 且仍有 blocking/major:
 3. **仅重跑** `problem-description` 与 `trigger-conditions` 的 write↔challenger
 4. 全 skill 最多 rollback **1 次**
 
-## 9. `issue-challenger` 质询清单
+## 9. `issue-challenger`：报告深化
 
-报告中**所有内容均可质疑**。每节按下列维度扫描。
+### 9.0 角色定位（与 `audit-challenger` 的区别）
 
-### 9.1 调用链深度 C0–C4（`problem-description`、`trigger-conditions` 必查）
+`issue-challenger` 是**报告深化员**，不是审计淘汰员。首要目标是：**让未读过仓库的读者能读懂报告**。
+
+| 要做 | 不做 |
+| --- | --- |
+| 以新手读者视角**提问**：「这里缺哪一步因果？」「这个缩写是什么？」 | 以对抗心态「抓错、否决」整段报告 |
+| 指出**缺失的细节**（调用链断档、背景未交代、兄弟分支未对比） | 要求 writer「证明报告错了」才能过关 |
+| 给出**可执行的补充方向**（补 C2 步骤、补术语解释、补业务情境） | 空泛要求「写长一点」「再详细些」 |
+| 核对证据 tier 与 refs 是否支撑已有表述 | 要求「证实」纯 `inference` 推断 |
+
+**默认假设**：writer 初稿方向正确但**不够厚**；challenger 的职责是**优化与补全**，使四节报告层层可读。
+
+中间产物路径仍用 `challenges/`、`rebuttals/`（与 `audit` 插件目录约定一致），语义分别为 **「深化提问清单」** 与 **「按清单补充稿」**。
+
+### 9.1 深化检查维度
+
+报告**任一细节不足**均可列入深化清单。每节按下列维度扫描。
+
+### 9.2 调用链深度 C0–C4（`problem-description`、`trigger-conditions` 必查）
 
 | 层 | 含义 | 缺失级别 |
 | --- | --- | --- |
@@ -250,7 +267,7 @@ if round==3 且仍有 blocking/major:
 | **C3** | 缺陷落点函数/分支 | 缺 → blocking |
 | **C4** | 落点 → 可观察后果 | 缺 → major |
 
-### 9.2 业务因果 B1–B5（四节均查）
+### 9.3 业务因果 B1–B5（四节均查）
 
 | 层 | 含义 |
 | --- | --- |
@@ -262,36 +279,44 @@ if round==3 且仍有 blocking/major:
 
 `problem-description` / `consequences`：缺 B2 或 B4 → blocking。
 
-### 9.3 兄弟分支对比（`problem-description` 必查）
+### 9.4 兄弟分支对比（`problem-description` 必查）
 
 - ≥1 个 peer 路径，或显式「未能找到可对比 peer」
 - 说明「为何此处有问题、彼处没有」或「彼处也有但未触发」
 - 只有断言无 refs → major
 
-### 9.4 术语与可读性
+### 9.5 术语与可读性
 
 - 专名/缩写首现须同段解释
 - 连续两句 ≥2 个未解释专名 → major
 - 读者检验：遮住项目名能否复述因果？不能 → major
 
-### 9.5 证据对齐
+### 9.6 证据对齐
 
 - narrative 关键句须映射 `issue-analysis.json` 或 refs
 - `confirmed` 但 refs 与主张无关 → blocking
 
-### 9.6 架构/设计主张（范围 C）
+### 9.7 架构/设计主张（范围 C）
 
 - 设计评价须为 `inference` 或 `doc_declared`
 - 标 `confirmed` 却无 code ref → blocking
 - challenger **不得**要求「证实」纯 `inference` 推断
 
-### 9.7 双文书辩驳
+### 9.8 双轮协作（提问 → 补充 → 终裁）
 
 | 步骤 | 动作 |
 | --- | --- |
-| 1 | challenger → `challenges/<section>-round-N.json`，`resolution` 多为 `needs_rebuttal` |
-| 2 | writer → `rebuttals/<section>-round-N.json`，逐条回应，可 `counterclaims` |
-| 3 | 下轮或终裁：challenger 读 rebuttal；未读 rebuttal 不得 `accepted`/`withdrawn` |
+| 1 | challenger → `challenges/<section>-round-N.json`：列出缺失细节与**面向读者的提问**；`resolution` 多为 `needs_enrichment` |
+| 2 | writer → `rebuttals/<section>-round-N.json`：逐条**补充**正文或说明为何 `issue-analysis.json` 中暂无依据；可 `clarifications` 解释补充边界 |
+| 3 | 下轮或终裁：challenger 读补充稿；未读补充稿不得 `complete`；仍缺关键细节则开下一轮 |
+
+**提问模板**（`question` 优先选用）：
+
+1. **缺环**：读者从入口到落点还缺哪一步？请补并给 ref。
+2. **缺背景**：小白不知道 `<术语>` 是什么，请同段解释其在本问题中的作用。
+3. **缺对比**：兄弟路径 X 为何没出问题？请补对比或写「未能找到 peer」。
+4. **缺情境**：谁在什么配置/部署下会遇到？请补 B1。
+5. **读者检验**：遮住项目名，新手能否复述本节因果链？
 
 **challenges JSON 核心字段**：
 
@@ -299,24 +324,32 @@ if round==3 且仍有 blocking/major:
 {
   "section": "problem-description",
   "round": 1,
-  "resolution": "needs_rebuttal",
-  "issues": [{
+  "resolution": "needs_enrichment",
+  "gaps": [{
     "severity": "blocking",
     "dimension": "call_chain|business|sibling|terminology|evidence|design",
-    "question": "",
-    "required_fix": ""
+    "question": "读者如何知道 config X 被谁读取？",
+    "suggested_addition": "补 C1 步骤：…，refs: path:line"
   }],
-  "debate_summary": null
+  "enrichment_summary": null
 }
 ```
 
-| severity | 是否触发 writer 修订 |
-| --- | --- |
-| blocking | 是 |
-| major | 是 |
-| informational | 否 |
+> 兼容说明：实现时 `gaps[]` 可与 audit 系 `issues[]` 同构；字段名 `question` + `suggested_addition`（或 `required_fix`）须体现**补什么**而非**错在哪**。
 
-**max_rounds 收尾**：第 3 轮仍有 blocking/major → 写 `challenges/<section>-final.json`（`status: max_rounds_reached`）；主编排仍输出该节，附录 C 列未闭合项。
+| severity | 含义 | 是否触发 writer 补充 |
+| --- | --- | --- |
+| blocking | 缺关键环，新手无法读懂 | 是 |
+| major | 缺重要背景/术语/对比 | 是 |
+| informational | 可更好，非必须 | 否 |
+
+**resolution 取值**：
+
+- `needs_enrichment`：仍有 blocking/major 未补，进入 writer 补充轮
+- `complete`：本节对新手读者已足够读懂（可有 informational）
+- `partial`：第 3 轮截止，blocking/major 未全闭合，仍输出并记入 final
+
+**max_rounds 收尾**：第 3 轮仍有 blocking/major → 写 `challenges/<section>-final.json`（`status: max_rounds_reached`）；主编排仍输出该节，附录 C 列**仍未补全的缺失项**。
 
 ## 10. 全局红线（每次委派必复述）
 
@@ -327,7 +360,7 @@ if round==3 且仍有 blocking/major:
 5. **禁止无对比的局部分析**：`problem-description` 须含兄弟分支对比或显式说明未能找到 peer。
 6. challenger 禁止 Write 分析源文件（`trace.json` 等）；仅 Write `challenges/**`。
 7. writer 不得 contradict `issue-analysis.json` 中 `confirmed` 主张。
-8. 辩驳平等：challenger 出题后 writer 必须 rebuttal；challenger 未读 rebuttal 不得终裁。
+8. **协作深化**：challenger 输出缺失清单后 writer **必须**补充；challenger 未读补充稿不得 `complete`；challenger **禁止**以「质疑/否决」代替具体的缺失说明。
 9. stdout 终稿禁止 markdown 表格（`| ... |`）与 HTML 表。
 10. Read/Write 中间产物仅 `$ISSUE_TMP/**` + 被分析仓库只读。
 
@@ -363,16 +396,16 @@ if round==3 且仍有 blocking/major:
 - 文档声明：(doc_declared)
 - 未能从代码确认：(inference) 或显式说明
 
-## 附录 B：质审摘要
+## 附录 B：报告深化摘要
 
-- 问题描述：2/3 accepted
-- 问题后果：2/3 accepted
-- 触发条件：1/3 accepted
-- 背景知识：3/3 accepted
+- 问题描述：2/3 complete
+- 问题后果：2/3 complete
+- 触发条件：1/3 partial
+- 背景知识：3/3 complete
 
-## 附录 C：未闭合质询（若有）
+## 附录 C：仍未补全的缺失项（若有）
 
-- [problem-description] blocking: …
+- [problem-description] blocking: 缺 C1 步骤 …
 ```
 
 附录 B/C 使用 bullet 列表，**禁止** `|` 表格语法。
