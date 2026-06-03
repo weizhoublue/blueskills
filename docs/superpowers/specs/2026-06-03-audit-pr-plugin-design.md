@@ -1,7 +1,7 @@
 # 设计文档：blueskills marketplace — `audit` 插件与 `audit-merged-pr` skill
 
 - 日期：2026-06-03
-- 状态：待用户审阅（v3：diff 归一化、audit-merged-pr 命名、质询证据硬化、降级矩阵）
+- 状态：已审阅（v4：阶段 0b 仓库绑定校验 — 多 remote 匹配 PR URL）
 - 来源需求：[`docs/README.md`](../../README.md)（PR 静态审计经验与报告结构；**不含** llm 会话 / resume CLI 一节）
 - 运行环境：**仅 Claude Code**（`/plugin install audit@blueskills`，`/audit:audit-merged-pr <PR_URL>`）
 
@@ -43,20 +43,55 @@ blueskills/
 
 ## 3. 前置条件与用户职责
 
-- 用户 **`cd` 到目标仓库根**（与 `report-features` 相同）。
+- 用户 **`cd` 到目标仓库根**（与 `report-features` 相同）；**阶段 0b** 会校验本地 `remote.*.url` 是否与 PR URL 的 `owner/repo` 一致（任一 remote 命中即可，含 `upstream`）。
 - 当前分支应为 **缺省分支**（`main` / `master` 等）；skill **不自动 checkout 其它分支**，仅对当前分支执行 `git pull`（或 `git pull --ff-only`）尝试更新。
 - 已安装并登录 **`gh`**；可选配置 GitHub MCP 作搜索兜底。
 - **禁止**修改代码、**禁止**运行测试；忽略示例/纯文档改动、忽略注释准确性。
 
 ## 4. 主编排阶段（`audit-merged-pr` SKILL.md）
 
-### 4.1 阶段 0：锁定 `AUDIT_TMP` 与 PR 标识
+### 4.1 阶段 0：解析 PR 与 marketplace 自检
 
 ```text
-1. 解析 PR_URL → owner, repo, number（正则 + 失败则报错退出）
-2. AUDIT_TMP ← mktemp -d  （系统 temp，如 /tmp/audit-pr-123-XXXXXX）
-3. trap：流程正常/异常结束时 rm -rf AUDIT_TMP；失败时 stderr 打印 AUDIT_TMP 供调试
-4. 自检：cwd 疑似 marketplace 克隆且无目标项目特征 → 提示用户 cd 到目标仓库
+1. 解析 PR_URL → pr_owner, pr_repo, pr_number（正则；失败则 stderr 一行并退出）
+   例：https://github.com/llm-d/llm-d-router/pull/1416 → llm-d / llm-d-router / 1416
+   canonical 期望仓库：expected_owner_repo ← "pr_owner/pr_repo"（PR 链接中的仓库，通常为合入目标）
+2. 自检：cwd 疑似 blueskills marketplace 克隆（存在 plugins/audit/.claude-plugin/plugin.json 且无被审项目特征）
+   → stderr 提示 cd 到目标仓库后退出（不创建 AUDIT_TMP）
+```
+
+### 4.1b 阶段 0b：仓库绑定校验（Shell only，在 `mktemp` / `gh` 之前）
+
+**目的：** 避免在错误目录（如 `cilium` 克隆）审计 `llm-d/llm-d-router` 的 PR，导致后续无代码依据、空耗 token。
+
+```text
+1. git rev-parse --is-inside-work-tree → 失败则退出（非 Git 仓库）
+2. repo_root ← git rev-parse --show-toplevel
+3. 枚举所有 remote URL（不限名称）：
+     git config --get-regexp '^remote\..*\.url$'
+4. 对每条 URL 归一化为 owner/repo（主编排 Shell 或短脚本）：
+     - https://github.com/cilium/cilium.git  → cilium/cilium
+     - git@github.com:weizhoublue/cilium.git → weizhoublue/cilium
+     - 非 github.com host → 记入 unparsed_remotes[]，不参与匹配
+5. binding_ok ← ∃ 归一化结果 == expected_owner_repo
+6. 若 ¬binding_ok：
+     stderr 一行：期望 expected_owner_repo；当前已解析 remotes 摘要（name→owner/repo，逗号分隔）
+     不创建 AUDIT_TMP；不调用 gh；退出码 1
+7. 若 binding_ok：继续 §4.1c
+```
+
+**匹配规则（已确认）：** 仅与 PR URL 中的 `owner/repo` 比对；**不**在 0b 阶段拉 `gh pr view` 的 head/base。fork 场景：本地 `origin` 为个人 fork、`upstream` 为上游时，只要**任一** remote 与 PR 链接仓库一致即通过。
+
+**YAGNI（0b 不做）：** 不自动 clone/cd；不把 merge commit 是否存在并入 0b（阶段 2 负责）。
+
+### 4.1c 阶段 0c：锁定 `AUDIT_TMP`
+
+```text
+1. AUDIT_TMP ← mktemp -d
+2. trap：正常/异常结束 rm -rf AUDIT_TMP；AUDIT_KEEP_TMP=1 时保留并在 stderr 打印路径
+3. mkdir findings challenges
+4. 写入 $AUDIT_TMP/repo-binding.json（schema §6.0）
+5. 向用户确认一行：将在 <expected_owner_repo> 审计 PR #N（不打印 AUDIT_TMP 除非 AUDIT_KEEP_TMP）
 ```
 
 ### 4.2 阶段 1：元数据（`gh` 为主）
@@ -304,6 +339,25 @@ for F in all（按 severity 降序）:
 - **报告中的「严重等级」** = `findings-final` 中成立项的 **最高** severity；须能在 §9 复现概率一节用代码路径支撑。
 
 ## 6. 中间产物 Schema
+
+### 6.0 `repo-binding.json`（主编排写，阶段 0c）
+
+```json
+{
+  "pr_url": "https://github.com/llm-d/llm-d-router/pull/1416",
+  "expected_owner_repo": "llm-d/llm-d-router",
+  "repo_root": "/workspace/git/llm-d-router",
+  "binding_ok": true,
+  "matched_remote": "origin",
+  "matched_url": "https://github.com/llm-d/llm-d-router.git",
+  "all_remotes": [
+    { "name": "origin", "owner_repo": "llm-d/llm-d-router", "url": "https://github.com/llm-d/llm-d-router.git" }
+  ],
+  "unparsed_remotes": []
+}
+```
+
+失败时**不**写入此文件（0b 在 `mktemp` 之前失败）。
 
 ### 6.1 `pr-context.json`（主编排写）
 
@@ -581,6 +635,7 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 5. 成立项 severity 符合 §5.7；`shallow_call_chain` 未满足 §7.1 的不得出现在 final 且为 P0/P1。
 6. 最终审计报告仅 stdout；中间过程仅有 §4.10 允许的简短进度；`AUDIT_TMP` 默认已删除。
 7. 报告无 llm session 节；报告问题列表仅来自 `findings-final`。
+8. **阶段 0b**：PR URL 的 `owner/repo` 与 cwd 下**任一** `remote.*.url` 归一化结果不匹配时，必须在 `mktemp` / `gh` 之前失败退出，stderr 含期望仓库与已解析 remotes 摘要。
 
 ## 13. 后续增强（非 v1）
 
@@ -596,6 +651,7 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | 环境 | Claude Code only |
 | 插件 / skill | `audit` / `audit-merged-pr` |
 | PR 输入 | URL |
+| 仓库绑定 | **阶段 0b**：所有 `remote.*.url` 归一化后与 PR URL 的 `owner/repo` 任一匹配；否则硬失败 |
 | diff | 阶段 2 定位 commit；**阶段 2b** 归一化 → `effective-diff.json` |
 | 代码来源 | mergeCommit 本地校验优先；有界 grep（≤5/模式）；`gh` 仅阶段 1 一次 + 最后 diff fallback |
 | commit 定位 token | 禁止长 log 进 prompt；仅 JSON 摘要进 agent |

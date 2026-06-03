@@ -17,6 +17,10 @@ assert any(p['name']=='audit' for p in m['plugins'])
 "
 
 rg -q 'audit-merged-pr' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q '阶段 0b' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'expected_owner_repo' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'repo-binding.json' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'remote\\..*\\.url' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'findings-final' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'p3_below_threshold' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'effective-diff' plugins/audit/skills/audit-merged-pr/SKILL.md
