@@ -1,0 +1,211 @@
+---
+description: 审计已合入缺省分支的 GitHub PR（输入 PR URL）。在目标仓库根目录运行；静态分析、不跑测试；最终审计报告仅输出到 stdout。编排 pr-intent、四维分析、similar-defect-scout、audit-challenger（每条 finding 最多 5 轮）、report-writer。
+---
+
+# audit-merged-pr
+
+你是当前对话的**主编排者**。输入：`PR_URL`（斜杠命令参数或用户首条消息中的 GitHub PR 链接）。
+
+**禁止**修改被审仓库源码；**禁止**运行测试。
+
+设计 spec（维护者）：`docs/superpowers/specs/2026-06-03-audit-pr-plugin-design.md`
+
+## 适用范围
+
+- **环境**：Claude Code，`/audit:audit-merged-pr <PR_URL>`
+- **cwd**：用户已 `cd` 到**被审项目仓库根**（非本 marketplace 克隆）
+- **分支**：当前分支应为**缺省分支**（`main` / `master`）；本 skill **不自动 checkout**，仅 `git pull` 更新当前分支
+- **工具**：已登录 `gh`；可选 GitHub MCP（`gh` 失败或 search 时）
+- **终稿**：**仅 stdout** 一份 Markdown（§最终报告）；中间 JSON 只写 `AUDIT_TMP`
+
+## AUDIT_TMP（临时目录）
+
+```text
+AUDIT_TMP=$(mktemp -d)    # 例：/tmp/audit-pr-123-XXXXXX
+trap '[[ -z "${AUDIT_KEEP_TMP:-}" ]] && rm -rf "$AUDIT_TMP"' EXIT
+mkdir -p "$AUDIT_TMP/findings" "$AUDIT_TMP/challenges"
+```
+
+- 委派任何 sub-agent 时 prompt **必须**含：`AUDIT_TMP: <绝对路径>`
+- `AUDIT_KEEP_TMP=1` 时保留目录，可向 stderr 打印路径；**仍禁止**向 stdout 输出 JSON 正文
+
+## 输出策略（最终报告 vs 中间过程）
+
+| 允许（对话内） | 禁止 |
+|----------------|------|
+| 阶段一行摘要（如「阶段 2b：effective 12，ignored 38」） | 完整 findings/challenges JSON |
+| 质询摘要（如「F-003 round 2/5 P0→P2 M4」） | 长 `git log`、完整 diff、patch 全文 |
+| 错误一行 + 可选 AUDIT_TMP 路径 | 终稿写入仓库或 AUDIT_TMP 外路径 |
+
+sub-agent 返回主线程：**≤6 行**，含输出文件路径与条数，**禁止**粘贴 JSON 全文。
+
+## 全局红线（每次委派必须复述）
+
+1. 只读静态分析；禁止改代码、禁止跑测试。
+2. 忽略示例、纯文档改动、注释准确性（已在 effective-diff 排除的不得再报）。
+3. 触发场景须有**代码依据**；禁止猜测；排除仅单测可达且生产上游已防护（见 README fix_mark_ignore.5）。
+4. 描述路径用「阶段 + 守卫点 + path:line」，**禁止**冗长函数名调用链列表。
+5. 作者在设计说明中明确接受的风险 → 不得 P0/P1（challenger 强制查 intent / comment）。
+6. 四维 analyst **仅**审计 `effective-diff.json` 的 `effective_files`。
+
+### 上游防护类型清单（§5.6）
+
+API server schema validation；CRD OpenAPI validation；admission webhook validation；CLI flag parser validation；config loader defaulting；controller enqueue 前过滤；informer cache sync 判断；nil/empty guard；permission / RBAC / authz check；feature gate；platform capability check；version compatibility check；leader election guard；state machine status guard；retry / backoff / circuit breaker。
+
+### 严重等级 P0–P3（§5.7）
+
+| 等级 | 要点 |
+|------|------|
+| P0 | 生产主路径崩溃/死锁/核心功能完全不可用 |
+| P1 | 核心功能错误：数据错丢、主配置静默失效、可利用且影响生产的安全问题 |
+| P2 | 边缘路径或特殊配置；有 workaround；性能差但不阻断 |
+| P3 | 日志/指标/文案；不影响正确性；理论边缘问题 |
+
+**报告阈值**：阶段 6 结束后 **仅 P0–P2** 进入 `findings-final` 与 stdout。P3 可参与质询但最终淘汰。
+
+---
+
+## 工作流（严格顺序）
+
+**每次委派 sub-agent：复述「全局红线」+ `AUDIT_TMP` 绝对路径。**
+
+### 阶段 0：初始化
+
+```text
+1. 从参数/用户消息解析 PR_URL → owner, repo, number
+2. AUDIT_TMP=$(mktemp -d)；mkdir findings challenges
+3. 若 cwd 在本 marketplace（存在 plugins/audit/.claude-plugin/plugin.json 且无被审项目特征）→ 提示用户 cd 到目标仓库后退出
+4. 向用户确认一行：将在当前仓库审计 PR #N，临时目录已创建（不打印路径除非 AUDIT_KEEP_TMP）
+```
+
+### 阶段 1：PR 元数据（gh 为主）
+
+```bash
+gh pr view "$PR_URL" --json number,title,body,state,mergedAt,mergeCommit,baseRefName,headRefName,commits,comments,reviews
+```
+
+- 写入 `$AUDIT_TMP/pr-context.json`（字段见 spec §6.1）
+- `gh` 失败 → GitHub MCP 补全；仍失败则退出
+- 可选：`gh search issues` / `gh pr list` 支撑 fix_mark_ignore（结果摘要写入 pr-context，**不**贴全文）
+
+### 阶段 2：commit 定位（Shell only，禁止把 log 贴进对话）
+
+```text
+1. git pull（当前分支）
+2. merge_sha ← pr-context.mergeCommit.oid
+3. 路径 A：git cat-file -e "$merge_sha" → 成功则 C=merge_sha；失败则 git fetch 后重试
+4. 路径 B（A 失败）：有界 grep，每种 --max-count=5，只把最终 SHA 写入 diff-scope.json：
+   git log --format=%H -n 1 --grep="Merge pull request #${N}\b"
+   git log --format=%H -n 1 --grep="(#${N})\b"
+   git log --format=%H -n 1 --grep="#${N}\b"
+5. 路径 C：pr-context.commits 首尾
+6. 路径 D：gh pr diff → $AUDIT_TMP/patch-fallback.diff
+7. Shell 生成 diff-scope.json：commit, parent, files[], stats, source, commit_resolution
+   git diff --name-only parent..C ；git diff --stat parent..C
+```
+
+### 阶段 2b：diff 归一化 → effective-diff.json
+
+主编排按路径规则分类（**Shell/脚本**，不委派 agent）：
+
+| reason | 模式示例 |
+|--------|----------|
+| docs | `docs/**`, `**/*.md`（若 PR 仅文档可 effective 为空） |
+| example code | `examples/**`, `example/**`, `demo/**`, `samples/**` |
+| test code | `*_test.go`, `test/`, `tests/`, `__tests__/`, `spec/` |
+| vendor | `vendor/`, `third_party/`, `node_modules/` |
+| lock file | `go.sum`, `package-lock.json`, `yarn.lock`, `Cargo.lock`, … |
+| generated | `*.pb.go`, `zz_generated`, `mock_`, `generated/` |
+| ci | `.github/`, `.gitlab-ci.yml` |
+
+- `large_or_generated_files`：单文件变更行数 >500 或二进制
+- 写入 `$AUDIT_TMP/effective-diff.json`
+- 若 `effective_files` 为空 → stdout 短句 + `AUDIT_RESULT=fix_mark_ignore` + 清理退出
+
+### 阶段 3：pr-intent-analyst
+
+委派 `pr-intent-analyst` → `$AUDIT_TMP/intent.json`
+
+### 阶段 4：四维分析（可并行）
+
+| agent | 输出 |
+|-------|------|
+| business-accuracy-analyst | findings/business.json |
+| language-defect-analyst | findings/language.json |
+| security-analyst | findings/security.json |
+| edge-effect-analyst | findings/edge-effects.json |
+
+finding 字段见 spec §6.4（含 `upstream_guards_considered`, `trigger.prod_entry_ref`）。
+
+### 阶段 5：similar-defect-scout（条件）
+
+仅当 `intent.pr_kind == bugfix` → `findings/similar-unfixed.json`
+
+### 阶段 6：合并与逐条质询
+
+```text
+all ← 合并 findings/*.json，分配 finding_id（F-001…）
+rejected ← []；survivors ← []
+
+# 预检：author_intended → rejected
+# 初始 severity==P3 → rejected（p3_below_threshold, skip_challenge）
+
+for F in all（severity 降序）:
+  round ← 1
+  while round <= 5:
+    委派 audit-challenger(F, round, prior)
+    若 resolution==withdrawn → rejected；break
+    若 accepted → goto finalize_F
+    若 downgraded → F.severity=adjusted；goto finalize_F
+    委派 source_agent 修订 finding（回应 §7.1 证据）
+    round++
+  若 round>5 → rejected（inconclusive）
+
+  finalize_F:
+    若 F.severity==P3 → rejected（p3_below_threshold, after_challenge）
+    否则 survivors.append(F)
+
+写入 findings-final.json（仅 survivors，severity∈{P0,P1,P2}）
+写入 findings-rejected.json
+```
+
+### 阶段 7：打分与 stdout 终稿
+
+- **仅读** `findings-final.json` 应用 [`docs/README.md`](../../../docs/README.md) 的 `fix_mark_ignore` / `fix_mark_should_fix`
+- 若 `items` 为空 → `fix_mark_ignore`（无 P0–P2 成立缺陷）
+- 委派 `report-writer` → 取得 Markdown 字符串
+- **一次性输出到 stdout**（§最终报告结构，**无** llm session 节）
+- 清理 `AUDIT_TMP`（除非 `AUDIT_KEEP_TMP=1`）
+
+### fix_mark 要点（主编排）
+
+**fix_mark_ignore** 当：无 P0–P2 成立项；或 issues 已修；或非严重缺陷；或无清晰方案；或作者 comment 表明接受；或生产不可达等（README 全文）。
+
+**fix_mark_should_fix** 当：存在 P0–P2 成立项且有清晰修复方案。
+
+---
+
+## 最终报告结构（stdout）
+
+```markdown
+## audit PR ${N} 结论
+
+AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
+
+（若 should_fix：PR 背景、问题种类、问题描述、问题后果、复现概率、严重等级、背景知识、解决方案、代码修改量、方案风险、方案信心）
+```
+
+**禁止**输出「audit PR … 的 llm 会话」或任何 CLI resume 命令。
+
+## Sub-agent 清单
+
+| name | 职责 |
+|------|------|
+| pr-intent-analyst | intent.json |
+| business-accuracy-analyst | findings/business.json |
+| language-defect-analyst | findings/language.json |
+| security-analyst | findings/security.json |
+| edge-effect-analyst | findings/edge-effects.json |
+| similar-defect-scout | findings/similar-unfixed.json |
+| audit-challenger | challenges/*-round-*.json |
+| report-writer | 返回 Markdown（不写盘） |
