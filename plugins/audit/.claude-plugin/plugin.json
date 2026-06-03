@@ -1,0 +1,8 @@
+{
+  "name": "audit",
+  "displayName": "Audit",
+  "version": "0.1.0",
+  "description": "对已合入缺省分支的 PR 做静态审计（audit-merged-pr Skill + 八个 sub-agent，终稿 stdout）",
+  "keywords": ["pr-audit", "code-review", "security"],
+  "license": "MIT"
+}
