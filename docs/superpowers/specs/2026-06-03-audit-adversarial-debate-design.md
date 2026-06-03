@@ -18,7 +18,7 @@ round N:
   3. round N+1 challenger 必读上轮 rebuttal；终裁须填 debate_summary
 ```
 
-适用：`peer-parity-challenger`（≤3）、`audit-challenger`（≤5）。
+适用：`peer-parity-challenger`（≤2）、`audit-challenger`（≤3）。
 
 ## 3. 目录
 

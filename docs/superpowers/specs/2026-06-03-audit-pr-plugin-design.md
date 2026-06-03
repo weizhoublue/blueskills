@@ -13,7 +13,7 @@
 2. 在 **本地缺省分支**（如 `main`）上定位已合入 PR 的 **commit / diff**（本地 `git` 优先，API 拉 patch 为最后手段）。
 3. **PR diff 归一化**：从原始变更中筛出 **effective_files**（生产相关代码），排除文档/示例/测试/vendor/lock/生成物/纯 rename-format 等，避免四维 analyst 空耗。
 4. **多视角** 静态发现缺陷（业务 / 语言 / 安全 / 边缘 / 可选同类未修）；**仅扫描 effective_files**。
-5. **`audit-challenger` 对每条 finding 最多 5 轮质疑**，重点：更深调用链、**严重等级/触发/后果核实**、作者有意为之则撤回或降级；适用 §7.2 降级矩阵。
+5. **`audit-challenger` 对每条 finding 最多 3 轮质疑**（`peer-parity-challenger` 最多 2 轮）；重点：更深调用链、**严重等级/触发/后果核实**、作者有意为之则撤回或降级；适用 §7.2 降级矩阵。
 6. **最终审计报告仅 stdout**（见 §4.10 输出策略）；中间过程可有简短进度日志；结构化产物只写 `AUDIT_TMP`。
 
 ## 2. 命名与仓库布局
@@ -276,13 +276,13 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 
 详见增量 spec §3.2。
 
-### 4.7d 阶段 6a″：`peer-parity-challenger`（等同路径专质询，≤3 轮 / finding）
+### 4.7d 阶段 6a″：`peer-parity-challenger`（等同路径专质询，≤2 轮 / finding）
 
 **目的：** 在 audit 全链路质询之前，专审对照深浅与结论一致性（**M13/M14**）。
 
 **时机：** 6a′ 之后、6b 之前。
 
-**轮次：** 每条 finding **最多 3 轮**；每轮 `needs_rebuttal` 后 proposer 写 `$AUDIT_TMP/rebuttals/peer/**`（见 adversarial-debate spec）；Write 仅 `$AUDIT_TMP/peer-challenges/**`。
+**轮次：** 每条 finding **最多 2 轮**；每轮 `needs_rebuttal` 后 proposer 写 `$AUDIT_TMP/rebuttals/peer/**`（见 adversarial-debate spec）；Write 仅 `$AUDIT_TMP/peer-challenges/**`。
 
 **结案：** `peer-challenges/<finding_id>-final.json`（`peer_line_resolution`）。
 
@@ -291,7 +291,7 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 | `withdrawn` | 写入 `findings-rejected`，**跳过 6b** |
 | `accepted` / `downgraded` | 更新 `peer_comparison` → 进入 6b |
 
-### 4.8 阶段 6b：合并与逐条质询（audit ≤5 轮 / finding）→ **仅保留成立项**
+### 4.8 阶段 6b：合并与逐条质询（audit ≤3 轮 / finding）→ **仅保留成立项**
 
 **前置：** 必须已存在 `peer-challenges/<finding_id>-final.json`（6a″ 通过或 `not_applicable` 记录）。
 
@@ -321,7 +321,7 @@ for F in all（按 severity 降序）:
 
   proposer ← F.source_agent
   round ← 1
-  while round <= 5:
+  while round <= 3:
     委派 audit-challenger(F, round, prior_challenges)
     读 challenges/<finding_id>-round-<round>.json
     if resolution == withdrawn:
@@ -336,7 +336,7 @@ for F in all（按 severity 降序）:
        goto finalize_F
     委派 proposer 修订（§7.1 证据）
     round++
-  # 5 轮仍无法证明成立
+  # 3 轮仍无法证明成立
   rejected.append(F + { disposition: inconclusive })
   goto next F
 
@@ -359,7 +359,7 @@ for F in all（按 severity 降序）:
 | `downgraded` 至 P0/P1/P2 | 是 | 成立，仅降级但仍达报告阈值 |
 | `downgraded` 至 **P3** 或质询前即为 P3 | **否** | 成立但优先级过低，写入 `findings-rejected`（`p3_below_threshold`） |
 | `withdrawn` | **否** | 不成立 |
-| `inconclusive` | **否** | 5 轮仍证不出，视为不成立 |
+| `inconclusive` | **否** | 3 轮仍证不出，视为不成立 |
 
 **与 §7.2 矩阵：** M2/M3/M4/M9 等将项定为 P3 时，质询结束后由 `finalize_F` 自动淘汰，**不必**再进入 should_fix 报告正文（与 `fix_mark_ignore` 一致）。
 
@@ -803,15 +803,15 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 1. `/audit:audit-merged-pr <url>` 在已合入 PR、本地 main 已 pull 时，无需 `gh pr diff` 即可完成审计。
 2. 存在 `effective-diff.json`；四维 analyst 的 finding 仅引用 `effective_files` 路径。
 3. `withdrawn` / `inconclusive` / **P3** 项不在 `findings-final.items` 中（P3 可在 `findings-rejected` 追溯）。
-4. 每条 `findings-final` 项在 `challenges/` 可追溯 ≤5 轮，且 `severity_review.matrix_rule_id` 有值。
+4. 每条 `findings-final` 项在 `challenges/` 可追溯 ≤3 轮（peer 线 ≤2 轮），且 `severity_review.matrix_rule_id` 有值。
 5. 成立项 severity 符合 §5.7；`shallow_call_chain` 未满足 §7.1 的不得出现在 final 且为 P0/P1。
 6. 最终审计报告仅 stdout；中间过程仅有 §4.10 允许的简短进度；`AUDIT_TMP` 默认已删除。
 7. 报告无 llm session 节；报告问题列表仅来自 `findings-final`。
 8. **阶段 0b**：PR URL 的 `owner/repo` 与 cwd 下**任一** `remote.*.url` 归一化结果不匹配时，必须在 `mktemp` / `gh` 之前失败退出，stderr 含期望仓库与已解析 remotes 摘要。
 9. **阶段 4 / §5.8**：对含 `two_phase_yield` 或「漏 guard」类 finding，`path_consistency.phase_refs` 须含 phase1 与 phase2 的 path:line；challenger 可对仅 diff 断言项质询并 M11。
 10. **阶段 6a**：对已在 `merge_commit..HEAD` 或后续 merged PR 中修复的 finding，须写入 `subsequent_fix` 并跳过质询与终稿。
-11. **阶段 6a′–6a″**：`peer-comparisons.json` + `peer-challenges/*-final.json`；peer 线 ≤3 轮；`withdrawn` 不进 6b。
-12. **阶段 6b**：audit ≤5 轮；已 Read peer-final；无重复 peer 议题（除非 `peer_reopened_by_audit` + 新证据）。
+11. **阶段 6a′–6a″**：`peer-comparisons.json` + `peer-challenges/*-final.json`；peer 线 ≤2 轮；`withdrawn` 不进 6b。
+12. **阶段 6b**：audit ≤3 轮；已 Read peer-final；无重复 peer 议题（除非 `peer_reopened_by_audit` + 新证据）。
 13. 终稿 should_fix 含 **同类路径比较**，与 `peer_comparison` 一致。
 
 ## 13. 后续增强（非 v1）
@@ -832,10 +832,10 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | diff | 阶段 2 定位 commit；**阶段 2b** 归一化 → `effective-diff.json` |
 | 代码来源 | mergeCommit 本地校验优先；有界 grep（≤5/模式）；`gh` 仅阶段 1 一次 + 最后 diff fallback |
 | commit 定位 token | 禁止长 log 进 prompt；仅 JSON 摘要进 agent |
-| 质询 | 每条 ≤5 轮；final 仅 P0–P2 成立项；§5.7；§5.8；§7.1–7.2 |
+| 质询 | peer ≤2 轮 + audit ≤3 轮/finding；final 仅 P0–P2；§5.7；§5.8；§7.1–7.2 |
 | 路径一致性 | 阶段 4 强制 §5.8；`two_phase_yield` 启发式；finding 可选 `path_consistency` |
 | 后续修复 | 阶段 6a `subsequent-fix-scout`；`already_fixed`/`fix_in_progress` → `subsequent_fix` 淘汰 |
-| 等同路径比较 | 6a′ `peer-path-comparator`（1 pass）→ 6a″ `peer-parity-challenger`（≤3 轮，M13/M14）→ 6b audit（≤5 轮，peer 交叉验证）；终稿 **同类路径比较** |
+| 等同路径比较 | 6a′（1 pass）→ 6a″（≤2 轮，M13/M14）→ 6b audit（≤3 轮，peer 交叉验证）；终稿 **同类路径比较** |
 | 质询辩驳 | 方案 B：challenge → `rebuttals/` → 终裁；`finding-defense-mode`；challenger 须回应 `counterclaims` |
 | 四维去重 | 阶段 5b `finding-dedupe-normalizer`；阶段 6 仅 `canonical_items` |
 | GitHub | `gh` 主，MCP 兜底 |

@@ -1,5 +1,5 @@
 ---
-description: 审计已合入缺省分支的 GitHub PR（输入 PR URL）。在目标仓库根目录运行；静态分析、不跑测试；最终审计报告仅输出到 stdout。编排 pr-intent、四维分析、similar-defect-scout、finding-dedupe-normalizer（5b）、peer/audit 质询、report-writer。
+description: 审计已合入缺省分支的 GitHub PR（输入 PR URL）。在目标仓库根目录运行；静态分析、不跑测试；最终审计报告仅输出到 stdout。编排 pr-intent、四维、5b 去重、peer 质询≤2 轮/finding、audit 质询≤3 轮/finding、report-writer。
 ---
 
 # audit-merged-pr
@@ -34,7 +34,7 @@ mkdir -p "$AUDIT_TMP/findings" "$AUDIT_TMP/challenges" "$AUDIT_TMP/peer-challeng
 | 允许（对话内） | 禁止 |
 |----------------|------|
 | 阶段一行摘要（如「阶段 2b：effective 12，ignored 38」） | 完整 findings/challenges JSON |
-| 质询摘要（如「F-003 peer 2/3 accepted」「F-003 audit 2/5 P0→P2 M4」） | 长 `git log`、完整 diff、patch 全文 |
+| 质询摘要（如「F-003 peer 2/2 accepted」「F-003 audit 2/3 P0→P2 M4」） | 长 `git log`、完整 diff、patch 全文 |
 | 错误一行 + 可选 AUDIT_TMP 路径 | 终稿写入仓库或 AUDIT_TMP 外路径 |
 
 sub-agent 返回主线程：**≤6 行**，含输出文件路径与条数，**禁止**粘贴 JSON 全文。
@@ -246,10 +246,10 @@ for F in all:
 委派 peer-path-comparator → $AUDIT_TMP/peer-comparisons.json
 主编排：将每项合并为 F.peer_comparison 草稿（含 table_rows 摘要）
 
-# 阶段 6a″：等同路径专质询（≤3 轮 / finding，双文书辩驳）
+# 阶段 6a″：等同路径专质询（≤2 轮 / finding，双文书辩驳）
 for F in all \ rejected（severity 降序，且 severity∈{P0,P1,P2}）:
   peer_round ← 1
-  while peer_round <= 3:
+  while peer_round <= 2:
     委派 peer-parity-challenger(F, peer_round)
     若 resolution ∈ {withdrawn, accepted, downgraded}:
       须已存在与**本轮或上一轮** needs_rebuttal 对应的 rebuttals/peer/F-round-*.json
@@ -260,11 +260,11 @@ for F in all \ rejected（severity 降序，且 severity∈{P0,P1,P2}）:
       若 stance_summary==proposer_withdraws → rejected；goto next_F
       可选：委派 source_agent 修订 peer_comparison（在 rebuttal 之后）
     peer_round++
-  若 peer_round>3 且无 accepted → rejected（peer_inconclusive）；goto next_F
+  若 peer_round>2 且无 accepted → rejected（peer_inconclusive）；goto next_F
 
-  # 阶段 6b：全链路质询（≤5 轮，双文书；须已有 peer-challenges/F-final.json）
+  # 阶段 6b：全链路质询（≤3 轮，双文书；须已有 peer-challenges/F-final.json）
   round ← 1
-  while round <= 5:
+  while round <= 3:
     委派 audit-challenger(F, round)   # 必读 peer-final；读 rebuttals/audit 当轮及上轮
     若 resolution ∈ {withdrawn, accepted, downgraded}:
       须已存在与**本轮或上一轮** needs_rebuttal 对应的 rebuttals/audit/F-round-*.json
@@ -276,7 +276,7 @@ for F in all \ rejected（severity 降序，且 severity∈{P0,P1,P2}）:
       若 proposer_withdraws → rejected；break
       可选：委派 source_agent 修订 finding（回应 §7.1 证据）
     round++
-  若 round>5 → rejected（inconclusive）
+  若 round>3 → rejected（inconclusive）
 
   finalize_F:
     若 F.severity==P3 → rejected（p3_below_threshold, after_challenge）
@@ -341,6 +341,6 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | finding-dedupe-normalizer | dedupe-result.json、superseded-by-dedupe.json（阶段 5b） |
 | subsequent-fix-scout | subsequent-fixes.json（阶段 6a，已修/修复中则淘汰） |
 | peer-path-comparator | peer-comparisons.json（阶段 6a′，1 pass） |
-| peer-parity-challenger | peer-challenges/*-round-*.json、*-final.json（阶段 6a″，≤3 轮，M13/M14） |
-| audit-challenger | challenges/*-round-*.json（阶段 6b，≤5 轮；peer 交叉验证） |
+| peer-parity-challenger | peer-challenges/*-round-*.json、*-final.json（阶段 6a″，≤2 轮，M13/M14） |
+| audit-challenger | challenges/*-round-*.json（阶段 6b，≤3 轮；peer 交叉验证） |
 | report-writer | 返回 Markdown（不写盘） |

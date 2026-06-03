@@ -60,5 +60,9 @@ rg -q 'finding-dedupe-normalizer' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'dedupe-result.json' plugins/audit/agents/finding-dedupe-normalizer.md
 rg -q 'canonical_items' plugins/audit/agents/finding-dedupe-normalizer.md
 rg -q 'contributing_agents' plugins/audit/agents/finding-dedupe-normalizer.md
+rg -q '最多 2 轮' plugins/audit/agents/peer-parity-challenger.md
+rg -q '最多 3 轮' plugins/audit/agents/audit-challenger.md
+rg -q 'peer_round <= 2' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'round <= 3' plugins/audit/skills/audit-merged-pr/SKILL.md
 
 echo "OK: audit plugin structure"

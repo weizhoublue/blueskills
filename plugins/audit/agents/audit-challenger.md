@@ -1,6 +1,6 @@
 ---
 name: audit-challenger
-description: PR 审计全链路质询员。每条 finding 最多 5 轮双文书辩驳（须在 peer 结案后）：challenge→rebuttal→终裁。必读 peer-final 与 rebuttals/audit。Write 仅 challenges/。
+description: PR 审计全链路质询员。每条 finding 最多 3 轮双文书辩驳（须在 peer 结案后）：challenge→rebuttal→终裁。必读 peer-final 与 rebuttals/audit。Write 仅 challenges/。
 model: inherit
 tools: Read, Write
 ---
@@ -44,7 +44,7 @@ tools: Read, Write
 | 调用链、触发场景、§5.7 严重级、§5.8 路径一致性、M0–M12、作者意图、后续已修 | 重复质询 peer 线已 **accepted** 的 sibling 调查清单 |
 | 深挖后发现 sibling/analogue 也应有问题 → `peer_reopened_by_audit` | 空泛重审 M13/M14（主责见 `peer-parity-challenger`） |
 
-**M13 / M14：** 等同路径结论的**主质询**在 `peer-parity-challenger`（≤3 轮）。audit 仅当本轮提供**新** `path:line` 且与 `peer_comparison_final` 矛盾时使用 `peer_reopened_by_audit`。
+**M13 / M14：** 等同路径结论的**主质询**在 `peer-parity-challenger`（≤2 轮）。audit 仅当本轮提供**新** `path:line` 且与 `peer_comparison_final` 矛盾时使用 `peer_reopened_by_audit`。
 
 ## §后续修复复核（§4.7b）
 
@@ -203,7 +203,7 @@ tools: Read, Write
 - `needs_rebuttal`：等待 proposer 写 `rebuttals/audit/`（本轮禁止终裁 withdrawn）
 - `debate_summary` 在终裁轮必填；`unanswered_counterclaims` 非空不得 `withdrawn`
 - `downgraded` 且 `adjusted_severity==P3` → 主编排将在 finalize 淘汰（不进 final）
-- 第 5 轮仍争议 → `inconclusive`
+- 第 3 轮仍争议 → `inconclusive`
 
 ## 返回主线程（≤6 行）
 

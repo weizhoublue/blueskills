@@ -1,7 +1,7 @@
 # 设计增量：`peer-path-comparator` + `peer-parity-challenger` — 等同路径比较
 
 - 日期：2026-06-03
-- 状态：已审阅 v2（**模式 2**：1 次对照 + peer 专质询 ≤3 轮 + audit ≤5 轮交叉验证）
+- 状态：已审阅 v2.1（**模式 2**：1 次对照 + peer ≤2 轮 + audit ≤3 轮交叉验证）
 - 父文档：[`2026-06-03-audit-pr-plugin-design.md`](./2026-06-03-audit-pr-plugin-design.md)（主文档 **v8**）
 - 来源需求：等同路径比较 + 专质询；audit 后续轮次可补强 peer，但不重复已结案议题
 - 范围决策：**C — 先 A（局部）后 B（仓库，有条件）**
@@ -9,11 +9,11 @@
 ## 1. 目标
 
 1. **6a′** 一次性生成 `peer-comparisons.json`（A 兄弟分支 + 可选 B 仓库 analogue）。
-2. **6a″** `peer-parity-challenger` 对每条 P0–P2 finding **最多 3 轮**专质询（M13/M14、对照深浅、结论一致性），写入 `peer-challenges/`。
-3. **6b** `audit-challenger` **最多 5 轮**全链路质询；**可读 peer 结案**，在调用链/触发/严重级证据下**交叉验证** peer，**禁止**重复 peer 线已 accepted 的议题（除非本轮提供**新** `path:line`）。
+2. **6a″** `peer-parity-challenger` 对每条 P0–P2 finding **最多 2 轮**专质询（M13/M14、对照深浅、结论一致性），写入 `peer-challenges/`。
+3. **6b** `audit-challenger` **最多 3 轮**全链路质询；**可读 peer 结案**，在调用链/触发/严重级证据下**交叉验证** peer，**禁止**重复 peer 线已 accepted 的议题（除非本轮提供**新** `path:line`）。
 4. 终稿含 **同类路径比较**（来自 `findings-final.peer_comparison`）。
 
-**非目标：** 不替代 `similar-defect-scout`；不为 P3 跑 6a′/6a″；peer 线 `withdrawn` 后不再进入 audit 5 轮。
+**非目标：** 不替代 `similar-defect-scout`；不为 P3 跑 6a′/6a″；peer 线 `withdrawn` 后不再进入 audit 质询。
 
 ## 2. 与现有能力的关系
 
@@ -22,8 +22,8 @@
 | `similar-defect-scout`（阶段 5） | bugfix 全库找**未修**同类 → **新** finding |
 | `§5.8 执行路径一致性` | 同函数多阶段/eligibility 与 yield |
 | **`peer-path-comparator`（6a′）** | **1 pass** 对照表，不质询 |
-| **`peer-parity-challenger`（6a″）** | **≤3 轮/finding**，仅 peer 议题 |
-| **`audit-challenger`（6b）** | **≤5 轮/finding**，全链路 + peer **交叉验证** |
+| **`peer-parity-challenger`（6a″）** | **≤2 轮/finding**，仅 peer 议题 |
+| **`audit-challenger`（6b）** | **≤3 轮/finding**，全链路 + peer **交叉验证** |
 
 ## 3. 编排（阶段 6）
 
@@ -31,8 +31,8 @@
 all-merged.json
   → 6a   subsequent-fix-scout
   → 6a′  peer-path-comparator     （1 pass / finding → peer-comparisons.json）
-  → 6a″  peer-parity-challenger   （≤3 轮 / finding → peer-challenges/）
-  → 6b   audit-challenger          （≤5 轮 / finding → challenges/）
+  → 6a″  peer-parity-challenger   （≤2 轮 / finding → peer-challenges/）
+  → 6b   audit-challenger          （≤3 轮 / finding → challenges/）
   → 7    report-writer
 ```
 
@@ -65,7 +65,7 @@ all-merged.json
 | 项 | 内容 |
 |----|------|
 | 文件 | `plugins/audit/agents/peer-parity-challenger.md` |
-| 轮次 | **每条 finding 最多 3 轮**（`round` 1..3） |
+| 轮次 | **每条 finding 最多 2 轮**（`round` 1..2） |
 | 输入 | `peer-comparisons.json`、`F`（含 `peer_comparison`）、`intent.json` |
 | Write | **仅** `$AUDIT_TMP/peer-challenges/<finding_id>-round-<N>.json` |
 | proposer | **始终为** `F.source_agent`（修订 `peer_comparison` / 回应质询） |
@@ -95,7 +95,7 @@ all-merged.json
 
 | 项 | 内容 |
 |----|------|
-| 轮次 | **每条 finding 最多 5 轮**（与现 spec 一致） |
+| 轮次 | **每条 finding 最多 3 轮** |
 | 前置 Read | `peer-challenges/<finding_id>-final.json`（必须） |
 | Write | `$AUDIT_TMP/challenges/<finding_id>-round-<N>.json`（现有） |
 
@@ -168,9 +168,9 @@ all-merged.json
 | 阶段 | 每条 finding 上限 |
 |------|-------------------|
 | 6a′ 对照 | 1 pass |
-| 6a″ peer 质询 | **3 轮** |
-| 6b audit 质询 | **5 轮** |
-| 硬顶（可选 env） | `AUDIT_MAX_PEER_ROUNDS` 默认 3；`peer_round + audit_round ≤ 8` |
+| 6a″ peer 质询 | **2 轮** |
+| 6b audit 质询 | **3 轮** |
+| 硬顶（可选 env） | `peer_round + audit_round ≤ 5`（默认 2+3） |
 
 ## 8. 实现清单
 
