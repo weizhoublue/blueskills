@@ -46,5 +46,8 @@ rg -q 'peer-comparisons.json' plugins/audit/agents/peer-path-comparator.md
 rg -q 'peer_reopened_by_audit' plugins/audit/agents/audit-challenger.md
 rg -q 'M13' plugins/audit/agents/peer-parity-challenger.md
 rg -q '同类路径比较' plugins/audit/agents/report-writer.md
+rg -q 'R15' plugins/audit/agents/report-writer.md
+rg -q '禁止.*markdown.*表格' plugins/audit/agents/report-writer.md
+rg -q 'R15' plugins/audit/skills/audit-merged-pr/SKILL.md
 
 echo "OK: audit plugin structure"

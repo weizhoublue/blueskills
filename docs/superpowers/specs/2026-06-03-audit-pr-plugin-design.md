@@ -364,6 +364,7 @@ for F in all（按 severity 降序）:
 **最终用户可见的审计报告：仅 stdout。**
 
 - 流程**结束**时，主线程向 stdout 输出 **一份**完整 Markdown（§9），对应 `REVIEW_RESULT=…` 及 should_fix 时的各小节。
+- **R15（终稿排版）：** 禁止 markdown/HTML **表格**（任何 `| ... |` 行）；用 `###`、有序/无序列表、嵌套 bullet；`peer_comparison.table_rows` 等 JSON 字段在终稿中**仅**渲染为列表，不得成表。
 - **禁止**将终稿写入仓库内文件、禁止写入 `AUDIT_TMP` 外的持久路径。
 
 **中间过程（Claude Code 对话内）：允许简短进度，禁止倾倒大块数据。**
@@ -763,6 +764,8 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 ```
 
 **不包含：** `## audit PR … 的 llm 会话` 及任何 CLI resume 命令。
+
+**排版：** 遵守 **R15** — 终稿全文禁止表格，仅用列表与小节标题。
 
 ## 10. 与 `investigate-project` 的关系
 
