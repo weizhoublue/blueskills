@@ -558,7 +558,7 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 
 1. `/audit:audit-merged-pr <url>` 在已合入 PR、本地 main 已 pull 时，无需 `gh pr diff` 即可完成审计。
 2. 存在 `effective-diff.json`；四维 analyst 的 finding 仅引用 `effective_files` 路径。
-3. `withdrawn` / `inconclusive` 项不在 `findings-final.items` 中。
+3. `withdrawn` / `inconclusive` / **P3** 项不在 `findings-final.items` 中（P3 可在 `findings-rejected` 追溯）。
 4. 每条 `findings-final` 项在 `challenges/` 可追溯 ≤5 轮，且 `severity_review.matrix_rule_id` 有值。
 5. 成立项 severity 符合 §5.7；`shallow_call_chain` 未满足 §7.1 的不得出现在 final 且为 P0/P1。
 6. 最终审计报告仅 stdout；中间过程仅有 §4.10 允许的简短进度；`AUDIT_TMP` 默认已删除。
@@ -581,7 +581,7 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | diff | 阶段 2 定位 commit；**阶段 2b** 归一化 → `effective-diff.json` |
 | 代码来源 | mergeCommit 本地校验优先；有界 grep（≤5/模式）；`gh` 仅阶段 1 一次 + 最后 diff fallback |
 | commit 定位 token | 禁止长 log 进 prompt；仅 JSON 摘要进 agent |
-| 质询 | 每条 ≤5 轮；不成立不进 final；§5.7 P0–P3；§7.1–7.2 |
+| 质询 | 每条 ≤5 轮；final 仅 P0–P2 成立项；§5.7；§7.1–7.2 |
 | GitHub | `gh` 主，MCP 兜底 |
 | 终稿 | **最终报告** stdout only；中间允许简短进度（§4.10） |
 | 中间产物 | `mktemp -d` |

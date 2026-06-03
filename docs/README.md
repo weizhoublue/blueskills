@@ -1,107 +1,62 @@
-# blueskills
+
+从以下多个方面进行分析：
+- **解读 PR 信息**：了解 PR 中的 title 、描述、comment，分析 PR 的意图，它本身解决了什么问题，分析 PR 中相关的代码 comment ，分析出一些缺陷为什么不需要修复或者忽略
+- **分析 PR 的自身代码的缺陷**，包括：
+    （1）业务准确性缺陷和严重等级：代码的修复逻辑，是否错误地实现了其声明的目的 
+    （2）编程语言缺陷和严重等级：空指针/未定义处理不当、竞态条件、内存泄漏、性能瓶颈等。
+    （3）安全性缺陷和严重等级：潜在的安全漏洞或不安全的编码实践 
+    （4）边缘效应缺陷和严重等级：是否导致其他未修改的业务逻辑出现边际效应
+- **同类未修复问题排查**：如果本 pr 的意图是 bug 修复，而非功能增强，参考本 pr 的修复原理，通过遍历了整个代码库，发现其他相同逻辑的缺陷是否未修复
+
+分析限制：
+- 只进行静态代码分析，不修改代码
+- 不运行测试，
+- 忽略对示例代码和文档代码的修改。
+- 忽略代码注释的准确性 bug
+
+结合各个分析结果和发现的问题，对本 PR 进行打分 fix_mark_ignore 或者 fix_mark_should_fix ,打分标准如下：
+- fix_mark_ignore 表示可以不关心此问题，包括以下几种情况， ：
+    1. 通过查询类似的 issue 或者 pr，发现该问题已经被解决了，不需要关心，或者通过查询最新代码和一些历史 pr， 发现该问题是一个已知的被修复问题；
+    2. 该问题的性质不是一个严重的代码缺陷，包括了：
+    （1）是一个用户使用流程问题，而不是代码缺陷；
+    （2）是一个新需求，不是项目目前承诺的能力范围
+    （3）涉及项目的文档修改，不涉及代码修改
+    （4）它造成的实际后果非常轻微，可以不修
+    （5）代码注释的准确性问题
+    3. 该问题没有明确清晰的解决方案，它包括了
+    （1）没有解决方案
+    （2）只有 workaround 的办法，不能解决根本问题
+    （3）解决方案的信心不足，存在很多不确定性，容易引起很多边际效应
+    （4）简约评估代码修改量大于 100 行（不包含测试代码），反应了潜在的修复风险高
+    （5）解决方案有好几个，难以权衡，都有边际效应
+    4. 原始 PR 中，对涉及问题的的代码 前后进行 comment，表明了作者的设计意图，或者未来修复计划，因此可以不用关注
+    5. 该问题具备实际生产环境会触发场景，必须排除以下这些没有意义的触发场景：
+    (1)严禁涵盖一些无根据的猜测、假设的场景，触发场景没有代码依据
+    (2)只存在于设定了特殊条件的单元测试场景中，但该问题在实际部署中，上游的代码封装调用或者应用部署参数，已经做了防护，因此不会触发
+- 否则，对于发现的问题有了清晰明确的解决方案，请取值 fix_mark_should_fix ， 表示该 PR 中存在缺陷，或者仓库其余代码存在类似缺陷
 
 
-制作一个分析开源项目代码的 claude code 的 plugin 
 
-## 构成
+最终，请以如下 Markdown 结构输出中文报告，用词尽量简洁，避免长篇大论，每句话尽量直切重点，句子中避免过度修饰语和补充句：
 
-- 包含一个分析代码流程的 SKILl 
-    参考 Cloud Code的 这个 plugin 制作的这个规范  https://code.claude.com/docs/zh-CN/plugins
+## audit PR ${PR_ID} 结论
 
-- 包含多个agent的角色
-    每种角色分别用于不同的代码层面或者报告书写层面的一些能力。 它们一起用于分工合作来完成最终的目标。 
-    claude code  agent 制作规范  https://code.claude.com/docs/zh-CN/sub-agents
+AUDIT_RESULT=<value>
 
-## 实现
-
-- 要合理拆分这个分析 skill 的流程，
-
-- 整个 skill 的工作流程应该是更多地利用多 agent 和  team 的模式， 来进行分工合作，以降低单 agent 的上下文限制，使得每一个 agent 的产出更加专注、准确。 
-
-## plugin 目标
-
-基于当前目录下的这套代码，我们希望梳理出这个项目提供的用户级别的业务功能。
-分析报告包括了： 它提供了哪些一级功和二级功能。
-
-专注于是给用户提供的业务层面的这个功能分析，所以它应该不包含如下：
-- 工程的 CICD
-- 工程的这个一些镜像打包、发布的能力 
+给出如上一行结论，AUDIT_RESULT=fix_mark_ignore 或者 AUDIT_RESULT=fix_mark_should_fix 结论 。
+如果你判定是 AUDIT_RESULT=fix_mark_should_fix， 说明该 PR 引入了新问题或者仓库中存在残留的类似缺陷，那么给出以下简要内容：
+- ** PR 背景** PR #${PR_ID} 自身的前因后果，它本身解决了什么问题，涉及的软件功能、应用场景、用途、工作原理和流程
+- **问题种类** 对于发现的严重问题，明确指出属于如下哪一种问题类型，无需解释原因：（1）原 PR 没有达到修复意图（2）原 PR 引入了新问题（3）非原 PR 问题，而是发现了仓库中其他代码的同类缺陷
+- **问题描述** 发现的严重问题的描述，包括了错误的代码逻辑、触发问题场景、造成的代码非预期行为，该问题是否作者有意为之
+- **问题后果** 用户看到的的故障现象、危害和用户损失，例如 （1）cli 或者 helm 等用户配置不能按照预期生效（2）性能差（3）程序 panic （4）程序输出的观测指标不准确（5）数据丢失（6）其他
+- **复现概率** 解释实际场景中触发概率和触发条件，必须有代码依据，禁止提供大概、可能、猜测的场景，必须排除上下游函数已经做了防护的场景
+- **严重等级** 发现的最严重问题的严重等级：P0 崩溃级阻断级，P1 严重级，P2 普通级，P3 轻微级 
+- **背景知识** 对于问题代码所涉及的软件模块，介绍它最终给用户提供了什么使用功能和价值，禁止解释代码
+- **解决方案** 描述问题的具体解决方案，修复前的代码为什么会产生缺陷，改动方案为什么能解决问题。该方案务必实施最小改动，避免边界效应，遵循项目仓库中其他代码风格实践
+- **代码修改量** 评估最优解决方案的代码修改行数量级
+- **方案风险** 发现最优解决方案可能产生的边际效应
+- **方案信心** 评估出解法方案修复成功的百分比信心指数（无需说明，给出百分比即可）
 
 
-## 输出成果
-
-plugin 最终输出多份报告：
-
-- 总体报告 : 
-    该项目 主要是基于什么语言开发，运行的平台、总体负责的
-    项目的应用场景
-    项目解决了什么问题或者痛点
-    项目的优点
-    项目的缺点和限制
-    项目有哪些一级功能
-    在实际部署环境中，该项目支持和哪些其他项目进行集成
-
-- 多个一级功能的报告详解
-    功能的应用场景
-    解决了什么问题或者痛点
-    他有什么优点
-    他有什么缺点
-    根据模块代码，抽象出他的工作原理 （并非代码和函数之间的调用原理）
-    他的性能表现
-    该一级功能包含了哪些 二级功能 ，各种二级功能的说明
 
 
----
-
-## 安装
-
-本仓库是 Claude Code **marketplace**（根目录 `.claude-plugin/marketplace.json`）；首个 plugin 在 `plugins/investigate-project/`。添加 marketplace 后安装 plugin：
-
-```text
-/plugin marketplace add weizhoublue/blueskills
-/plugin install investigate-project@blueskills
-/reload-plugins
-```
-
-完整的安装指南（GitHub 安装、本地路径安装、开发模式、团队共享、版本与自动更新、故障排查）见 [`docs/installation.md`](./docs/installation.md)。
-
-## 使用方式（plugin 安装后）
-
-在 Claude Code 中加载本目录作为插件后，对**待分析项目**目录运行以下指令：
-
-```text
-/investigate-project:report-features
-```
-
-执行流程：
-
-0. 主线程 **阶段 0**：`pwd` → `REPORT_ROOT=<cwd>/analysis-report`（绝对路径），`mkdir`，并向用户确认写入位置。
-1. `project-scout` 完成索引与候选清单；主线程写入 `project-overview.json`（v7：NarrativeBlock + `module_landscape`）。
-2. `report-quality-challenger` 质审 project-overview（≤5 轮，不通过则回灌 scout 修订 Part 1）。
-3. `feature-boundary-reviewer` 给出 keep/exclude/merge/split 建议。
-4. **多轮人工确认**（软上限 3 轮）：剔除/合并/拆分/重命名/新增；写入 `boundary-review/round-<N>.json`，完成后 `final.json` + `feature-plan.json`。
-5. 每个 `feature-digger` 深挖一级功能 → `report-quality-challenger` 质审该 feature（≤5 轮）。
-6. `integration-analyst` 集成三分类 → 质审 `integrations.json`。
-7. `report-writer` 汇总 `overview.md`（§6 模块关系；§9 可含质审 unresolved；**附录**合并 `improvement-log/` 供后续改进 skill）。
-
-产物路径（**必须先 cd 到待分析项目**；阶段 0 锁定 `<项目绝对路径>/analysis-report/`）：
-
-```text
-<被分析项目>/analysis-report/
-├── overview.md              # 总体报告（英文文件名）
-├── project-overview.json    # 项目级概览（NarrativeBlock + module_landscape）
-├── quality-review/          # v7：质审 round / final 审计
-├── boundary-review/          # 审计：按轮拆开 + 最终态
-│   ├── round-1.json          # 每轮一份快照
-│   ├── round-2.json
-│   ├── ...
-│   └── final.json            # 最终态：candidates + reviews + user_decision_summary
-├── feature-plan.json        # 执行：digger 唯一输入
-├── integrations.json        # 集成能力三分类
-├── improvement-log/         # v8：执行困难/可疑点（质审不核实）
-└── features/
-    ├── <slug>.md            # 一级功能报告（文件名英文 kebab-case；正文标题为中文 name）
-    └── <slug>.json
-```
-
-设计依据：`docs/superpowers/specs/2026-06-03-blueskills-plugin-design.md`。
