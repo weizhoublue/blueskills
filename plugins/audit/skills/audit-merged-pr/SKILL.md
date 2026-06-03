@@ -1,5 +1,5 @@
 ---
-description: 审计已合入缺省分支的 GitHub PR（输入 PR URL）。在目标仓库根目录运行；静态分析、不跑测试；最终审计报告仅输出到 stdout。编排 pr-intent、四维分析、similar-defect-scout、peer-path-comparator（1 pass）、peer-parity-challenger（≤3 轮/finding）、audit-challenger（≤5 轮）、report-writer。
+description: 审计已合入缺省分支的 GitHub PR（输入 PR URL）。在目标仓库根目录运行；静态分析、不跑测试；最终审计报告仅输出到 stdout。编排 pr-intent、四维分析、similar-defect-scout、finding-dedupe-normalizer（5b）、peer/audit 质询、report-writer。
 ---
 
 # audit-merged-pr
@@ -208,10 +208,25 @@ finding 字段见 spec §6.4（含 `upstream_guards_considered`, `trigger.prod_e
 
 仅当 `intent.pr_kind == bugfix` → `findings/similar-unfixed.json`
 
+### 阶段 5b：finding 去重（质询前，避免四维重复报同一 defect）
+
+**问题：** business / language / security / edge 常对同一根因各报一条（如 eligibility + yield 漏 guard + 兄弟路径），若不去重会导致阶段 6 多轮重复质询。
+
+```text
+1. （可选 Shell）合并四维 items 索引，按 defect path + line÷20 写 $AUDIT_TMP/findings/dedupe-hints.json
+2. 委派 finding-dedupe-normalizer
+   → $AUDIT_TMP/findings/dedupe-result.json（canonical_items[]）
+   → $AUDIT_TMP/findings/superseded-by-dedupe.json（不进质询）
+3. 向用户一行摘要：「阶段 5b：去重 N→M 条 canonical」
+```
+
+委派时附：四维 `findings/*.json` 路径；规则见 `agents/finding-dedupe-normalizer.md`（D1–D4 合并，K1–K4 分开）。
+
 ### 阶段 6：合并、后续修复、等同路径与逐条质询
 
 ```text
-all ← 合并 findings/*.json，分配 finding_id（F-001…）
+all ← dedupe-result.json 的 canonical_items[]（勿再直接合并原始四维重复项）
+分配 finding_id（F-001…）
 写入 $AUDIT_TMP/findings/all-merged.json
 rejected ← []；survivors ← []
 
@@ -323,6 +338,7 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | security-analyst | findings/security.json |
 | edge-effect-analyst | findings/edge-effects.json |
 | similar-defect-scout | findings/similar-unfixed.json |
+| finding-dedupe-normalizer | dedupe-result.json、superseded-by-dedupe.json（阶段 5b） |
 | subsequent-fix-scout | subsequent-fixes.json（阶段 6a，已修/修复中则淘汰） |
 | peer-path-comparator | peer-comparisons.json（阶段 6a′，1 pass） |
 | peer-parity-challenger | peer-challenges/*-round-*.json、*-final.json（阶段 6a″，≤3 轮，M13/M14） |

@@ -1,7 +1,7 @@
 # 设计文档：blueskills marketplace — `audit` 插件与 `audit-merged-pr` skill
 
 - 日期：2026-06-03
-- 状态：已审阅（v9：质询双文书辩驳 rebuttals，见 [`2026-06-03-audit-adversarial-debate-design.md`](./2026-06-03-audit-adversarial-debate-design.md)；v8 peer-path 见 [`2026-06-03-audit-peer-path-comparison-design.md`](./2026-06-03-audit-peer-path-comparison-design.md)）
+- 状态：已审阅（v10：阶段 5b finding-dedupe-normalizer，见 [`2026-06-03-audit-finding-dedupe-design.md`](./2026-06-03-audit-finding-dedupe-design.md)；v9 辩驳见 [`2026-06-03-audit-adversarial-debate-design.md`](./2026-06-03-audit-adversarial-debate-design.md)）
 - 来源需求：[`docs/README.md`](../../README.md)（PR 静态审计经验与报告结构；**不含** llm 会话 / resume CLI 一节）
 - 运行环境：**仅 Claude Code**（`/plugin install audit@blueskills`，`/audit:audit-merged-pr <PR_URL>`）
 
@@ -31,6 +31,7 @@ blueskills/
         ├── security-analyst.md
         ├── edge-effect-analyst.md
         ├── similar-defect-scout.md
+        ├── finding-dedupe-normalizer.md
         ├── peer-path-comparator.md
         ├── peer-parity-challenger.md
         ├── audit-challenger.md
@@ -215,6 +216,18 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 - **禁止**对 `ignored_files` / `large_or_generated_files` 提 finding（除非 PR 明确以该文件为修复核心且在 effective 中）。
 - 每条 finding 须填 `upstream_guards_considered[]`（见 §6.4）；与 `author_stated_positions` 冲突须降级或撤回。
 - **禁止**仅基于 diff hunk 断言业务逻辑错误；对 `effective_files` 中每个被修改的函数/方法，须按 §5.8 完成「diff 之外」的完整函数体与调用方 Read（在 Read 预算内）。
+
+### 4.6b 阶段 5b：`finding-dedupe-normalizer`（四维去重，质询前）
+
+**时机：** 阶段 4（及可选阶段 5）之后、阶段 6 分配 `finding_id` 之前。
+
+**输入：** `findings/business.json`、`language.json`、`security.json`、`edge-effects.json`、可选 `similar-unfixed.json`。
+
+**输出：** `dedupe-result.json`（`canonical_items[]`）、`superseded-by-dedupe.json`。
+
+**规则：** 同锚点/同 `path_consistency` 符号与 pattern/同函数窗口内多视角 → 合并为一条；`contributing_agents`、`merged_from` 保留追溯。详见 [`2026-06-03-audit-finding-dedupe-design.md`](./2026-06-03-audit-finding-dedupe-design.md)。
+
+阶段 6 **仅**处理 `canonical_items`，不对 superseded 项质询。
 
 ### 4.7 阶段 5：`similar-defect-scout`（条件）
 
@@ -824,6 +837,7 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | 后续修复 | 阶段 6a `subsequent-fix-scout`；`already_fixed`/`fix_in_progress` → `subsequent_fix` 淘汰 |
 | 等同路径比较 | 6a′ `peer-path-comparator`（1 pass）→ 6a″ `peer-parity-challenger`（≤3 轮，M13/M14）→ 6b audit（≤5 轮，peer 交叉验证）；终稿 **同类路径比较** |
 | 质询辩驳 | 方案 B：challenge → `rebuttals/` → 终裁；`finding-defense-mode`；challenger 须回应 `counterclaims` |
+| 四维去重 | 阶段 5b `finding-dedupe-normalizer`；阶段 6 仅 `canonical_items` |
 | GitHub | `gh` 主，MCP 兜底 |
 | 终稿 | **最终报告** stdout only；中间允许简短进度（§4.10） |
 | 中间产物 | `mktemp -d` |

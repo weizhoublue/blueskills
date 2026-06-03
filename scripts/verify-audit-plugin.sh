@@ -7,7 +7,7 @@ test -f plugins/audit/.claude-plugin/plugin.json
 test -f plugins/audit/skills/audit-merged-pr/SKILL.md
 for a in pr-intent-analyst business-accuracy-analyst language-defect-analyst \
   security-analyst edge-effect-analyst similar-defect-scout subsequent-fix-scout \
-  peer-path-comparator peer-parity-challenger \
+  peer-path-comparator peer-parity-challenger finding-dedupe-normalizer \
   audit-challenger report-writer; do
   test -f "plugins/audit/agents/${a}.md"
 done
@@ -55,5 +55,10 @@ rg -q 'debate_summary' plugins/audit/agents/audit-challenger.md
 rg -q 'finding-defense-mode' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'counterclaims' plugins/audit/agents/finding-defense-mode.md
 test -f plugins/audit/agents/finding-defense-mode.md
+rg -q '阶段 5b' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'finding-dedupe-normalizer' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'dedupe-result.json' plugins/audit/agents/finding-dedupe-normalizer.md
+rg -q 'canonical_items' plugins/audit/agents/finding-dedupe-normalizer.md
+rg -q 'contributing_agents' plugins/audit/agents/finding-dedupe-normalizer.md
 
 echo "OK: audit plugin structure"
