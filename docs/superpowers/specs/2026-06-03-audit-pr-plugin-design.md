@@ -1,7 +1,7 @@
 # 设计文档：blueskills marketplace — `audit` 插件与 `audit-merged-pr` skill
 
 - 日期：2026-06-03
-- 状态：已审阅（v7：阶段 6a′ 等同路径比较 peer-path-comparator，见 [`2026-06-03-audit-peer-path-comparison-design.md`](./2026-06-03-audit-peer-path-comparison-design.md)）
+- 状态：已审阅（v8：6a′ 对照 + 6a″ peer-parity-challenger ≤3 轮 + 6b audit ≤5 轮，见 [`2026-06-03-audit-peer-path-comparison-design.md`](./2026-06-03-audit-peer-path-comparison-design.md)）
 - 来源需求：[`docs/README.md`](../../README.md)（PR 静态审计经验与报告结构；**不含** llm 会话 / resume CLI 一节）
 - 运行环境：**仅 Claude Code**（`/plugin install audit@blueskills`，`/audit:audit-merged-pr <PR_URL>`）
 
@@ -32,6 +32,7 @@ blueskills/
         ├── edge-effect-analyst.md
         ├── similar-defect-scout.md
         ├── peer-path-comparator.md
+        ├── peer-parity-challenger.md
         ├── audit-challenger.md
         └── report-writer.md
 ```
@@ -252,21 +253,36 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 | `uncertain` | * | 进入质询；`audit-challenger` 可读该 JSON 复核 |
 | `not_addressed` | * | 进入质询 |
 
-### 4.7c 阶段 6a′：`peer-path-comparator`（等同路径比较，质询前）
+### 4.7c 阶段 6a′：`peer-path-comparator`（1 pass 对照表）
 
-**目的：** 对每条待质询的 P0–P2 finding，回答「同等/类似处理模式在其它路径是否也有问题；若无，为何只改此处」。
+**目的：** 生成「同等/类似路径」对照证据（先 A 局部兄弟 ≤8，再按需 B 仓库 analogue ≤5）。
 
-**时机：** 阶段 6a 之后、阶段 6b 质询之前。
+**时机：** 阶段 6a 之后、阶段 6a″ 之前。**无质询轮次**（单次委派 / finding）。
 
-**入队：** 未因 `subsequent_fix` 淘汰且 `severity ∈ {P0,P1,P2}`。P3 不进入本阶段。
+**输出：** `$AUDIT_TMP/peer-comparisons.json`；主编排合并为 `F.peer_comparison` 草稿。
 
-**方法：** 先 **A** 局部兄弟分支（≤8）；再按需 **B** 仓库 analogue（≤5，Grep ≤10/条）。详见增量 spec §3–§4。
+详见增量 spec §3.2。
 
-**输出：** `$AUDIT_TMP/peer-comparisons.json`；主编排合并为 finding.`peer_comparison`，供 challenger 与终稿使用。
+### 4.7d 阶段 6a″：`peer-parity-challenger`（等同路径专质询，≤3 轮 / finding）
 
-**与阶段 5 区别：** `similar-defect-scout` 产出**新** finding；本阶段仅**注解**已有 finding。
+**目的：** 在 audit 全链路质询之前，专审对照深浅与结论一致性（**M13/M14**）。
 
-### 4.8 阶段 6b：合并与逐条质询（≤5 轮 / finding）→ **仅保留成立项**
+**时机：** 6a′ 之后、6b 之前。
+
+**轮次：** 每条 finding **最多 3 轮**；proposer 为 `F.source_agent`；Write 仅 `$AUDIT_TMP/peer-challenges/**`。
+
+**结案：** `peer-challenges/<finding_id>-final.json`（`peer_line_resolution`）。
+
+| 结案 | 主编排 |
+|------|--------|
+| `withdrawn` | 写入 `findings-rejected`，**跳过 6b** |
+| `accepted` / `downgraded` | 更新 `peer_comparison` → 进入 6b |
+
+### 4.8 阶段 6b：合并与逐条质询（audit ≤5 轮 / finding）→ **仅保留成立项**
+
+**前置：** 必须已存在 `peer-challenges/<finding_id>-final.json`（6a″ 通过或 `not_applicable` 记录）。
+
+**与 6a″ 分工：** audit 主责调用链、触发、严重级、§5.8 等；**可读** peer 结案并**交叉验证** peer，但**不得**重复 peer 线已 accepted 的议题，除非本轮提供**新** `path:line`（`peer_reopened_by_audit`）。详见增量 spec §3.4。
 
 **原则：** 质询用于**淘汰不成立**与**优先级过低**的 finding。下列项 **不得** 进入 `findings-final.json` 或阶段 7：
 
@@ -778,8 +794,9 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 8. **阶段 0b**：PR URL 的 `owner/repo` 与 cwd 下**任一** `remote.*.url` 归一化结果不匹配时，必须在 `mktemp` / `gh` 之前失败退出，stderr 含期望仓库与已解析 remotes 摘要。
 9. **阶段 4 / §5.8**：对含 `two_phase_yield` 或「漏 guard」类 finding，`path_consistency.phase_refs` 须含 phase1 与 phase2 的 path:line；challenger 可对仅 diff 断言项质询并 M11。
 10. **阶段 6a**：对已在 `merge_commit..HEAD` 或后续 merged PR 中修复的 finding，须写入 `subsequent_fix` 并跳过质询与终稿。
-11. **阶段 6a′**：每条进入质询的 P0–P2 finding 有 `peer-comparisons.json` 条目；`findings-final` 含 `peer_comparison`；challenger 可追 M13/M14。
-12. 终稿 should_fix 含 **同类路径比较** 小节，与 `peer_comparison.table_rows` 一致。
+11. **阶段 6a′–6a″**：`peer-comparisons.json` + `peer-challenges/*-final.json`；peer 线 ≤3 轮；`withdrawn` 不进 6b。
+12. **阶段 6b**：audit ≤5 轮；已 Read peer-final；无重复 peer 议题（除非 `peer_reopened_by_audit` + 新证据）。
+13. 终稿 should_fix 含 **同类路径比较**，与 `peer_comparison` 一致。
 
 ## 13. 后续增强（非 v1）
 
@@ -802,7 +819,7 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | 质询 | 每条 ≤5 轮；final 仅 P0–P2 成立项；§5.7；§5.8；§7.1–7.2 |
 | 路径一致性 | 阶段 4 强制 §5.8；`two_phase_yield` 启发式；finding 可选 `path_consistency` |
 | 后续修复 | 阶段 6a `subsequent-fix-scout`；`already_fixed`/`fix_in_progress` → `subsequent_fix` 淘汰 |
-| 等同路径比较 | 阶段 6a′ `peer-path-comparator`；先 A 后 B；终稿 **同类路径比较**；M13/M14 |
+| 等同路径比较 | 6a′ `peer-path-comparator`（1 pass）→ 6a″ `peer-parity-challenger`（≤3 轮，M13/M14）→ 6b audit（≤5 轮，peer 交叉验证）；终稿 **同类路径比较** |
 | GitHub | `gh` 主，MCP 兜底 |
 | 终稿 | **最终报告** stdout only；中间允许简短进度（§4.10） |
 | 中间产物 | `mktemp -d` |
