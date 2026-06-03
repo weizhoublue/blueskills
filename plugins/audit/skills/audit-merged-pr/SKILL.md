@@ -252,7 +252,7 @@ for F in all \ rejected（severity 降序，且 severity∈{P0,P1,P2}）:
   while round <= 5:
     委派 audit-challenger(F, round)   # 必读 peer-final；读 rebuttals/audit 当轮及上轮
     若 resolution ∈ {withdrawn, accepted, downgraded}:
-      须已存在 rebuttals/audit/F-round-<round>.json（本轮或前轮结案规则见 agent）
+      须已存在与**本轮或上一轮** needs_rebuttal 对应的 rebuttals/audit/F-round-*.json
       若 withdrawn → rejected；break
       若 accepted → goto finalize_F
       若 downgraded → F.severity=adjusted；goto finalize_F
