@@ -45,6 +45,24 @@ claude code 中使用提示词触发生成， 会在当前目录下创建 `analy
 - 阶段 6 含等同路径对照（1 pass）→ 等同路径专质询（每条 finding 最多 2 轮）→ 全链路质询（最多 3 轮）
 - 调试可设置环境变量 `AUDIT_KEEP_TMP=1` 保留临时目录
 
+## 安装 investigate-issue（单问题深度分析）
+
+在**目标仓库根目录**下使用：
+
+```text
+/plugin marketplace add weizhoublue/blueskills
+/plugin install investigate-issue@blueskills
+/reload-plugins
+```
+
+```text
+/investigate-issue:investigate 当 CR 副本数为 0 时 controller panic
+```
+
+- 输入为自由文本问题描述
+- 最终报告仅输出到 stdout（四节：问题描述、问题后果、触发条件、背景知识）
+- 中间 JSON 在系统临时目录；调试可设置 `ISSUE_KEEP_TMP=1` 保留
+
 卸载
 
 ```text/
