@@ -192,7 +192,18 @@ for F in all（severity 降序）:
 
 AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 
-（若 should_fix：PR 背景、问题种类、问题描述、问题后果、复现概率、严重等级、背景知识、解决方案、代码修改量、方案风险、方案信心）
+若 should_fix，输出如下各小节信息
+- PR 背景
+- 问题种类
+- 问题描述
+- 问题后果
+- 复现概率
+- 严重等级
+- 背景知识
+- 解决方案
+- 代码修改量
+- 方案风险
+- 方案信心
 ```
 
 **禁止**输出「audit PR … 的 llm 会话」或任何 CLI resume 命令。
@@ -207,5 +218,5 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | security-analyst | findings/security.json |
 | edge-effect-analyst | findings/edge-effects.json |
 | similar-defect-scout | findings/similar-unfixed.json |
-| audit-challenger | challenges/*-round-*.json |
+| audit-challenger | challenges/*-round-*.json（含触发场景含糊/理论/极端质询，M10） |
 | report-writer | 返回 Markdown（不写盘） |
