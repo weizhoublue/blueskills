@@ -60,7 +60,7 @@ all-merged.json
 
 主编排将条目合并为 `F.peer_comparison` 草稿，供 6a″ 使用。
 
-### 3.3 Agent：`peer-parity-challenger`（6a″，≤3 轮 / finding）
+### 3.3 Agent：`peer-parity-challenger`（6a″，≤2 轮 / finding）
 
 | 项 | 内容 |
 |----|------|
@@ -91,7 +91,7 @@ all-merged.json
 
 `round == 3` 仍争议 → `peer_line_resolution: inconclusive`，默认 **不** 进入 `fix_mark_should_fix`（除非 audit 线推翻，见 §5.2）。
 
-### 3.4 Agent：`audit-challenger`（6b，≤5 轮 / finding）
+### 3.4 Agent：`audit-challenger`（6b，≤3 轮 / finding）
 
 | 项 | 内容 |
 |----|------|

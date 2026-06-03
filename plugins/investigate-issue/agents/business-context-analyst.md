@@ -36,11 +36,21 @@ tools: Read, Grep, Glob, Write
 2. Grep/Read 同类 handler、对称分支、相邻 controller
 3. 对比「缺陷路径」与「兄弟路径」的差异
 4. 填写 upstream/downstream/scenario
+5. 填写 `non_trigger_scenarios[]`：从业务/部署角度列出**已知或高概率**的不触发情形（可与 code-tracer 的 `when_does_not_trigger` 互补；无 code 证据标 `inference`）
 
 ## 输出 business-context.json
 
+**`causal_narrative`** 是 writer 撰写「业务上发生了什么 / 前因后果链」的一手素材；须用完整句子，禁止仅罗列模块名或配置键。
+
 ```json
 {
+  "causal_narrative": {
+    "situation": "B1：谁、什么部署/配置情境",
+    "observable_symptom": "B2：用户/运维可见的坏结果",
+    "why_peer_ok": "B3：兄弟/默认路径为何不同",
+    "where_defect_intervenes": "B4：缺陷在业务流哪一段介入、为何导致 B2",
+    "user_impact": "B5：功能/性能/可靠性影响"
+  },
   "business_flow": {
     "upstream": [{
       "claim": "",
@@ -60,7 +70,14 @@ tools: Read, Grep, Glob, Write
     "uncertainty_note": ""
   }],
   "peer_not_found": false,
-  "peer_not_found_reason": ""
+  "peer_not_found_reason": "",
+  "non_trigger_scenarios": [{
+    "scenario": "何种部署/运行情形下问题可能不出现",
+    "reason": "为何不出现坏结果",
+    "evidence_tier": "confirmed|inference",
+    "refs": [],
+    "uncertainty_note": ""
+  }]
 }
 ```
 

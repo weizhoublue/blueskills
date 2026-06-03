@@ -3,26 +3,26 @@
 - 日期：2026-06-03
 - 状态：已审阅（brainstorming 确认）
 - 来源需求：[`docs/report.md`](../../report.md)
-- 参考实现：[`plugins/investigate-project/agents/report-quality-challenger.md`](../../../plugins/investigate-project/agents/report-quality-challenger.md)、[`plugins/audit/agents/audit-challenger.md`](../../../plugins/audit/agents/audit-challenger.md)
+- 参考实现：[`plugins/investigate-project/agents/report-quality-challenger.md`](../../../plugins/investigate-project/agents/report-quality-challenger.md)（多层因果 + 术语清单）；[`plugins/audit/agents/audit-challenger.md`](../../../plugins/audit/agents/audit-challenger.md)（**仅借**双轮文件格式；本插件 challenger 为报告深化员，非对抗性质询）
 - 运行环境：**仅 Claude Code**（`/plugin install investigate-issue@blueskills`，`/investigate-issue:investigate <问题描述>`）
 
 ## 1. 目标
 
 针对开源项目中的**单个问题**（缺陷、行为疑问、架构/设计议题）做深度分析，产出四节 Markdown 报告：
 
-1. **问题描述** — 函数级调用链 + 业务上下游 + 兄弟分支/同类模块对比
-2. **问题后果** — 代码层后果（错误分支、数据丢失、竞态、panic 等）+ 用户/功能层影响
-3. **触发条件** — 用户配置/输入 → 调用链 → 缺陷落点
-4. **背景知识** — 出问题模块在整软件中的功能定位
+1. **问题描述** — **业务前因后果叙事**（谁、什么场景、怎么出错）+ 兄弟分支对比；函数级调用链仅作佐证，不得作为正文主体
+2. **问题后果** — 代码层后果 + 用户/功能层影响；**条件化**表述，含「何时不会出现该后果」（反向）
+3. **触发条件** — **正向**（须同时满足的配置/输入/运行时状态）+ **反向**（不触发情形）；再到缺陷落点
+4. **背景知识** — 软件功能、行业/领域背景、与本问题相关的**用户可见功能域**；**禁止**代码/函数/模块/data flow
 
-采用 **Skill 编排 + 6 sub-agent + 双轮报告深化（每节 ≤3 轮）**；**终稿仅 stdout**；中间 JSON 写入 `ISSUE_TMP` 临时目录。
+采用 **Skill 编排 + 6 sub-agent + 整稿报告深化（全报告 ≤3 轮）**；**终稿仅 stdout**；中间 JSON 写入 `ISSUE_TMP` 临时目录。
 
 ### 1.1 与 `investigate-project` 的关键差异
 
 | 维度 | `investigate-project` | `investigate-issue` |
 | --- | --- | --- |
 | 分析对象 | 整个项目的业务功能 | 单个具体问题 |
-| 调用链 | **禁止**函数级调用链（R6） | **必须** C0–C4 可还原 |
+| 调用链 | **禁止**函数级调用链（R6） | **必须** C0–C4 可还原，但**终稿以业务叙事呈现**，path:line 为佐证 |
 | 终稿 | 落盘 `analysis-report/` | **仅 stdout** |
 | 报告深化 | 单向 issues 清单 | **双轮协作**（提问 → 补充；复用 audit 文件格式，**非对抗性质询**） |
 | 范围 | 业务功能梳理 | 缺陷 + 行为疑问 + 架构/设计；**报告全文可迭代补全** |
@@ -37,7 +37,7 @@
 | 问题范围 | **C** 缺陷 + 行为疑问 + 架构/设计；报告任一细节不足均可被深化 |
 | 证据标准 | **B** 代码优先 `path:line`；设计/对比允许文档+行业常识，须显式「未能从代码确认」 |
 | Agent 编制 | **C** 6 agent + 主编排 |
-| 深化粒度 | **B** 四节各独立 ≤3 轮（最多 12 轮） |
+| 深化粒度 | **整稿** 四节初稿后统一评审 ≤3 轮（**非**每节独立多轮） |
 | 协作模式 | **B** 提问清单 → writer 补充稿 → 终裁（**优化可读性**，非辩驳淘汰） |
 | 人工确认 | **A** 全自动，不暂停 |
 | 架构方案 | **A** 分析 → 合并 JSON → 分节 write↔challenger |
@@ -103,10 +103,10 @@ ISSUE_TMP/
 │   ├── trigger-conditions.md
 │   └── background-knowledge.md
 ├── challenges/
-│   ├── <section>-round-<N>.json
-│   └── <section>-final.json          # 仅 max_rounds_reached 时
+│   ├── full-report-round-<N>.json
+│   └── full-report-final.json          # 仅 max_rounds_reached 时
 └── rebuttals/
-    └── <section>-round-<N>.json
+    └── full-report-round-<N>.json
 ```
 
 **section id（固定）**：
@@ -135,7 +135,7 @@ sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
 | **issue-scout** | 解析用户自由文本；Glob/Grep 建索引；定位相关模块/配置入口/文档 | `scout.json` |
 | **code-tracer** | 函数级调用链、config/env 触发路径、错误分支 | `trace.json` |
 | **business-context-analyst** | 业务上下游；兄弟分支/同类模块对比 | `business-context.json` |
-| **module-background-analyst** | 模块在整软件中的功能定位 | `background.json` |
+| **module-background-analyst** | 软件功能、行业/领域背景、功能域与术语（**零代码**素材） | `background.json` |
 | **issue-writer** | 按节从 `issue-analysis.json` 扩写；按深化清单补充缺失细节 | `sections/*.md`, `rebuttals/*.json` |
 | **issue-challenger** | **报告深化员**：以「未读过仓库的新手能否读懂」为标准，**提问**并指出缺失的因果层/术语/证据/上下文，驱动 writer **补全**报告；非对抗性质疑 | `challenges/*.json` |
 
@@ -187,7 +187,13 @@ sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
   }],
   "consequences": {"code_level": [], "user_impact": []},
   "trigger_conditions": [{"config_or_input": "", "chain_ref": "call_chain[3]", "refs": []}],
-  "module_background": {"module_role": "", "software_context": "", "refs": []}
+  "background_knowledge": {
+    "software_purpose": "",
+    "domain_context": "",
+    "feature_area": {"name": "", "user_visible_behavior": "", "relationship_to_issue": ""},
+    "adjacent_capabilities": [{"name": "", "relationship": ""}]
+  },
+  "industry_terms": [{"term": "", "glossary": ""}]
 }
 ```
 
@@ -201,40 +207,37 @@ sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
 阶段 2   [code-tracer ∥ business-context-analyst]   # 并行，均读 scout.json
 阶段 3   module-background-analyst
 阶段 4   主编排合并 → issue-analysis.json
-阶段 5   四节流水线（顺序固定）：
-           problem-description  → write ↔ challenger (≤3)
-           consequences         → write ↔ challenger (≤3)
-           trigger-conditions   → write ↔ challenger (≤3)
-           background-knowledge → write ↔ challenger (≤3)
-阶段 6   主编排组装 stdout 终稿
-阶段 7   trap 清理 ISSUE_TMP
+阶段 5   issue-writer（draft_all，一次写齐四节）
+阶段 6   整稿 write↔challenger（≤3 轮；scope=full-report）
+阶段 7   主编排组装 stdout 终稿
+阶段 8   trap 清理 ISSUE_TMP
 ```
 
-### 8.1 单节 write↔challenger 循环
+### 8.1 整稿 write↔challenger 循环
 
-**`MAX_ROUNDS_PER_SECTION = 3`**（四节独立计数，全 skill 最多 12 轮深化）。
+**`MAX_REVIEW_ROUNDS = 3`**（**整份四节报告**合计，非每节独立）。
 
 ```text
+委派 issue-writer(mode=draft_all)    # 四节初稿，无 challenger
 round ← 1
-委派 issue-writer(section, round=1)    # 首轮写 sections/<section>.md
 while round ≤ 3:
-  委派 issue-challenger(section, round)   # 输出缺失清单与提问
+  委派 issue-challenger(scope=full-report, round)
   if resolution in [complete, partial]: break
   if resolution == needs_enrichment:
-    委派 issue-writer(section, mode=supplement, round)   # 按清单补写
+    委派 issue-writer(mode=supplement, round)
   round ← round + 1
-if round==3 且仍有 blocking/major 未补全:
-  challenger 写 challenges/<section>-final.json (max_rounds_reached)
+if round==3 且仍有 blocking/major:
+  challenger 写 challenges/full-report-final.json
 ```
 
 ### 8.2 Analysis rollback（最多 1 次）
 
-当 **problem-description** 第 1 轮 challenger 出现 ≥2 条 `dimension==call_chain` 且 `severity==blocking`：
+当 **整稿第 1 轮** challenger 出现 ≥2 条 `dimension==call_chain` 且 `severity==blocking`：
 
-1. 重委派 `code-tracer`（附带 challenger 的 `required_fix`）
+1. 重委派 `code-tracer`
 2. 重合并 `issue-analysis.json`
-3. **仅重跑** `problem-description` 与 `trigger-conditions` 的 write↔challenger
-4. 全 skill 最多 rollback **1 次**
+3. 重委派 `issue-writer(mode=draft_all)`
+4. `round ← 1` 重新整稿评审；全 skill 最多 rollback **1 次**
 
 ## 9. `issue-challenger`：报告深化
 
@@ -302,7 +305,26 @@ if round==3 且仍有 blocking/major 未补全:
 - 标 `confirmed` 却无 code ref → blocking
 - challenger **不得**要求「证实」纯 `inference` 推断
 
-### 9.8 双轮协作（提问 → 补充 → 终裁）
+### 9.9 条件严谨性 R17（`consequences`、`trigger-conditions` 必查）
+
+| 反模式 | 级别 |
+| --- | --- |
+| 单一配置/字段 = 充分条件（「X=false 即报错」） | blocking |
+| 缺反向条件子节（不触发 / 何时不会出现后果） | blocking |
+| 正向条件未列运行时状态（cache、fallback 等） | major |
+
+challenger 须对关键断言做**三问**：单独是否足够？还缺什么同时条件？何时有此配置仍正常？
+
+### 9.10 背景知识零代码 R18（`background-knowledge` 必查）
+
+| 反模式 | 级别 |
+| --- | --- |
+| 源文件路径、行号、函数名 | blocking |
+| 「关键函数」「模块职责」+ 代码索引 | blocking |
+| 配置解析 / data flow 实现链 | blocking |
+| 缺软件/行业开篇 | blocking |
+
+### 9.11 双轮协作（提问 → 补充 → 终裁）
 
 | 步骤 | 动作 |
 | --- | --- |
@@ -361,8 +383,11 @@ if round==3 且仍有 blocking/major 未补全:
 6. challenger 禁止 Write 分析源文件（`trace.json` 等）；仅 Write `challenges/**`。
 7. writer 不得 contradict `issue-analysis.json` 中 `confirmed` 主张。
 8. **协作深化**：challenger 输出缺失清单后 writer **必须**补充；challenger 未读补充稿不得 `complete`；challenger **禁止**以「质疑/否决」代替具体的缺失说明。
-9. stdout 终稿禁止 markdown 表格（`| ... |`）与 HTML 表。
-10. Read/Write 中间产物仅 `$ISSUE_TMP/**` + 被分析仓库只读。
+9. **叙事优先（R16）**：报告以业务前因后果为主体；调用链与 path:line 是分析依据，禁止 code dump（文件清单式根因分析）。
+10. **条件严谨性（R17）**：后果与触发条件须正向+反向成对；禁止单一配置 = 必然触发/报错。
+11. **背景知识零代码（R18）**：background-knowledge 禁止文件名、函数名、配置解析实现链；只写软件/行业/功能域。
+12. stdout 终稿禁止 markdown 表格（`| ... |`）与 HTML 表。
+13. Read/Write 中间产物仅 `$ISSUE_TMP/**` + 被分析仓库只读。
 
 ## 11. stdout 终稿模板
 
@@ -398,14 +423,11 @@ if round==3 且仍有 blocking/major 未补全:
 
 ## 附录 B：报告深化摘要
 
-- 问题描述：2/3 complete
-- 问题后果：2/3 complete
-- 触发条件：1/3 partial
-- 背景知识：3/3 complete
+- 整稿深化：2/3 complete
 
 ## 附录 C：仍未补全的缺失项（若有）
 
-- [problem-description] blocking: 缺 C1 步骤 …
+- [consequences] blocking: 缺反向条件 …
 ```
 
 附录 B/C 使用 bullet 列表，**禁止** `|` 表格语法。
@@ -414,11 +436,17 @@ if round==3 且仍有 blocking/major 未补全:
 
 读者（未读过仓库的平台/后端工程师，含新手）在读 stdout 终稿后能够：
 
-1. 复述从 config/env/输入到缺陷落点的调用链；
+1. **不看文件名**即可复述：业务上出了什么事、从用户配置/输入到坏结果的完整前因后果；
 2. 说明业务上下游与「为何兄弟路径表现不同」；
-3. 列出触发条件与用户可见后果；
-4. 理解出问题模块在整软件中的位置；
-5. 区分哪些结论有代码证据、哪些为设计推断。
+3. 列出**条件化**的触发条件（正向须同时满足 + 反向不触发情形）与用户可见后果；
+4. 理解出问题的是哪块**用户可见功能域**、相关**行业/产品**背景（非代码模块）；
+5. 需要深挖时，能从「代码佐证」或括注中找到 path:line 证据；
+6. 区分哪些结论有代码证据、哪些为设计推断。
+
+**反例（不合格）**：
+- 以「根本原因：某 yaml 第 N 行某字段 = false」开篇，后跟 path:line 子弹列表，无业务叙事。
+- 「trust_remote_code=false → 即报错」，未说明本地 cache、模型是否需 remote code 等反向情形。
+- 背景知识写「stage_config.py / load_deploy_config / 数据流 YAML→解析→传播」，未讲软件与行业背景。
 
 ## 13. 实现范围外（YAGNI）
 
