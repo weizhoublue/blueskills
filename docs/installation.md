@@ -143,11 +143,11 @@ claude --plugin-dir /absolute/path/to/blueskills/plugins/investigate-project
 
 | 旧 | 新 |
 | --- | --- |
-| `weizhoublue/blueskills`（历史 analyze-code 仓库） | `weizhoublue/blueskills` |
-| `investigate-project@blueskills`（历史命名） | `investigate-project@blueskills` |
-| `/investigate-project:report-features`（历史 analyze-codebase） | `/investigate-project:report-features` |
+| `weizhoublue/analyze-code` | `weizhoublue/blueskills` |
+| `code-analyzer@analyze-code` | `investigate-project@blueskills` |
+| `/code-analyzer:analyze-codebase` | `/investigate-project:report-features` |
 
-若曾安装旧 marketplace `analyze-code` 或 `investigate-project@analyze-code`：
+若曾安装旧 marketplace `analyze-code`：
 
 ```text
 /plugin marketplace remove analyze-code
