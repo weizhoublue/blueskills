@@ -386,7 +386,7 @@ git commit -m "feat(audit): add audit-challenger with severity matrix"
 
 - 只读 `$AUDIT_TMP/findings-final.json`、`pr-context.json`、`intent.json`（**不**读 rejected、原始 findings）
 - 按 `docs/README.md` §报告结构生成中文 Markdown（**无** llm session）
-- `AUDIT_RESULT=` 行 + should_fix 各小节
+- `REVIEW_RESULT=` 行 + should_fix 各小节
 - **禁止 Write 任何文件**；在回复正文返回完整 Markdown 供主线程 stdout
 
 - [ ] **Step 3: Commit**
@@ -518,5 +518,5 @@ git commit -m "chore(audit): add plugin structure verify script"
 检查：
 
 1. 对话内仅有简短阶段进度，无大块 JSON/diff
-2. 结束时有完整 `## audit PR N 结论` 与 `AUDIT_RESULT=`
+2. 结束时有完整 `## audit PR N 结论` 与 `REVIEW_RESULT=`
 3. `AUDIT_KEEP_TMP=1` 时 `$AUDIT_TMP/findings-final.json` 中 severity 均为 P0–P2

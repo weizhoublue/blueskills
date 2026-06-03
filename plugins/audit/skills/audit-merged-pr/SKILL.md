@@ -170,7 +170,7 @@ gh pr view "$PR_URL" --json number,title,body,state,mergedAt,mergeCommit,baseRef
 
 - `large_or_generated_files`：单文件变更行数 >500 或二进制
 - 写入 `$AUDIT_TMP/effective-diff.json`
-- 若 `effective_files` 为空 → stdout 短句 + `AUDIT_RESULT=fix_mark_ignore` + 清理退出
+- 若 `effective_files` 为空 → stdout 短句 + `REVIEW_RESULT=fix_mark_ignore` + 清理退出
 
 ### 阶段 3：pr-intent-analyst
 
@@ -252,7 +252,7 @@ for F in all \ rejected（severity 降序）:
 ```markdown
 ## audit PR ${N} 结论
 
-AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
+REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 
 若 should_fix，输出如下各小节信息
 - PR 背景

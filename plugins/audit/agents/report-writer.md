@@ -22,7 +22,7 @@ tools: Read
 ```markdown
 ## audit PR ${N} 结论
 
-AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
+REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 
 ```
 
@@ -43,6 +43,6 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 
 ```
 - agent: report-writer
-- audit_result: fix_mark_should_fix
+- REVIEW_RESULT: fix_mark_should_fix
 - findings_in_report: 2
 ```

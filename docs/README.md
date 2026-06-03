@@ -41,10 +41,10 @@
 
 ## audit PR ${PR_ID} 结论
 
-AUDIT_RESULT=<value>
+REVIEW_RESULT=<value>
 
-给出如上一行结论，AUDIT_RESULT=fix_mark_ignore 或者 AUDIT_RESULT=fix_mark_should_fix 结论 。
-如果你判定是 AUDIT_RESULT=fix_mark_should_fix， 说明该 PR 引入了新问题或者仓库中存在残留的类似缺陷，那么给出以下简要内容：
+给出如上一行结论，REVIEW_RESULT=fix_mark_ignore 或者 REVIEW_RESULT=fix_mark_should_fix 结论 。
+如果你判定是 REVIEW_RESULT=fix_mark_should_fix， 说明该 PR 引入了新问题或者仓库中存在残留的类似缺陷，那么给出以下简要内容：
 - ** PR 背景** PR #${PR_ID} 自身的前因后果，它本身解决了什么问题，涉及的软件功能、应用场景、用途、工作原理和流程
 - **问题种类** 对于发现的严重问题，明确指出属于如下哪一种问题类型，无需解释原因：（1）原 PR 没有达到修复意图（2）原 PR 引入了新问题（3）非原 PR 问题，而是发现了仓库中其他代码的同类缺陷
 - **问题描述** 发现的严重问题的描述，包括了错误的代码逻辑、触发问题场景、造成的代码非预期行为，该问题是否作者有意为之

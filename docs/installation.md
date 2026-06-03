@@ -46,7 +46,7 @@ claude code 中使用提示词触发生成， 会在当前目录下创建 `analy
 
 卸载
 
-```text
+```text/
 /plugin marketplace remove analyze-code
 /plugin uninstall investigate-project@analyze-code
 /plugin marketplace add weizhoublue/blueskills
