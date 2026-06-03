@@ -1,9 +1,9 @@
-# 设计文档：blueskills marketplace — `audit` 插件与 `audit-pr` skill
+# 设计文档：blueskills marketplace — `audit` 插件与 `audit-merged-pr` skill
 
 - 日期：2026-06-03
-- 状态：待用户审阅
+- 状态：待用户审阅（v3：diff 归一化、audit-merged-pr 命名、质询证据硬化、降级矩阵）
 - 来源需求：[`docs/README.md`](../../README.md)（PR 静态审计经验与报告结构；**不含** llm 会话 / resume CLI 一节）
-- 运行环境：**仅 Claude Code**（`/plugin install audit@blueskills`，`/audit:audit-pr <PR_URL>`）
+- 运行环境：**仅 Claude Code**（`/plugin install audit@blueskills`，`/audit:audit-merged-pr <PR_URL>`）
 
 ## 1. 目标
 
@@ -11,9 +11,10 @@
 
 1. 从 **PR URL** 获取元数据与评论（`gh` 为主，GitHub MCP 兜底）。
 2. 在 **本地缺省分支**（如 `main`）上定位已合入 PR 的 **commit / diff**（本地 `git` 优先，API 拉 patch 为最后手段）。
-3. **多视角** 静态发现缺陷（业务 / 语言 / 安全 / 边缘 / 可选同类未修）。
-4. **`audit-challenger` 对每条 finding 最多 5 轮质疑**，重点：更深调用链与上下游、作者有意为之则撤回或降级。
-5. **最终报告仅 stdout**；进程内用 **系统临时目录** 传递结构化中间产物，结束即删除。
+3. **PR diff 归一化**：从原始变更中筛出 **effective_files**（生产相关代码），排除文档/示例/测试/vendor/lock/生成物/纯 rename-format 等，避免四维 analyst 空耗。
+4. **多视角** 静态发现缺陷（业务 / 语言 / 安全 / 边缘 / 可选同类未修）；**仅扫描 effective_files**。
+5. **`audit-challenger` 对每条 finding 最多 5 轮质疑**，重点：更深调用链、**严重等级/触发/后果核实**、作者有意为之则撤回或降级；适用 §7.2 降级矩阵。
+6. **最终报告仅 stdout**；进程内用 **系统临时目录** 传递结构化中间产物，结束即删除。
 
 ## 2. 命名与仓库布局
 
@@ -22,7 +23,7 @@ blueskills/
 ├── .claude-plugin/marketplace.json    # 增加 audit 插件条目
 └── plugins/audit/
     ├── .claude-plugin/plugin.json     # name: audit
-    ├── skills/audit-pr/SKILL.md       # /audit:audit-pr
+    ├── skills/audit-merged-pr/SKILL.md   # /audit:audit-merged-pr
     └── agents/
         ├── pr-intent-analyst.md
         ├── business-accuracy-analyst.md
@@ -37,8 +38,8 @@ blueskills/
 | 层级 | 标识 |
 |------|------|
 | Plugin | `audit` |
-| Skill | `audit-pr` |
-| 调用 | `/audit:audit-pr https://github.com/owner/repo/pull/123` |
+| Skill | `audit-merged-pr` |
+| 调用 | `/audit:audit-merged-pr https://github.com/owner/repo/pull/123` |
 
 ## 3. 前置条件与用户职责
 
@@ -47,7 +48,7 @@ blueskills/
 - 已安装并登录 **`gh`**；可选配置 GitHub MCP 作搜索兜底。
 - **禁止**修改代码、**禁止**运行测试；忽略示例/纯文档改动、忽略注释准确性。
 
-## 4. 主编排阶段（`audit-pr` SKILL.md）
+## 4. 主编排阶段（`audit-merged-pr` SKILL.md）
 
 ### 4.1 阶段 0：锁定 `AUDIT_TMP` 与 PR 标识
 
@@ -107,13 +108,38 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 | Squash | `git diff <C>^..<C>` |
 | 多 commit rebase | `git diff <base>..<C>`，`base` 来自 `gh` 的 baseRefOid |
 
-### 4.4 阶段 3：`pr-intent-analyst`
+### 4.4 阶段 2b：PR diff 归一化（`effective-diff.json`）
 
-- 输入：`pr-context.json`、`diff-scope.json`（文件列表）、可选 `git show` 摘要。
-- 输出：`$AUDIT_TMP/intent.json`（见 §6.2）。
-- 判定 `pr_kind`: `bugfix | feature | docs-only | chore | unknown`（供是否触发 similar-defect-scout）。
+**目的：** 四维 analyst **只读** `effective-diff.json`，不直接消费 `diff-scope.json` 的全量 `files[]`。
 
-### 4.5 阶段 4：四维分析（可并行委派）
+**执行者：** 主编排 Shell 规则初筛（**禁止**把全量 file list 贴进 agent）；对 `rename-only` / `format-only` 等疑难项可读 `git diff --numstat parent..C` 前 200 行做判定（仍不委派 agent，除非 v2 增加 `diff-normalizer`）。
+
+**默认忽略规则（写入 `ignored_files`）：**
+
+| `reason` | 路径/模式示例 |
+|----------|----------------|
+| `docs` | `docs/**`, `**/*.md`（仓库根 README 若仅文档改动）、`doc/**` |
+| `example code` | `examples/**`, `example/**`, `demo/**`, `samples/**` |
+| `test code` | `**/*_test.go`, `**/test/**`, `**/tests/**`, `**/__tests__/**`, `**/spec/**` |
+| `vendor` | `vendor/**`, `third_party/**`, `node_modules/**` |
+| `lock file` | `go.sum`, `go.work.sum`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Cargo.lock`, `poetry.lock` |
+| `generated` | `**/*.pb.go`, `**/zz_generated*.go`, `**/mock_*.go`, `**/generated/**`（可按仓库 `.gitattributes` 或注释 `Code generated` 增强） |
+| `ci` | `.github/**`, `.gitlab-ci.yml`, `Jenkinsfile` |
+| `unrelated cleanup` | 主编排 heuristic：单文件仅空白/注释/format 且无逻辑行变化 |
+
+**`large_or_generated_files`：** 单文件 diff 行数 > 500（阈值可配置）或二进制；默认不进入 effective，除非 PR 标题/body 表明其核心为该类文件。
+
+**`effective_files` 准入：** 通过上述过滤的生产代码；`change_type`: `added|modified|deleted|renamed`；`language` 由扩展名推断。
+
+写入 `$AUDIT_TMP/effective-diff.json`（schema §6.2）。若 `effective_files` 为空 → stdout 说明「无可审生产代码」并 `AUDIT_RESULT=fix_mark_ignore`（或提前结束）。
+
+### 4.5 阶段 3：`pr-intent-analyst`
+
+- 输入：`pr-context.json`、`effective-diff.json`（**非**全量 diff-scope）、可选每条 effective 文件的 `git show` 摘要（主编排限制总行数）。
+- 输出：`$AUDIT_TMP/intent.json`（见 §6.3）。
+- 判定 `pr_kind`: `bugfix | feature | docs-only | chore | unknown`（`docs-only` 且 effective 为空时直接结束）。
+
+### 4.6 阶段 4：四维分析（可并行委派）
 
 | Agent | 输出文件 |
 |--------|----------|
@@ -122,16 +148,17 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 | `security-analyst` | `findings/security.json` |
 | `edge-effect-analyst` | `findings/edge-effects.json` |
 
-- 各 agent prompt 必须带：`AUDIT_TMP` 绝对路径、`diff-scope.json`、全局红线、`intent.json` 摘要。
-- 每条 finding 若与 `author_stated_positions` 冲突，须在 finding 内说明或降低 severity。
+- 各 agent prompt 必须带：`AUDIT_TMP` 绝对路径、`effective-diff.json`（**仅 effective_files**）、§5.6 上游防护清单、`intent.json` 摘要、全局红线。
+- **禁止**对 `ignored_files` / `large_or_generated_files` 提 finding（除非 PR 明确以该文件为修复核心且在 effective 中）。
+- 每条 finding 须填 `upstream_guards_considered[]`（见 §6.4）；与 `author_stated_positions` 冲突须降级或撤回。
 
-### 4.6 阶段 5：`similar-defect-scout`（条件）
+### 4.7 阶段 5：`similar-defect-scout`（条件）
 
 - **仅当** `intent.pr_kind == bugfix`（或主编排根据 title/body 判定为修复类）。
 - 输出：`findings/similar-unfixed.json`。
 - 参考原 PR 修复模式在仓库内 Grep/Glob 找同类未修逻辑（静态、只读）。
 
-### 4.7 阶段 6：合并与逐条质询（≤5 轮 / finding）
+### 4.8 阶段 6：合并与逐条质询（≤5 轮 / finding）
 
 ```text
 all ← 合并 findings/*.json 的 items[]，分配全局 finding_id
@@ -153,7 +180,7 @@ for F in all（按 severity 降序，blocking 优先）:
 写入 $AUDIT_TMP/findings-final.json
 ```
 
-### 4.8 阶段 7：打分与 stdout 报告
+### 4.9 阶段 7：打分与 stdout 报告
 
 - 主编排应用 [`docs/README.md`](../../README.md) 的 `fix_mark_ignore` / `fix_mark_should_fix` 规则。
 - 委派 `report-writer`：只读 `$AUDIT_TMP/**`，**返回 Markdown 字符串**（不写仓库、不写持久 report 路径）。
@@ -167,6 +194,27 @@ for F in all（按 severity 降序，blocking 优先）:
 3. 触发场景必须有**代码依据**；禁止无根据猜测；排除仅单测可触发且生产上游已防护的场景（与 README §fix_mark_ignore.5 一致）。
 4. 工作原理描述：**禁止冗长函数级调用链**；允许「用户/系统阶段 + 关键守卫点 + `path:line`」的**多层**路径（比 1～2 层更深，满足质询要求）。
 5. 作者在设计说明中明确接受的风险/已知问题 → 不得按 P0/P1 上报（`audit-challenger` 强制核查）。
+6. 四维 analyst **仅**针对 `effective-diff.json` 中的文件；质询适用 §7.2 降级矩阵。
+
+### 5.6 上游防护类型清单（analyst / challenger 硬性参照）
+
+分析触发路径时，必须主动查找并记录是否已被下列防护挡住（可多选，写入 finding / challenge）：
+
+- API server schema validation
+- CRD OpenAPI validation
+- admission webhook validation
+- CLI flag parser validation
+- config loader defaulting
+- controller enqueue 前过滤
+- informer cache sync 判断
+- nil/empty guard
+- permission / RBAC / authz check
+- feature gate
+- platform capability check
+- version compatibility check
+- leader election guard
+- state machine status guard
+- retry / backoff / circuit breaker
 
 ## 6. 中间产物 Schema
 
@@ -186,7 +234,32 @@ for F in all（按 severity 降序，blocking 优先）:
 }
 ```
 
-### 6.2 `intent.json`
+### 6.2 `effective-diff.json`（主编排写，阶段 2b）
+
+```json
+{
+  "commit": "sha",
+  "parent": "sha",
+  "effective_files": [
+    {
+      "path": "pkg/foo/bar.go",
+      "language": "go",
+      "change_type": "modified",
+      "reason": "production code"
+    }
+  ],
+  "ignored_files": [
+    { "path": "docs/usage.md", "reason": "docs" },
+    { "path": "examples/demo.go", "reason": "example code" },
+    { "path": "pkg/foo/bar_test.go", "reason": "test code" }
+  ],
+  "large_or_generated_files": [
+    { "path": "api/v1/zz_generated.deepcopy.go", "reason": "generated", "lines_changed": 1200 }
+  ]
+}
+```
+
+### 6.3 `intent.json`
 
 ```json
 {
@@ -204,7 +277,7 @@ for F in all（按 severity 降序，blocking 优先）:
 }
 ```
 
-### 6.3 单条 `finding`（各 analyst 共用）
+### 6.4 单条 `finding`（各 analyst 共用）
 
 ```json
 {
@@ -220,8 +293,12 @@ for F in all（按 severity 降序，blocking 优先）:
     "description": "触发描述",
     "evidence_refs": ["path:line"],
     "prod_reachable": true,
-    "reachability_stages": ["入口阶段", "守卫", "问题点"]
+    "reachability_stages": ["入口阶段", "守卫", "问题点"],
+    "prod_entry_ref": "path:line|null"
   },
+  "upstream_guards_considered": [
+    { "guard_type": "feature gate", "ref": "path:line", "blocks_issue": true|false }
+  ],
   "impact": "用户可见后果",
   "solution": {
     "summary": "...",
@@ -234,7 +311,7 @@ for F in all（按 severity 降序，blocking 优先）:
 }
 ```
 
-### 6.4 `challenges/<finding_id>-round-<N>.json`
+### 6.5 `challenges/<finding_id>-round-<N>.json`
 
 ```json
 {
@@ -242,14 +319,22 @@ for F in all（按 severity 降序，blocking 优先）:
   "round": 1,
   "challenges": [
     {
-      "challenge_type": "shallow_call_chain|trigger_unreachable_in_prod|impact_overstated|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
+      "challenge_type": "shallow_call_chain|continue_call_chain|trigger_unreachable_in_prod|impact_overstated|severity_inflated|author_intended|no_code_evidence|upstream_guard_exists",
       "question": "质疑内容",
-      "required_evidence": "proposer 必须补充的证据形式"
+      "required_evidence": "见 §7.1（shallow_call_chain 时必须列出未满足条目编号）",
+      "required_evidence_checklist": {
+        "prod_entry": false,
+        "param_path": false,
+        "upstream_guard": false,
+        "guard_insufficient_reason": false,
+        "withdraw_if_no_entry": false
+      }
     }
   ],
   "severity_review": {
     "original_severity": "P0",
     "proposed_severity": "P2",
+    "matrix_rule_id": "M1",
     "trigger_verdict": "reachable|unreachable|uncertain",
     "impact_verdict": "as_stated|overstated|uncertain",
     "rationale": "一句话：为何维持或下调"
@@ -260,7 +345,7 @@ for F in all（按 severity 降序，blocking 优先）:
 }
 ```
 
-### 6.5 `findings-final.json`
+### 6.6 `findings-final.json`
 
 ```json
 {
@@ -273,20 +358,53 @@ for F in all（按 severity 降序，blocking 优先）:
 
 ## 7. `audit-challenger` 质询清单（硬性）
 
-质询目标不仅是「有没有问题」，还包括 **严重等级是否诚实**：触发条件在生产环境是否成立、声称的后果是否被夸大。
+质询目标：**问题是否成立**、**调用链是否够深**、**严重等级是否诚实**（触发在生产是否成立、后果是否夸大）。每轮必须输出 `severity_review`（§6.5），并引用 §7.2 矩阵填写 `matrix_rule_id`。
 
-每轮必须输出 `severity_review`（见 §6.4），并至少检查：
+### 7.1 调用链过浅：`required_evidence` 硬性清单
 
-- [ ] **调用链深度**：`reachability_stages` 是否过浅？上游守卫/封装是否已使问题不可达？
-- [ ] **触发可达性（核实打分前提）**：proposer 的 `trigger.prod_reachable` 是否有代码路径支撑？是否仅为单测/臆测配置？若不可达 → 质疑类型 `trigger_unreachable_in_prod`，建议 `withdrawn` 或 severity 下调。
-- [ ] **后果是否夸大**：P0/P1 声称 panic、数据丢失、配置失效等，是否与可达路径一致？若最高可达后果仅为 P2/P3 → `impact_overstated` / `severity_inflated`，给出 `adjusted_severity`。
-- [ ] **严重等级一致性**：对照 README 的 P0–P3 定义；无生产触发依据的 panic 类默认不得维持 P0。
-- [ ] **作者意图**：`intent.author_stated_positions` 与行内 comment；有意为之 → `withdrawn` 或降级。
-- [ ] **历史已修**（仅当主编排已写入 pr-context 检索摘要时）：是否同类已合入修复。
+当 `challenge_type` 为 `shallow_call_chain` 或 `continue_call_chain` 时，challenger **必须**勾选 proposer 下一轮尚未满足的条目；proposer **下一轮至少补齐其一**，否则 challenger 应判 `withdrawn`：
 
-**质询输出要求：** 每轮 challenger 必须填写 `severity_review.proposed_severity`（认可、下调、或 withdrawn）；proposer 回应须更新 `trigger` / `impact` / `severity` 字段，不得只改措辞。
+| # | 必填证据（至少一项） | 写入字段 |
+|---|----------------------|----------|
+| 1 | **生产入口** `path:line`（CLI / API / controller reconcile / webhook 等） | `trigger.prod_entry_ref` |
+| 2 | **参数传递路径**：从入口到问题点的关键阶段（非函数名堆叠） | `reachability_stages` + refs |
+| 3 | **上游 guard 是否存在**：对照 §5.6 清单，引用 `path:line` | `upstream_guards_considered[]` |
+| 4 | **为何现有 guard 不能阻止该问题**（若 3 存在且 blocks_issue=true 则须解释） | `upstream_guards_considered[].blocks_issue` + 说明 |
+| 5 | **若 1 找不到**：必须 **withdrawn**，不得维持 P0/P1 | `resolution: withdrawn` |
 
-`round == 5` 且 severity 仍争议 → `resolution: inconclusive`，默认不进入 `fix_mark_should_fix`。
+challenger 可在同轮直接要求 `continue_call_chain`（「继续深入调用链」），proposer 不得仅用文字否认，须新增 §5.6 类 guard 或入口证据。
+
+### 7.2 严重等级降级矩阵（challenger 必须引用 rule_id）
+
+| ID | 条件 | `proposed_severity` / 处置 | 对 `fix_mark` 倾向 |
+|----|------|---------------------------|-------------------|
+| M1 | 无生产触发路径（§7.1 第 5 条或 M2 确认） | **withdrawn**；不得保留 P0/P1/P2 | ignore |
+| M2 | 生产触发路径不确定 | 最高 **P3** | 默认 ignore |
+| M3 | 仅影响错误日志、指标、提示文案 | 最高 **P3** | 通常 ignore |
+| M4 | 需非默认危险配置才触发 | 最高 **P2**，通常 **P3** | 视是否有意配置 |
+| M5 | 有明确 workaround | 最高 **P2** | 视产品承诺 |
+| M6 | 只影响边缘功能，不影响主路径 | 最高 **P2** | 视回归风险 |
+| M7 | 只影响新引入且未承诺的能力 | **withdrawn** 或 ignore | ignore |
+| M8 | 只影响内部健壮性，上游已防护（§5.6） | **withdrawn** | ignore |
+| M9 | 声称安全漏洞但无用户可控输入路径 | **withdrawn** 或 **P3** | ignore / 低优 |
+| M0 | 证据充分、生产可达、后果与等级匹配 | 维持 proposer 等级 | 可 should_fix |
+
+**执行规则：**
+
+- challenger 的 `severity_review.proposed_severity` **必须**可由上表一行解释；不得只写「建议降级」。
+- `trigger_verdict=unreachable` → 至少 M1；`uncertain` → 至少 M2。
+- `impact_overstated` → 按实际后果重新套 M0–M6，往往下调 ≥1 级。
+- 主编排最终 `fix_mark_*` 须与 `findings-final` 中最高存活 severity 及矩阵一致。
+
+### 7.3 每轮检查项（摘要）
+
+- [ ] 调用链：是否满足 §7.1 或已 withdrawn？
+- [ ] 触发可达性：对照 M1/M2/M4。
+- [ ] 后果与等级：对照 M0/M3/M6 与 README P0–P3。
+- [ ] 作者意图：`author_intended` → withdrawn/downgrade。
+- [ ] 历史已修（pr-context 检索摘要存在时）。
+
+`round == 5` 且 severity 仍争议 → `inconclusive`，默认不进 `fix_mark_should_fix`。
 
 ## 8. 工具与预算
 
@@ -326,17 +444,18 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 {
   "name": "audit",
   "source": "./plugins/audit",
-  "description": "Static PR audit on merged default branch (audit-pr skill + challengers, stdout report)."
+  "description": "Static audit of merged PRs on default branch (audit-merged-pr skill + challengers, stdout report)."
 }
 ```
 
 ## 12. 验收标准
 
-1. `/audit:audit-pr <url>` 在已合入 PR、本地 main 已 pull 时，无需 `gh pr diff` 即可完成审计。
-2. 每条进入 `findings-final` 的项，在 `challenges/` 中可追溯 ≤5 轮记录。
-3. 终稿仅出现在 stdout；`AUDIT_TMP` 默认已删除。
-4. 对「作者 comment 明确接受」的项，challenger 记录为 `withdrawn` 或 `downgraded`，且 `AUDIT_RESULT` 不误判为 should_fix。
-5. 报告无 llm session 节。
+1. `/audit:audit-merged-pr <url>` 在已合入 PR、本地 main 已 pull 时，无需 `gh pr diff` 即可完成审计。
+2. 存在 `effective-diff.json`；四维 analyst 的 finding 仅引用 `effective_files` 路径。
+3. 每条进入 `findings-final` 的项，在 `challenges/` 中可追溯 ≤5 轮记录，且 `severity_review.matrix_rule_id` 有值。
+4. `shallow_call_chain` 质询未满足 §7.1 时，最终不得保留 P0/P1。
+5. 终稿仅 stdout；`AUDIT_TMP` 默认已删除。
+6. 报告无 llm session 节。
 
 ## 13. 后续增强（非 v1）
 
@@ -350,13 +469,12 @@ AUDIT_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 | 议题 | 决策 |
 |------|------|
 | 环境 | Claude Code only |
-| 插件 / skill | `audit` / `audit-pr` |
+| 插件 / skill | `audit` / `audit-merged-pr` |
 | PR 输入 | URL |
+| diff | 阶段 2 定位 commit；**阶段 2b** 归一化 → `effective-diff.json` |
 | 代码来源 | mergeCommit 本地校验优先；有界 grep（≤5/模式）；`gh` 仅阶段 1 一次 + 最后 diff fallback |
-| commit 定位 token | 禁止长 log 进 prompt；仅 diff-scope.json 摘要 |
-| 质询 | 每条 ≤5 轮；含 **severity_review**（触发可达 + 后果夸大） |
+| commit 定位 token | 禁止长 log 进 prompt；仅 JSON 摘要进 agent |
+| 质询 | 每条 ≤5 轮；§7.1 调用链证据；§7.2 降级矩阵 |
 | GitHub | `gh` 主，MCP 兜底 |
 | 终稿 | stdout only |
 | 中间产物 | `mktemp -d` |
-| 质询 | 每条 finding ≤5 轮 |
-| 质询重点 | 深层调用链 + 作者有意为之 |
