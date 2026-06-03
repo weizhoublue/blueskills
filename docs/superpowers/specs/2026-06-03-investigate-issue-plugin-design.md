@@ -15,7 +15,7 @@
 3. **触发条件** — 用户配置/输入 → 调用链 → 缺陷落点
 4. **背景知识** — 出问题模块在整软件中的功能定位
 
-采用 **Skill 编排 + 6 sub-agent + 双文书质审（每节 ≤5 轮）**；**终稿仅 stdout**；中间 JSON 写入 `ISSUE_TMP` 临时目录。
+采用 **Skill 编排 + 6 sub-agent + 双文书质审（每节 ≤3 轮）**；**终稿仅 stdout**；中间 JSON 写入 `ISSUE_TMP` 临时目录。
 
 ### 1.1 与 `investigate-project` 的关键差异
 
@@ -37,7 +37,7 @@
 | 问题范围 | **C** 缺陷 + 行为疑问 + 架构/设计；报告中所有内容可被审计质疑 |
 | 证据标准 | **B** 代码优先 `path:line`；设计/对比允许文档+行业常识，须显式「未能从代码确认」 |
 | Agent 编制 | **C** 6 agent + 主编排 |
-| 质审粒度 | **B** 四节各独立 ≤5 轮（最多 20 轮） |
+| 质审粒度 | **B** 四节各独立 ≤3 轮（最多 12 轮） |
 | 辩驳模式 | **B** challenge → rebuttal → 终裁 |
 | 人工确认 | **A** 全自动，不暂停 |
 | 架构方案 | **A** 分析 → 合并 JSON → 分节 write↔challenger |
@@ -123,7 +123,7 @@ ISSUE_TMP/
 | 允许（对话内） | 禁止 |
 | --- | --- |
 | 阶段一行摘要 | 完整 JSON / 长调用链 |
-| 质审摘要（如「问题描述 2/5 accepted」） | 终稿写入仓库或 ISSUE_TMP 外 |
+| 质审摘要（如「问题描述 2/3 accepted」） | 终稿写入仓库或 ISSUE_TMP 外 |
 | 错误一行 + 可选 ISSUE_TMP 路径 | |
 
 sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
@@ -202,26 +202,28 @@ sub-agent 返回主编排：**≤6 行**，含输出文件路径与条数。
 阶段 3   module-background-analyst
 阶段 4   主编排合并 → issue-analysis.json
 阶段 5   四节流水线（顺序固定）：
-           problem-description  → write ↔ challenger (≤5)
-           consequences         → write ↔ challenger (≤5)
-           trigger-conditions   → write ↔ challenger (≤5)
-           background-knowledge → write ↔ challenger (≤5)
+           problem-description  → write ↔ challenger (≤3)
+           consequences         → write ↔ challenger (≤3)
+           trigger-conditions   → write ↔ challenger (≤3)
+           background-knowledge → write ↔ challenger (≤3)
 阶段 6   主编排组装 stdout 终稿
 阶段 7   trap 清理 ISSUE_TMP
 ```
 
 ### 8.1 单节 write↔challenger 循环
 
+**`MAX_ROUNDS_PER_SECTION = 3`**（四节独立计数，全 skill 最多 12 轮质审）。
+
 ```text
 round ← 1
 委派 issue-writer(section, round=1)    # 首轮写 sections/<section>.md
-while round ≤ 5:
+while round ≤ 3:
   委派 issue-challenger(section, round)
   if resolution in [accepted, withdrawn]: break
   if resolution == needs_rebuttal:
     委派 issue-writer(section, mode=rebuttal, round)
   round ← round + 1
-if round==5 且仍有 blocking/major:
+if round==3 且仍有 blocking/major:
   challenger 写 challenges/<section>-final.json (max_rounds_reached)
 ```
 
@@ -314,7 +316,7 @@ if round==5 且仍有 blocking/major:
 | major | 是 |
 | informational | 否 |
 
-**max_rounds 收尾**：第 5 轮仍有 blocking/major → 写 `challenges/<section>-final.json`（`status: max_rounds_reached`）；主编排仍输出该节，附录 C 列未闭合项。
+**max_rounds 收尾**：第 3 轮仍有 blocking/major → 写 `challenges/<section>-final.json`（`status: max_rounds_reached`）；主编排仍输出该节，附录 C 列未闭合项。
 
 ## 10. 全局红线（每次委派必复述）
 
@@ -363,10 +365,10 @@ if round==5 且仍有 blocking/major:
 
 ## 附录 B：质审摘要
 
-- 问题描述：3/5 accepted
-- 问题后果：2/5 accepted
-- 触发条件：1/5 accepted
-- 背景知识：4/5 accepted
+- 问题描述：2/3 accepted
+- 问题后果：2/3 accepted
+- 触发条件：1/3 accepted
+- 背景知识：3/3 accepted
 
 ## 附录 C：未闭合质询（若有）
 
