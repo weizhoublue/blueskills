@@ -42,6 +42,10 @@ grep -q 'mechanism_motivation\|motivation_audit\|R18' "$ROOT/agents/issue-challe
 grep -q '关键机制为何如此设计\|R18' "$ROOT/agents/issue-writer.md" || err "writer missing R18 subsection"
 grep -q 'design_rationale' "$ROOT/agents/business-context-analyst.md" || err "business-context missing design_rationale"
 grep -q 'R18\|design_rationale' "$SKILL" || err "SKILL missing R18 or design_rationale merge"
+grep -q 'scenario_evidence\|scenario_evidence_audit\|R20' "$ROOT/agents/issue-challenger.md" || err "challenger missing R20 scenario_evidence"
+grep -q '未能从代码确认\|R20' "$ROOT/agents/issue-writer.md" || err "writer missing R20 unverified subsection"
+grep -q 'scenario_kind\|unverified' "$ROOT/agents/code-tracer.md" || err "code-tracer missing R20 scenario_kind/unverified"
+grep -q 'R20\|unverified' "$SKILL" || err "SKILL missing R20 or unverified merge"
 
 # no investigate-project paths in plugin content
 if rg -q 'REPORT_ROOT|analysis-report' "$ROOT/agents" "$ROOT/skills" 2>/dev/null; then

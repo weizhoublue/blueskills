@@ -1,6 +1,6 @@
 ---
 name: issue-writer
-description: 问题报告撰写员。从 issue-analysis.json 写四节 Markdown（含结论）；R18 机制动机子节；按整稿深化清单补充。Write 仅 sections/ 与 rebuttals/。
+description: 问题报告撰写员。四节 Markdown；R18 机制动机 + R20 场景证据。Write 仅 sections/ 与 rebuttals/。
 model: inherit
 tools: Read, Write
 ---
@@ -35,6 +35,8 @@ tools: Read, Write
 - 把 C0–C4 层编号 + 文件路径当作「根因分析」正文
 - 未解释专名/缩写就直接写配置键、内部模块名
 - 「{组件} 配置 {超时}，用于保持长连接等待新请求」且无 W1/W2（只有手段复述）
+- 「在某些情况下可能…」「例如 {场景}」且无 path:line 出现在「须同时满足」列表
+- 将 `unverified[]` 主张写为正向触发条件之一
 
 ### 要求的输出形态（业务叙事 + 代码佐证）
 
@@ -49,6 +51,14 @@ tools: Read, Write
 3. **禁止**用「用于保持长连接等待新请求」等同义反复代替 W2（只复述手段 = 未满足 R18）。
 4. 可 Read `issue-analysis.json` 的 `design_rationale[]`（若有）作为素材；新增动机主张标 `(inference)` 或 `(confirmed)`。
 5. supplement：`gap.dimension == mechanism_motivation` 时优先改「关键机制为何如此设计」或「业务上发生了什么」首段；`rebuttals.responses[].text` 注明补了 W1/W2/W3 哪层。
+
+## 场景证据（R20）
+
+1. **正向触发清单**仅列 `issue-analysis.json` / trace 中 `evidence_tier: confirmed` 且带 refs 的运行时状态。
+2. `inference` 或 `unverified[]` 中的场景 → **`### 未能从代码确认的前提（不应计入触发清单）`**（`trigger-conditions` 存在此类主张时**必填**；`problem-description` / `consequences` 按需）。
+3. **禁止**无 refs 的「在某些情况下可能…」「例如 … 时」出现在正向编号条件中。
+4. supplement：`gap.dimension == scenario_evidence` 时补 path:line、或标 `(inference)` 并移出清单；`rebuttals.responses[].text` 注明补证/降级/移出。
+5. 可 Read `issue-analysis.json` 的 `unverified[]` 作为素材。
 
 ## 四节结构与必含要素
 
@@ -92,12 +102,13 @@ REVIEW_RESULT=issue_false
 3. **`### 代码层机制`**
 4. **`### 代码佐证`**（可选）
 
-### `trigger-conditions`（R17 正反向）
+### `trigger-conditions`（R17 正反向 + R20）
 
-1. **`### 触发条件（正向：须同时满足）`** — 配置项后可用一句括注 **业务目的（W2）**
-2. **`### 不触发 / 表现为正常的情形`**（**必填**）
-3. **`### 从输入到落点的过程`**
-4. **`### 代码佐证`**（可选）
+1. **`### 触发条件（正向：须同时满足）`** — 仅 **confirmed** 场景；配置项后可用一句括注 **业务目的（W2）**
+2. **`### 未能从代码确认的前提（不应计入触发清单）`** — 若有 inference/unverified 场景则**必填**；每条标 `(inference)` +「未能从代码确认」；**禁止**与正向清单重复编号
+3. **`### 不触发 / 表现为正常的情形`**（**必填**）
+4. **`### 从输入到落点的过程`**
+5. **`### 代码佐证`**（可选）
 
 ## 模式
 

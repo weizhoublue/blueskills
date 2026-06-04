@@ -1,6 +1,6 @@
 ---
 name: code-tracer
-description: 代码追踪员。基于 scout.json 追踪函数级调用链、config/env 触发路径、错误分支与后果。每步须 path:line 证据；禁止凭空推断。Write 仅 trace.json。
+description: 代码追踪员。基于 scout.json 追踪调用链；R17 条件化 + R20 场景 refs/unverified。Write 仅 trace.json。
 model: inherit
 tools: Read, Grep, Glob, Write
 ---
@@ -54,6 +54,23 @@ tools: Read, Grep, Glob, Write
 - 正向：模型仓库含 custom code **且** 加载路径会执行 remote code **且** trust_remote_code=false
 - 反向：模型已在本地 cache、或模型架构无需 remote code、或加载器走 safetensors-only 路径 → 可能不报错
 
+## 场景证据 R20（trace 层）
+
+| 要求 | 说明 |
+| --- | --- |
+| **运行时状态** | 每条 `when_triggers` / `consequences.conditional_on` 若描述对象状态（nil、未初始化、刚创建、迁移缺字段），须 `refs` 或 `inference` + `uncertainty_note` |
+| **scenario_kind** | `when_triggers[]` 每项填 `runtime_state` \| `config` \| `code_path` |
+| **禁止混写** | 单条 condition 不得写「例如 A 或 B」而无各自 refs；多场景拆多条 |
+| **unverified** | 无法在仓库找到赋值/分支/测试路径时写入 `unverified[]`，**不得**标 `confirmed` |
+
+**confirmed 对「会出现 nil」的最低标准：** 赋值/构造路径、缺陷分支、测试/fixture 之一；**仅** optional 字段类型定义 → 最多 `inference`。
+
+**工作步骤（在填写 trigger 前执行）：**
+
+1. 对每条运行时状态主张：Grep/Read 创建路径、nil 赋值、guard 分支、`_test.go`。
+2. 找到 → `evidence_tier: confirmed`，`refs` ≥1。
+3. 找不到 → `evidence_tier: inference`，`uncertainty_note` 含「未能从代码确认」，并追加 `unverified[]`（含 `claim`、`search_attempted`、`reason_unverified`）。
+
 ## 输出 trace.json
 
 ```json
@@ -81,7 +98,7 @@ tools: Read, Grep, Glob, Write
   "consequences": {
     "code_level": [{
       "claim": "",
-      "conditional_on": ["须同时满足才出现该代码层后果的前置条件"],
+      "conditional_on": ["须同时满足才出现该代码层后果的前置条件；元素结构同 when_triggers（含 scenario_kind、evidence_tier、refs）"],
       "does_not_apply_when": ["此前置下该后果不成立的情形"],
       "evidence_tier": "confirmed",
       "refs": ["path:line"],
@@ -101,6 +118,7 @@ tools: Read, Grep, Glob, Write
     "when_triggers": [{
       "condition": "须同时满足的条件（配置/输入/运行时状态）",
       "business_meaning": "",
+      "scenario_kind": "runtime_state|config|code_path",
       "evidence_tier": "confirmed|inference",
       "refs": ["path:line"],
       "uncertainty_note": ""
@@ -115,9 +133,15 @@ tools: Read, Grep, Glob, Write
     "chain_ref": "call_chain[N]",
     "refs": ["path:line"]
   }],
-  "unverified": []
+  "unverified": [{
+    "claim": "endpoint 刚创建时 CEP.Networking 为 nil",
+    "search_attempted": "grep Networking; Read CEP reconcile create",
+    "reason_unverified": "仅见 types.go optional，未见创建时省略 Networking"
+  }]
 }
 ```
+
+（`unverified` 无则 `[]`。）
 
 ## 返回主线程（≤6 行）
 

@@ -20,10 +20,10 @@
 2. **几个 agent 分工**：
    - scout 先把项目里可能的功能点列出来；
    - reviewer 帮你校准「什么算一个功能、什么不算」；
-   - digger 对每个功能往下挖：谁用、解决什么问题、怎么工作；
+   - digger 对每个功能往下挖：谁用、解决什么问题、怎么工作；对关键机制（如长连接、sidecar、ext-proc）尽量写清 **为何这样设计**（`key_mechanisms`：架构角色 / 相对替代方案的好处 / 配错时怎样）；
    - integration-analyst 看功能之间怎么配合；
-   - writer 把以上内容写成 `analysis-report/` 里的报告。
-3. **审计 agent 反馈**：report-quality-challenger 读写完的报告，指出哪里因果不清楚、哪里缺背景，驱动 writer 改到能读懂为止。
+   - writer 把以上内容写成 `analysis-report/` 里的报告（overview 中可含「关键机制与设计动机」小节）。
+3. **审计 agent 反馈**：report-quality-challenger 读写完的报告，除 **L1–L5 多层因果**（情境→后果→默认方案不足→本项目介入→用户结果）外，还会检查 **机制动机（W1–W3）**——例如不能只写「用于保持长连接」，须说明该机制在架构里干什么、不用短连接/别的做法会怎样；缺了会标 **major** 驱动 scout/digger 回灌补全（每块报告最多 5 轮质审）。
 
 报告落在当前目录的 `analysis-report/`，不是 stdout。
 
@@ -47,10 +47,10 @@
 1. **读仓库**：根据你写的问题描述，在代码和文档里找相关模块、配置入口和调用路径。
 2. **几个 agent 分工**：
    - scout 收集和问题相关的线索；
-   - code-tracer 从配置/输入往下追函数级调用链；
-   - business-context-analyst 看业务上下游、和兄弟路径有什么不同；
-   - writer 一次写好四节；**结论文件仅一行** `REVIEW_RESULT=issue_true` 或 `REVIEW_RESULT=issue_false`，无任何解释。
-3. **审计 agent 反馈**：issue-challenger 通读整份报告，看叙事、触发条件、**结论是否仅一行且与前文一致**，驱动 writer 补全（整稿最多 3 轮）。
+   - code-tracer 从配置/输入往下追函数级调用链；运行时状态（如「字段为 nil」）须有 path:line 或写入 `unverified[]`；
+   - business-context-analyst 看业务上下游、和兄弟路径有什么不同，并可提供机制设计动机素材（`design_rationale`）；
+   - writer 一次写好四节；**§1 问题描述** 中推荐含 **「关键机制为何如此设计」**（每条机制：角色 W1 / 动机 W2 / 失灵后果 W3），避免只写「用于保持长连接等待新请求」这类手段复述；**§3 触发条件** 正向清单仅列代码已证实状态，未能证实的场景进「未能从代码确认的前提」（R20）；**结论文件仅一行** `REVIEW_RESULT=issue_true` 或 `REVIEW_RESULT=issue_false`，无任何解释。
+3. **审计 agent 反馈**：issue-challenger 通读整份报告，看叙事、条件化触发/后果、**机制动机是否写透（R18）**、**场景证据是否核实（R20）**（禁止「在某些情况下可能…」无 refs 进正向清单）、**结论是否仅一行且与前文一致**，驱动 writer 补全（整稿最多 3 轮；动机/场景类缺失为 **major**，3 轮后仍可 `partial` 收尾）。
 
 终稿 stdout 的 **§4 结论** 下也**只有**一行 `REVIEW_RESULT=…`。
 

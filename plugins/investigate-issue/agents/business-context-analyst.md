@@ -36,7 +36,7 @@ tools: Read, Grep, Glob, Write
 2. Grep/Read 同类 handler、对称分支、相邻 controller
 3. 对比「缺陷路径」与「兄弟路径」的差异
 4. 填写 upstream/downstream/scenario
-5. 填写 `non_trigger_scenarios[]`：从业务/部署角度列出**已知或高概率**的不触发情形（可与 code-tracer 的 `when_does_not_trigger` 互补；无 code 证据标 `inference`）
+5. 填写 `non_trigger_scenarios[]`：从业务/部署角度列出**已知或高概率**的不触发情形（可与 code-tracer 的 `when_does_not_trigger` 互补；无 code 证据标 `inference`）。每条若含「例如/可能」的业务场景：须 `evidence_tier` + `refs` 或 `inference` + `uncertainty_note`（未能从代码确认）；供 writer/challenger 交叉引用，**不**单独因缺失而 blocking
 6. （软性）对问题因果链上的连接/超时/路由策略，尽量写 1 条 `design_rationale[]`（W1–W3 句子）；无 code 证据一律 `inference`
 
 ## 输出 business-context.json
