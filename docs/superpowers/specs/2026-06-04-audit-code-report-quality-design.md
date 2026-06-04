@@ -28,7 +28,7 @@
 
 - 不引入 v2 质询（`REVIEW_ENABLE_CHALLENGE`）。
 - 不改变「只读、不跑测试、stdout only」约束。
-- 不替代 `audit` 插件。
+- 仓库已不再发布独立 `audit` 插件；合入后 PR 等场景统一用 `audit-code:review`。
 
 ## 4. 方案选择
 

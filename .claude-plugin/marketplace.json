@@ -13,11 +13,6 @@
       "description": "Investigate an open-source codebase and produce business-feature reports (report-features skill + six sub-agents)."
     },
     {
-      "name": "audit",
-      "source": "./plugins/audit",
-      "description": "Static audit of merged PRs on default branch (audit-merged-pr; final report to stdout only)."
-    },
-    {
       "name": "investigate-issue",
       "source": "./plugins/investigate-issue",
       "description": "Deep-dive analysis of a single issue in an open-source repo (investigate skill; final report to stdout only)."

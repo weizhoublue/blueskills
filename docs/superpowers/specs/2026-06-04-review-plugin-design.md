@@ -461,7 +461,7 @@ trap '[[ -z "${REVIEW_KEEP_TMP:-}" ]] && rm -rf "$REVIEW_TMP"' EXIT
 
 ## 14. 非目标（YAGNI）
 
-- 不替代 `audit` 的 fix_mark 历史报告与 llm session 等专用节。
+- 原 `audit` 插件已从 marketplace 移除；历史 fix_mark / llm session 等专用节不在本插件范围。
 - v1 不做 GitHub PR 自动发 comment（仅 stdout）。
 - v1 不做 CI 集成 / GitHub Action。
 - v1 不做自动修复代码。

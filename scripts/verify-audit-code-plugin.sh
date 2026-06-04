@@ -14,10 +14,20 @@ done
 python3 -c "
 import json
 m=json.load(open('.claude-plugin/marketplace.json'))
-assert any(p['name']=='audit-code' for p in m['plugins'])
+names=[p['name'] for p in m['plugins']]
+assert 'audit-code' in names
+assert 'audit' not in names, 'legacy audit plugin must be removed from marketplace'
 p=json.load(open('plugins/audit-code/.claude-plugin/plugin.json'))
 assert p['name']=='audit-code'
 "
+if test -d plugins/audit; then
+  echo "plugins/audit directory must be removed" >&2
+  exit 1
+fi
+if test -f scripts/verify-audit-plugin.sh; then
+  echo "scripts/verify-audit-plugin.sh must be removed" >&2
+  exit 1
+fi
 
 rg -q '/audit-code:review' plugins/audit-code/skills/review/SKILL.md
 rg -q 'REVIEW_TMP' plugins/audit-code/skills/review/SKILL.md

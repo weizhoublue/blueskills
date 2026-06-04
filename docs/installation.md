@@ -56,35 +56,6 @@
 
 ---
 
-## audit
-
-**干什么**：审计一条**已经合进主分支**的 GitHub PR，看改动里有没有风险、缺陷或设计问题。
-
-**怎么用**：
-
-```text
-/plugin marketplace add weizhoublue/blueskills
-/plugin install audit@blueskills
-/reload-plugins
-/audit:audit-merged-pr https://github.com/OWNER/REPO/pull/123
-```
-
-需要本机已登录 `gh`，并在该仓库的缺省分支（如 `main`）下执行。
-
-**流程**：
-
-1. **读仓库**：用 `gh` 拉 PR 的 diff 和说明，对照当前仓库代码做静态分析（不跑测试）。
-2. **几个 agent 分工**：
-   - pr-intent-analyst 先理解作者想改什么、有没有在 PR 里说明的设计取舍；
-   - 四个方向的 analyst 分别从逻辑、并发、安全等维度扫 effective diff；
-   - 必要时 similar-defect-scout 找仓库里类似写法是否也有问题；
-   - report-writer 把确认的 finding 整理成审计报告。
-3. **审计 agent 反馈**：每条 finding 会经 peer-challenger、audit-challenger 多轮质询——原分析 agent 可以辩驳，challenger 决定 finding 是否成立、严重级别是否合适，避免误报后再出终稿。
-
-终稿只输出到 stdout。
-
----
-
 ## audit-code
 
 **干什么**：意图驱动的 **Code Review**（skill 名 `review`）——可审开放/已合入 PR、本地 staged、相对分支的 diff 或指定路径；七维并行（含 bugfix 时搜仓库同类残留）；每条问题标注「本 PR 引入」或「仓库残留」，并从生产入口向下验证可达性。
@@ -100,9 +71,7 @@
 /audit-code:review 相对 upstream/main 的 diff，忽略 vendor
 ```
 
-在被审仓库根目录执行；PR 场景需 `gh`。只读分析，不跑测试；终稿为四节 Markdown（修改意图 / PR 缺陷 / 残留缺陷 / 结论），**不使用表格**；每条 P0–P2 缺陷含 **根因原理**（代码机制）；纯性能项为 P3；§4 仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。
-
-**与 audit 区别**：`audit` 插件 + `audit-merged-pr` skill，面向已合入 PR、多轮质询；`audit-code` 插件 + `review` skill，输入更灵活、偏高召回、v1 无质询。
+在被审仓库根目录执行；PR 场景需 `gh`。只读分析，不跑测试；终稿为四节 Markdown（修改意图 / PR 缺陷 / 残留缺陷 / 结论），**不使用表格**；每条 P0–P2 缺陷含 **根因原理**（代码机制）；纯性能项为 P3；§4 仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。可审开放或已合入 PR、本地 staged、分支 diff 或指定路径（取代原 `audit` 插件的合入后 PR 审计场景）。
 
 ---
 

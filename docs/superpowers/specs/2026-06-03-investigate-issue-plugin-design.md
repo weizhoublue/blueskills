@@ -3,7 +3,7 @@
 - 日期：2026-06-03
 - 状态：已审阅（brainstorming 确认）
 - 来源需求：[`docs/report.md`](../../report.md)
-- 参考实现：[`plugins/investigate-project/agents/report-quality-challenger.md`](../../../plugins/investigate-project/agents/report-quality-challenger.md)（多层因果 + 术语清单）；[`plugins/audit/agents/audit-challenger.md`](../../../plugins/audit/agents/audit-challenger.md)（**仅借**双轮文件格式；本插件 challenger 为报告深化员，非对抗性质询）
+- 参考实现：[`plugins/investigate-project/agents/report-quality-challenger.md`](../../../plugins/investigate-project/agents/report-quality-challenger.md)（多层因果 + 术语清单）；原 `audit` 插件 `audit-challenger` 的双轮文件格式曾作参考（该插件已移除；本插件 challenger 为报告深化员，非对抗性质询）
 - 运行环境：**仅 Claude Code**（`/plugin install investigate-issue@blueskills`，`/investigate-issue:investigate <问题描述>`）
 
 ## 1. 目标

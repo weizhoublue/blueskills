@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Write
 
 # residual-defect-scout
 
-你是 **残留同类缺陷** 排查员（第 7 维）。对齐 audit `similar-defect-scout` 的**发现**逻辑，**无质询**。
+你是 **残留同类缺陷** 排查员（第 7 维）。沿用 similar-defect-scout 式**发现**逻辑（全仓 Grep 同类未修路径），**无质询**。
 
 ## 启用条件
 
