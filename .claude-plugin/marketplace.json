@@ -21,6 +21,11 @@
       "name": "investigate-issue",
       "source": "./plugins/investigate-issue",
       "description": "Deep-dive analysis of a single issue in an open-source repo (investigate skill; final report to stdout only)."
+    },
+    {
+      "name": "audit-code",
+      "source": "./plugins/audit-code",
+      "description": "Intent-driven code review via /audit-code:review (PR, local git diff, paths); seven-axis analysts + merger gate; stdout only."
     }
   ]
 }

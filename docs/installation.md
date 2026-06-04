@@ -85,6 +85,26 @@
 
 ---
 
+## audit-code
+
+**干什么**：意图驱动的 **Code Review**（skill 名 `review`）——可审开放/已合入 PR、本地 staged、相对分支的 diff 或指定路径；七维并行（含 bugfix 时搜仓库同类残留）；每条问题标注「本 PR 引入」或「仓库残留」，并从生产入口向下验证可达性。
+
+**怎么用**：
+
+```text
+/plugin marketplace add weizhoublue/blueskills
+/plugin install audit-code@blueskills
+/reload-plugins
+/audit-code:review 审一下当前 staged 改动
+/audit-code:review https://github.com/OWNER/REPO/pull/42
+/audit-code:review 相对 upstream/main 的 diff，忽略 vendor
+```
+
+在被审仓库根目录执行；PR 场景需 `gh`。只读分析，不跑测试；终稿末尾仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。
+
+**与 audit 区别**：`audit` 插件 + `audit-merged-pr` skill，面向已合入 PR、多轮质询；`audit-code` 插件 + `review` skill，输入更灵活、偏高召回、v1 无质询。
+
+---
 
 ## 卸载
 
