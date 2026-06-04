@@ -58,7 +58,7 @@
 
 ## audit-code
 
-**干什么**：意图驱动的 **Code Review**（skill 名 `review`）——可审开放/已合入 PR、本地 staged、相对分支的 diff 或指定路径；六维并行（含 bugfix 时搜仓库同类残留）；§1 自顶层调用链叙述修改前后用户/软件表现；每条问题标注「本 PR 引入」或「仓库残留」，并从生产入口向下验证可达性。
+**干什么**：意图驱动的 **Code Review**（skill 名 `review`）——默认 **问题驱动**：主编排根据 diff 出题，probe 按范围验证（更快、少重复读代码）；§1 叙事与探针并行；`REVIEW_LEGACY_DIMENSIONS=1` 可恢复旧六维路径；`REVIEW_DEPTH=full` 加深审查。
 
 **怎么用**：
 
@@ -71,7 +71,7 @@
 /audit-code:review 相对 upstream/main 的 diff，忽略 vendor
 ```
 
-在被审仓库根目录执行；PR 场景需 `gh`。只读分析，不跑测试；终稿为四节 Markdown（修改意图 / PR 缺陷 / 残留缺陷 / 结论），**不使用表格**；每条 P0–P2 缺陷含 **根因原理**（代码机制）；纯性能项为 P3；§4 仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。可审开放或已合入 PR、本地 staged、分支 diff 或指定路径（取代原 `audit` 插件的合入后 PR 审计场景）。
+在被审仓库根目录执行；PR 场景需 `gh`。若脚本未自动发现，可设置 `AUDIT_CODE_SCRIPTS` 指向已安装插件的 `plugins/audit-code/scripts` 目录。只读、不跑测试；终稿四节 Markdown，含根因原理；§4 仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。
 
 ---
 

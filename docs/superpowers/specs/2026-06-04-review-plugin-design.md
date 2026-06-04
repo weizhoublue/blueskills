@@ -9,6 +9,7 @@
   - [addyosmani code-reviewer agent](https://github.com/addyosmani/agent-skills/blob/main/agents/code-reviewer.md)
   - [addyosmani code-review-and-quality SKILL](https://github.com/addyosmani/agent-skills/blob/main/skills/code-review-and-quality/SKILL.md)
 - 运行环境：**Claude Code**（`/plugin install audit-code@blueskills`，`/audit-code:review`）
+- **v2 编排（默认，2026-06-04）**：问题驱动 — 主编排出题 + probe-worker；见 [`2026-06-04-audit-code-question-driven-design.md`](2026-06-04-audit-code-question-driven-design.md)。`REVIEW_LEGACY_DIMENSIONS=1` 恢复本文六维路径。
 
 ## 1. 目标与动机
 

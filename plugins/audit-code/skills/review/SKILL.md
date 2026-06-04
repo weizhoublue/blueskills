@@ -1,5 +1,5 @@
 ---
-description: 意图驱动的 Code Review（PR URL、staged、相对分支、commit 范围或路径）。在目标仓库根运行；只读、不跑测试；六维并行 + merger gate；终稿仅 stdout。
+description: 意图驱动的 Code Review。默认问题驱动（主编排出题 + probe）；REVIEW_LEGACY_DIMENSIONS=1 恢复六维。只读；终稿 stdout。
 ---
 
 # review
@@ -8,7 +8,7 @@ description: 意图驱动的 Code Review（PR URL、staged、相对分支、comm
 
 **禁止**修改被审仓库源码；**禁止**运行测试。
 
-设计 spec：`docs/superpowers/specs/2026-06-04-review-plugin-design.md`；报告质量：`docs/superpowers/specs/2026-06-04-audit-code-report-quality-design.md`；报告质量（机制/去重）：`docs/superpowers/specs/2026-06-04-audit-code-mechanism-dedup-design.md`
+设计 spec：`docs/superpowers/specs/2026-06-04-review-plugin-design.md`；报告质量：`docs/superpowers/specs/2026-06-04-audit-code-report-quality-design.md`；机制/去重：`docs/superpowers/specs/2026-06-04-audit-code-mechanism-dedup-design.md`；**问题驱动编排**：`docs/superpowers/specs/2026-06-04-audit-code-question-driven-design.md`
 
 ## 适用范围
 
@@ -16,14 +16,37 @@ description: 意图驱动的 Code Review（PR URL、staged、相对分支、comm
 - **cwd**：被审项目仓库根（非本 marketplace 克隆）
 - **工具**：PR 场景需 `gh`；可选 GitHub MCP
 - **终稿**：**仅 stdout** 一份 Markdown；中间 JSON 只写 `REVIEW_TMP`
-- **v1**：**无** peer/audit 质询（`REVIEW_ENABLE_CHALLENGE` 预留 v2）
+
+## 环境变量
+
+| 变量 | 效果 |
+|------|------|
+| `REVIEW_DEPTH=full` | investigation-plan 含 `should` 题；triage 启用 architecture |
+| `REVIEW_LEGACY_DIMENSIONS=1` | 走文末 **§Legacy 六维路径**（慢） |
+| `REVIEW_KEEP_TMP=1` | 保留 `REVIEW_TMP` |
+| `AUDIT_CODE_SCRIPTS` | 指向含 `audit-code-hunk-index.sh` 的目录（默认见下） |
+
+**脚本路径（2c/2d）：** 主编排 Shell 前设置：
+
+```bash
+if [[ -n "${AUDIT_CODE_SCRIPTS:-}" && -x "$AUDIT_CODE_SCRIPTS/audit-code-hunk-index.sh" ]]; then
+  :
+elif [[ -x "plugins/audit-code/scripts/audit-code-hunk-index.sh" ]]; then
+  AUDIT_CODE_SCRIPTS="plugins/audit-code/scripts"
+elif [[ -x "scripts/audit-code-hunk-index.sh" ]]; then
+  AUDIT_CODE_SCRIPTS="scripts"
+else
+  echo "audit-code: set AUDIT_CODE_SCRIPTS to plugin scripts dir" >&2
+  exit 1
+fi
+```
 
 ## REVIEW_TMP
 
 ```bash
 REVIEW_TMP=$(mktemp -d)
 trap '[[ -z "${REVIEW_KEEP_TMP:-}" ]] && rm -rf "$REVIEW_TMP"' EXIT
-mkdir -p "$REVIEW_TMP/findings"
+mkdir -p "$REVIEW_TMP/findings/probes"
 ```
 
 委派 sub-agent 时 prompt **必须**含：`REVIEW_TMP: <绝对路径>`
@@ -37,112 +60,117 @@ mkdir -p "$REVIEW_TMP/findings"
 
 sub-agent 返回主线程：**≤6 行**，禁止粘贴 JSON 全文。
 
-## 全局红线（每次委派复述）
+## 全局红线（probe / legacy analyst）
 
 1. 只读；不跑测试。
-2. **必读** `$REVIEW_TMP/change-context.json`（阶段 4 起）。
-3. 每条 finding **必填** `issue_origin`、`reachability`、扩展 `location`（`file`+`line`+`symbol`）、`trigger.scenario` 三段；P0–P2 必填 `trigger.defect_mechanism`（终稿 **根因原理**）。
-4. P0/P1 须 `reachability.reachable_in_prod: true`；否则不得标 P0/P1。
-5. 扫描 `review-files.json`；impact/residual 可 Read/Grep 扩展文件。
-6. >80% 置信才报；禁止臆测；禁止 meta-scope、噪音类 finding（见 merger）。
-7. **终稿四节 Markdown，禁止 pipe/HTML 表格（R15）**；§4 仅一行 `REVIEW_RESULT`（R16）。
+2. 每条 finding **必填** `issue_origin`、`reachability`、`location`（file+line+symbol）、`trigger.scenario`；P0–P2 必填 `trigger.defect_mechanism`。
+3. P0/P1 须 `reachability.reachable_in_prod: true`。
+4. >80% 置信才报；禁止 meta-scope、噪音类 finding。
+5. **终稿四节 Markdown，禁止表格（R15）**；§4 仅一行 `REVIEW_RESULT`（R16）。
 
-### 严重等级 P0–P3
-
-| 等级 | 要点 |
-|------|------|
-| P0 | 生产主路径崩溃/死锁/核心不可用 |
-| P1 | 核心功能错误、数据错丢、可利用且影响生产的安全问题 |
-| P2 | 边缘路径；有 workaround |
-| P3 | 日志/指标/文案/代码注释；不影响正确性；含 **dry_duplicate**、**纯 performance** |
-
-**Merger 要点：** `finding_category == performance` → 强制 P3；语义/状态类不得用 performance（→ `misclassified_dimension`）；cluster pass 合并同根因 → `duplicate_cluster`；缺机制 → `vague_no_mechanism`。
-
-**REVIEW_RESULT**（报告 **§4 结论仅一行**）：存在 ≥1 条成立 **P0–P2** → `mark_should_fix`；否则 `mark_ignore`。P3 可见但不驱动结论。
+**REVIEW_RESULT：** ≥1 条 P0–P2 → `mark_should_fix`；否则 `mark_ignore`。
 
 ---
 
-## 工作流（严格顺序）
+## 工作流（默认：问题驱动）
 
-### 阶段 0：自检
+若 `REVIEW_LEGACY_DIMENSIONS=1` → 跳至文末 **§Legacy**。
 
-1. 若 cwd 在本 marketplace（存在 `plugins/audit-code/.claude-plugin/plugin.json` 且无被审项目特征）→ stderr 提示 cd 到目标仓库后退出。
-2. `git rev-parse --is-inside-work-tree` → 失败则退出。
+### 阶段 0～2b
 
-### 阶段 1：解析 scope
+同前：自检 → scope → REVIEW_TMP → diff → `review-files.json`（空则 `REVIEW_RESULT=mark_ignore` 退出）。
 
-从用户消息解析，写入 `$REVIEW_TMP/scope.json`：
-
-| 信号 | scope.type | 字段 |
-|------|------------|------|
-| `github.com/.../pull/N` | `pr` | `pr_url`, `expected_owner_repo` |
-| staged / 暂存区 | `git` | `mode: staged` |
-| 相对 main / upstream | `git` | `mode: branch`, `base` |
-| commit / `A..B` | `git` | `mode: range`, `range` |
-| 路径 | `paths` | `paths[]` |
-
-默认 `ignore_patterns`（用户未反对则应用）：`docs/**`, `**/*_test.go`, `vendor/`, lock, generated 等。用户可说「也要审测试」→ `include_tests: true`。
-
-**含糊 → 只问 1 句**，不猜测。
-
-### 阶段 0b：仓库绑定（仅 scope.type=pr，在 mktemp 之前）
+### 阶段 2c：triage
 
 ```bash
-git config --get-regexp '^remote\..*\.url$'
-# 归一化 owner/repo；任一 == expected_owner_repo 则通过
+bash "$AUDIT_CODE_SCRIPTS/audit-code-triage.sh" "$REVIEW_TMP"
 ```
 
-失败 stderr 一行并 exit 1。
+产出：`review-profile.json`（`depth`, `enable_*`, `skip_kinds`）。
 
-### 阶段 0c：锁定 REVIEW_TMP
+### 阶段 2d：hunk-index
 
 ```bash
-REVIEW_TMP=$(mktemp -d)
-mkdir -p "$REVIEW_TMP/findings"
-# trap 见上
+bash "$AUDIT_CODE_SCRIPTS/audit-code-hunk-index.sh" "$REVIEW_TMP"
 ```
 
-### 阶段 2：取 diff（Shell only）
-
-| scope | 命令 |
-|-------|------|
-| pr | `gh pr view` + `gh pr diff`；已合并且有 merge_sha 可 `git diff parent..C` |
-| git staged | `git diff --staged` |
-| git branch | `git diff ${base}...HEAD` |
-| git range | `git diff A..B` |
-| paths | `git diff -- paths` 或 Read |
-
-产出：`raw-diff.patch`、`changed-files.json`
-
-### 阶段 2b：review-files.json
-
-应用 `scope.ignore_patterns` 过滤 → `review-files.json`（`files[]` + 每项 `reason` 若忽略）。
-
-若 `files` 为空 → stdout 短句 + `REVIEW_RESULT=mark_ignore` + 清理退出。
+产出：`hunk-index.json`。
 
 ### 阶段 3：pr-snapshot（仅 PR）
 
-```bash
-gh pr view "$PR_URL" --json number,title,body,labels,comments,reviews \
-  > "$REVIEW_TMP/pr-snapshot.json"
-```
+`gh pr view ... > pr-snapshot.json`
 
-### 阶段 3b：change-context-analyst（串行，六维前）
+### 阶段 3b：change-context core
 
-委派 `change-context-analyst` → `$REVIEW_TMP/change-context.json`
+委派 `change-context-analyst` → `change-context.json`（`pr_narrative` 可为占位 `unknown`）。
 
-须含：`stated_intent`, `change_kind`, `modules[]`, `feature_positioning`, `prod_entry_refs[]`, `primary_flows[]`, `pr_narrative`（`top_level_call_chain`；`before_problem`/`after_fix` 各含 `user_facing` + `software_level`）
+须含：`stated_intent`, `change_kind`, `modules[]`, `feature_positioning`, `prod_entry_refs[]`, `primary_flows[]`
 
-摘要：「阶段 3b：背景调研完成」
+摘要：「阶段 3b：core 完成」
 
-### 阶段 4：六维并行（须在 3b 之后）
+### 阶段 3c：主编排出题（主线程，不委派）
 
-委派时附全局红线 +：
+**Read：** `change-context.json`, `hunk-index.json`, `review-profile.json`, `scope.json`（**禁止**读完整 `raw-diff.patch`）
+
+**Write：**
+
+1. **`review-brief.md`**（≤2KB）  
+   - 审查范围、`stated_intent`、`change_kind`  
+   - 简版顶层调用链、`hunk-index` 符号表、`risks_to_watch`
+
+2. **`investigation-plan.json`**  
+   - 注入模板种子（design spec §7.2）：bugfix→residual；auth/http→security；多包→architecture  
+   - `must` 题 ≥3；按 `kind` 聚簇为 `clusters[]`（`logic-ripple` / `nonfunctional` / `architecture`）  
+   - `REVIEW_DEPTH=full` 时含 `should` 题  
+   - 若 `review-profile.enable_architecture=false` → 无 architecture 簇  
+   - 若 `enable_security=false` 或 `skip_kinds` 含 security/performance → 无 nonfunctional 簇或缩减  
+   - 若 `enable_residual=false` → logic 簇不含 residual 题  
+   - 题数不足 → **标准题包**（5×must，scope 取自 hunk-index 前 3 文件）
+
+摘要：「阶段 3c：plan N 题 / M 簇」
+
+### 阶段 4′：探针 + 叙事（并行）
+
+对每个 `investigation-plan.clusters[]` 委派 **probe-worker**（prompt 含 `cluster_id`）。
+
+并行委派 **narrative-writer**（补全 `pr_narrative`）。
+
+probe 全局红线 + `必读 review-brief.md + 本簇 questions`。
+
+摘要：「阶段 4′：probe ×M + narrative 完成」
+
+### 阶段 5′：report-assembler
+
+委派 `report-assembler` → 返回 Markdown；主编排 **stdout** 全文。
+
+摘要：「阶段 5′：REVIEW_RESULT=…」
+
+---
+
+## Sub-agent 清单（默认 v2）
+
+| name | 输出 |
+|------|------|
+| change-context-analyst | change-context.json（core） |
+| narrative-writer | change-context.json（pr_narrative） |
+| probe-worker | findings/probes/<cluster-id>.json |
+| report-assembler | Markdown（返回主线程） |
+
+---
+
+## §Legacy（`REVIEW_LEGACY_DIMENSIONS=1`）
+
+六维盲扫 + merger + report-writer（慢路径，兼容旧行为）。
+
+### 阶段 3b（legacy）
+
+`change-context-analyst` 可写完整 `pr_narrative`（不需 narrative-writer）。
+
+### 阶段 4：六维并行
 
 ```text
-必读：$REVIEW_TMP/change-context.json
-扫描：$REVIEW_TMP/review-files.json
-每条 finding 必填：issue_origin, reachability
+必读：change-context.json
+扫描：review-files.json
 ```
 
 | agent | 输出 | 条件 |
@@ -152,50 +180,16 @@ gh pr view "$PR_URL" --json number,title,body,labels,comments,reviews \
 | security-analyst | findings/security.json | 总是 |
 | performance-analyst | findings/performance.json | 总是 |
 | impact-analyst | findings/impact.json | 总是 |
-| residual-defect-scout | findings/residual.json | bugfix 时搜索；否则 `items:[]`, `skipped:true` |
+| residual-defect-scout | findings/residual.json | bugfix；否则 skipped |
 
-`change_kind==bugfix` 判定：`change-context.change_kind` 或用户提示或 pr-snapshot 标题/body 启发式。
+### 阶段 5～6
 
-### 阶段 5：finding-merger
+`finding-merger` → `report-writer` → stdout。
 
-委派 `finding-merger` → `findings/merged.json`, `findings/rejected.json`
-
-摘要：「阶段 5：去重 N→M 条」
-
-### 阶段 6：report-writer
-
-- 仅读 `merged.json`, `scope.json`, `change-context.json`（含 `pr_narrative`）
-- 四节终稿：§1 修改意图 → §2 PR 缺陷（含 **根因原理**）→ §3 残留缺陷 → §4 仅 `REVIEW_RESULT`
-- R15 禁止表格；R16 §4 仅一行
-- 将 Markdown **一次性 stdout**
-
-### 终稿结构
-
-```markdown
-## Code Review 报告
-## 1. 修改意图分析
-## 2. 发现的 PR 自身缺陷
-## 3. 发现的仓库中的残留缺陷（非本 PR 造成）
-## 4. 结论
-
-REVIEW_RESULT=mark_ignore|mark_should_fix
-```
-
-**R16**：`## 4. 结论` 为**最后一节**，且**仅**允许一行 `REVIEW_RESULT=...`。`mark_should_fix` 表示存在 ≥1 条 P0–P2（不含 P3）。
-
-## Sub-agent 清单
-
-| name | 输出 |
+| agent | 输出 |
 |------|------|
-| change-context-analyst | change-context.json |
-| correctness-analyst | findings/correctness.json |
-| architecture-analyst | findings/architecture.json |
-| security-analyst | findings/security.json |
-| performance-analyst | findings/performance.json |
-| impact-analyst | findings/impact.json |
-| residual-defect-scout | findings/residual.json |
 | finding-merger | merged.json, rejected.json |
-| report-writer | Markdown（返回主线程） |
+| report-writer | Markdown |
 
 ## v2 预留
 
