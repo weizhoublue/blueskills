@@ -235,6 +235,8 @@ gh pr view <PR_URL> --json number,title,body,state,mergedAt,mergeCommit,baseRefN
 - 输出：`findings/similar-unfixed.json`。
 - 参考原 PR 修复模式在仓库内 Grep/Glob 找同类未修逻辑（静态、只读）。
 
+> **2026-06-04 增量：** similar 输出强制入主链，见 [`2026-06-04-audit-similar-findings-mainline-design.md`](./2026-06-04-audit-similar-findings-mainline-design.md)。
+
 ### 4.7b 阶段 6a：`subsequent-fix-scout`（后续修复排查，质询前强制）
 
 **目的：** 落实 README **fix_mark_ignore §1**——若发现的问题已在被审 PR **合入之后** 由后续 commit 或已合入 PR 修复（或已有明确修复中 PR），则**不必**进入质询与终稿。

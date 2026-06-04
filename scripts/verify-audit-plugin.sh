@@ -66,5 +66,14 @@ rg -q 'peer_round <= 2' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'round <= 3' plugins/audit/skills/audit-merged-pr/SKILL.md
 rg -q 'config_consistency' plugins/audit/agents/edge-effect-analyst.md
 rg -q '隐式传播' plugins/audit/agents/edge-effect-analyst.md
+rg -q '若文件存在则必读' plugins/audit/agents/finding-dedupe-normalizer.md
+rg -q 'must_enter_mainline' plugins/audit/agents/similar-defect-scout.md
+rg -q 'mainline_policy' plugins/audit/agents/similar-defect-scout.md
+rg -q 'config_family_asymmetry' plugins/audit/agents/edge-effect-analyst.md
+rg -q 'Findings 主链不变式' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'intake-manifest' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q 'similar findings not fed' plugins/audit/skills/audit-merged-pr/SKILL.md
+rg -q '禁止.*similar-unfixed' plugins/audit/agents/report-writer.md
+rg -q 'similar-unfixed' plugins/audit/skills/audit-merged-pr/SKILL.md
 
 echo "OK: audit plugin structure"

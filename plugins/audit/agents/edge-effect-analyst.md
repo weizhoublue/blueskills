@@ -55,15 +55,23 @@ tools: Read, Grep, Glob, Write
 - 质疑：用户**未设置**该 key 时，新逻辑是否改变行为；旧部署升级后是否静默切换分支。
 - 须在 `trigger` 中写清 **缺省配置下的路径**（引用默认值定义 path:line），禁止「用户可能没配」式空话。
 
+### 4. 同路径 / 同族配置对称性（config family symmetry）
+
+- 当 PR 修改某**配置族**中一项（如 prefill 下 `cuda` 分支），须 Grep 同文件或同 chart 内**平行 key/分支**（`gpu`, `amd`, `xpu`, `tpu` 等命名模式）。
+- 检查：本 PR 应用的修复（默认值、guard、字段补齐）是否在平行分支**同等存在**。
+- bugfix PR 且仅修一族、平行分支未同等修复 → **edge finding**。
+- `config_consistency.pattern`: `config_family_asymmetry`（可与 `similar-defect-scout` 重叠；5b dedupe 按 D2/D4 或 K4 处理）。
+- 证据：`related_paths[]` 列出所有平行分支 path:line。
+
 ### 配置类 finding 写法
 
 - `dimension`: `edge`
-- 建议 `path_consistency.pattern` 扩展语义：`config_cross_file_mismatch` | `config_semantic_drift` | `implicit_default_propagation`
+- 建议 `path_consistency.pattern` 扩展语义：`config_cross_file_mismatch` | `config_semantic_drift` | `implicit_default_propagation` | `config_family_asymmetry`
 - 可选字段 `config_consistency`（与 `path_consistency` 二选一或同时填）：
 
 ```json
 "config_consistency": {
-  "pattern": "config_cross_file_mismatch|config_semantic_drift|implicit_default_propagation",
+  "pattern": "config_cross_file_mismatch|config_semantic_drift|implicit_default_propagation|config_family_asymmetry",
   "related_paths": ["deploy/helm/values.yaml", "pkg/config/config.go"],
   "dependency": "helm_values_requires_code_default",
   "inconsistency": "values 默认 true 但代码读取缺省为 false",

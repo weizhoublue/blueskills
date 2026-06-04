@@ -32,6 +32,11 @@ tools: Read
 
 **禁止** Read：`findings-rejected.json`、原始 `findings/*.json`、`challenges/`（除非主线程显式要求摘要）
 
+## 禁止（HARD-GATE）
+
+- **禁止**读取 `findings/similar-unfixed.json`、`findings/all-merged.json` 未质询项写报告。
+- **禁止**使用「后续改进 / 范围外 / 不在本 PR」描述未经 `findings-final` 质询成立的 similar 项。
+
 ## 输出结构（中文，简洁）
 
 ```markdown
@@ -46,6 +51,7 @@ REVIEW_RESULT=<fix_mark_ignore|fix_mark_should_fix>
 - PR 背景
 - 问题种类（1/2/3）
 - 问题描述、问题后果、复现概率（须有代码依据）
+- 对 `problem_type_label == 仓库同类缺陷` 的 survivor：须写清本 PR 已修模式（`pr_fix_pattern_ref` / `peer_comparison`）与未修位置（`unfixed_evidence_refs` 或 `similar_defect_meta`）
 - **同类路径比较**（来自 `peer_comparison.report_blurb_zh` 与/或 `table_rows`，**以嵌套 bullet 列表输出，禁止表格**）
 - 严重等级（取 final 中最高 P0–P2）
 - 背景知识（用户功能，非代码解释）

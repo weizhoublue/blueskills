@@ -204,9 +204,28 @@ gh pr view "$PR_URL" --json number,title,body,state,mergedAt,mergeCommit,baseRef
 
 finding 字段见 spec §6.4（含 `upstream_guards_considered`, `trigger.prod_entry_ref`, 逻辑类必填 `path_consistency`）。
 
+### Findings 主链不变式（HARD-GATE）
+
+1. 阶段 6 的 `all-merged.json` **仅**来自 `dedupe-result.json` 的 `canonical_items[]`。
+2. 若 `findings/similar-unfixed.json` 存在且 `items.length > 0`，则 5b 必须将其全部计入 dedupe；`input_counts.similar_unfixed` 与 manifest 一致，否则 stderr `similar findings not fed to dedupe` 且**退出码 1**。
+3. 每条 similar item 须在 `canonical_items` 或 `superseded-by-dedupe`（含 key + reason）中可追溯；禁止 silent drop。
+4. similar 来源 canonical 走与四维相同的 6a → 6a′ → 6a″ → 6b。
+5. 阶段 7 / report-writer **仅**读 `findings-final.json`；**禁止**读 `similar-unfixed.json` 写结论或「后续改进」。
+6. `problem_type=3` 且质询成立的 P0–P2 survivor **必须**参与 `fix_mark_should_fix`（含「仅 similar 成立」场景）。
+
 ### 阶段 5：similar-defect-scout（条件）
 
 仅当 `intent.pr_kind == bugfix` → `findings/similar-unfixed.json`
+
+### 阶段 5a：findings intake manifest（Shell only）
+
+```text
+读取 findings/business.json, language.json, security.json, edge-effects.json,
+      及若存在的 similar-unfixed.json
+统计各 items.length → 写入 $AUDIT_TMP/findings/intake-manifest.json
+schema: { version:1, sources:{ business, language, security, edge, similar_unfixed },
+          policy:"all_sources_must_reach_dedupe_and_challenge_or_superseded" }
+```
 
 ### 阶段 5b：finding 去重（质询前，避免四维重复报同一 defect）
 
@@ -220,7 +239,13 @@ finding 字段见 spec §6.4（含 `upstream_guards_considered`, `trigger.prod_e
 3. 向用户一行摘要：「阶段 5b：去重 N→M 条 canonical」
 ```
 
-委派时附：四维 `findings/*.json` 路径；规则见 `agents/finding-dedupe-normalizer.md`（D1–D4 合并，K1–K4 分开）。
+委派时附：四维 + **若存在的** `findings/similar-unfixed.json`、`findings/intake-manifest.json`；规则见 `agents/finding-dedupe-normalizer.md`（D1–D4 合并，K1–K4 分开）。
+
+4. **断言**（主编排 Shell 或 jq）：
+   - `dedupe-result.input_counts.*` 与 manifest.sources 一致
+   - `dedupe-result.stats.in == sum(manifest.sources)`
+   - 若 `manifest.sources.similar_unfixed > 0` 且 `input_counts.similar_unfixed == 0` → stderr `similar findings not fed to dedupe`，**退出码 1**
+   - 失败则不进入阶段 6
 
 ### 阶段 6：合并、后续修复、等同路径与逐条质询
 
@@ -299,6 +324,8 @@ for F in all \ rejected（severity 降序，且 severity∈{P0,P1,P2}）:
 **fix_mark_ignore** 当：无 P0–P2 成立项；或 **subsequent-fix-scout** 证实问题已在后续 commit/PR 修复或修复中；或 issues 已修；或非严重缺陷；或无清晰方案；或作者 comment 表明接受；或生产不可达等（README 全文）。
 
 **fix_mark_should_fix** 当：存在 P0–P2 成立项且有清晰修复方案。
+- 含 `dimension=similar-unfixed` 或 `problem_type=3` 的 P0–P2 survivor 与 PR 内 defect 同等计入。
+- **禁止**因「不在本 PR diff」对未质询的 similar 使用 fix_mark_ignore。
 
 ---
 

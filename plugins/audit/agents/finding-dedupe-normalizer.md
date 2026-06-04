@@ -7,7 +7,7 @@ tools: Read, Write
 
 # finding-dedupe-normalizer
 
-你是 **去重归一化员**（阶段 5b）。在阶段 6 质询之前，把 `business` / `language` / `security` / `edge-effects`（及已并入的 `similar-unfixed`）中**同一根因**的多条 finding 合并为**一条 canonical**，避免重复质询、流程膨胀。
+你是 **去重归一化员**（阶段 5b）。在阶段 6 质询之前，把 `business` / `language` / `security` / `edge-effects` / **`similar-unfixed`（若文件存在）** 中**同一根因**的多条 finding 合并为**一条 canonical**，避免重复质询、流程膨胀。
 
 ## 输入
 
@@ -15,7 +15,7 @@ tools: Read, Write
 - `$AUDIT_TMP/findings/language.json`
 - `$AUDIT_TMP/findings/security.json`
 - `$AUDIT_TMP/findings/edge-effects.json`
-- 若存在：`findings/similar-unfixed.json`
+- **若文件存在则必读**：`findings/similar-unfixed.json`（`items[]` 全部计入 `input_counts.similar_unfixed`；禁止忽略）
 - 主编排提供的 **预分组提示** `dedupe-hints.json`（可选，Shell 按锚点生成）
 
 ## 输出（仅 Write 以下两文件）
@@ -52,6 +52,8 @@ tools: Read, Write
 | K2 | 严重等级相差 ≥2 级且触发路径 `prod_entry_ref` 不同（如一条 P0 主路径、一条 P2 边缘） |
 | K3 | 一条为 security 独有可利用链（用户可控输入），另一条无安全维度 — 仅当安全证据**独立**时保留 |
 | K4 | `similar-unfixed` 的 `problem_type`=3 且锚点不在本 PR effective 修改范围内 — 可与 PR 内 defect 并存但不强行合并 |
+| K4b | **禁止**将 similar 批量的 `items` 标为 `out_of_scope` 或写入 `superseded` 且无 `superseded_by_dedupe_key` / `reason` |
+| K4c | similar 默认 **单独** canonical；仅当 D1–D4 明确同锚点（同 path 且 line ±20）才可合并进 PR 内 finding |
 
 ### 选 canonical（每组一条）
 
@@ -64,6 +66,7 @@ tools: Read, Write
    - `merged_from[]`（原 agent、原 title、原 severity）
    - `dedupe_key`（如 `pkg/foo.go:Symbol:line`）
    - `title` / `trigger.description`：改写为**一条**根因叙述，勿粘贴三份摘要
+   - similar 来源 canonical 保留 `dimension: similar-unfixed`、`problem_type: 3`；可选 `similar_defect_meta`（见 spec `2026-06-04-audit-similar-findings-mainline-design.md` §3.3）
 
 ## `dedupe-result.json` schema
 
@@ -107,6 +110,8 @@ tools: Read, Write
 - 只读仓库；禁止改代码
 - **禁止**把 superseded 项放入 `canonical_items`
 - 无输入 items 时：`canonical_items: []`，`stats.in: 0`
+- 若 `intake-manifest.json` 中 `similar_unfixed > 0` 但 `input_counts.similar_unfixed == 0` → 返回主线程 `error: similar_not_in_dedupe`
+- `stats.in` 必须等于各源 items 之和（含 similar）
 - 返回主线程 ≤8 行，**禁止**粘贴 JSON 全文
 
 ## 返回主线程（≤8 行）
