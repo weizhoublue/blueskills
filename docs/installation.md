@@ -58,7 +58,9 @@
 
 ## audit-code
 
-**干什么**：意图驱动的 **Code Review**（skill 名 `review`）——默认 **问题驱动**：主编排根据 diff 出题，probe 按范围验证（更快、少重复读代码）；§1 叙事与探针并行；`REVIEW_LEGACY_DIMENSIONS=1` 可恢复旧六维路径；`REVIEW_DEPTH=full` 加深审查。
+**干什么**：意图驱动的 **Code Review**（skill 名 `review`）——审 PR、本地 staged/分支 diff 或指定路径；只读、不跑测试；终稿为一份四节 Markdown（stdout）。
+
+与旧版「六个专科各扫一遍仓库」不同，**默认走问题驱动**：主编排先根据 diff 列出要查的具体问题，再派探针只读相关代码段验证，减少重复读盘、缩短耗时。
 
 **怎么用**：
 
@@ -71,7 +73,45 @@
 /audit-code:review 相对 upstream/main 的 diff，忽略 vendor
 ```
 
-在被审仓库根目录执行；PR 场景需 `gh`。若脚本未自动发现，可设置 `AUDIT_CODE_SCRIPTS` 指向已安装插件的 `plugins/audit-code/scripts` 目录。只读、不跑测试；终稿四节 Markdown，含根因原理；§4 仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。
+在被审**目标仓库根目录**执行（不是 blueskills 本仓库）；PR 场景需安装并登录 `gh`。
+
+**流程（默认 — 问题驱动）**：
+
+1. **准备材料（Shell）**：解析审查范围 → 拉 diff → 过滤待审文件；按改动类型做 **triage**（如文档-only 可跳过性能/安全）；生成 **hunk-index**（每文件改动行、触及符号、diff 摘要）。
+2. **背景 core**：`change-context-analyst` 写修改意图、模块、生产入口等（`pr_narrative` 先占位）。
+3. **主编排出题（主线程）**：读 core + hunk-index + triage，写 **审查简报** `review-brief.md` 与 **出题单** `investigation-plan.json`（每题带文件/行号范围；按逻辑/非功能/架构聚成 2～3 簇）。
+4. **并行验证**：
+   - **probe-worker**（每簇一个）：只读简报 + 本题范围，逐条判定假设成立与否；成立则记一条缺陷（含根因原理、场景、可达性）。
+   - **narrative-writer**：补全 §1 用的 PR 叙事（顶层调用链、修改前后**用户侧**与**软件侧**表现、方案原理）。
+5. **汇编报告**：`report-assembler` 合并探针结果、去重与 gate，输出四节终稿；**§4 结论** 仅一行 `REVIEW_RESULT=mark_ignore` 或 `mark_should_fix`（存在 ≥1 条 P0–P2 则为 `mark_should_fix`）。
+
+中间产物在临时目录 `REVIEW_TMP`；默认审完删除。调试时可设 `REVIEW_KEEP_TMP=1` 查看 `investigation-plan.json`、`findings/probes/*.json` 等。
+
+**终稿结构**：
+
+| 节 | 内容 |
+|----|------|
+| §1 修改意图分析 | 审查范围、顶层调用链、修改前/后（用户侧 + 软件侧）、方案原理 |
+| §2 PR 自身缺陷 | `issue_origin=pr_introduced`；每条含位置、**根因原理**、场景、后果、建议 |
+| §3 仓库残留缺陷 | `issue_origin=residual_existing`（非本 PR 造成）；格式同 §2 |
+| §4 结论 | 仅 `REVIEW_RESULT=…` 一行 |
+
+报告**不使用 Markdown 表格**。P3（如纯性能、重复代码）可列出，但不驱动 `mark_should_fix`。
+
+**环境变量（可选）**：
+
+| 变量 | 效果 |
+|------|------|
+| `REVIEW_DEPTH=full` | 加深：更多出题、可启用架构审查簇 |
+| `REVIEW_LEGACY_DIMENSIONS=1` | **旧路径**：六维并行 + merger + report-writer（更慢，兼容旧行为） |
+| `REVIEW_KEEP_TMP=1` | 保留临时目录便于排查 |
+| `AUDIT_CODE_SCRIPTS` | 指向 `audit-code-hunk-index.sh` / `audit-code-triage.sh` 所在目录（在被审仓库找不到插件脚本时使用） |
+
+脚本默认查找顺序：`AUDIT_CODE_SCRIPTS` → 当前仓库 `plugins/audit-code/scripts` → `scripts/`。
+
+**流程（Legacy — `REVIEW_LEGACY_DIMENSIONS=1`）**：
+
+1. `change-context-analyst`（含完整 PR 叙事）→ 六维并行（正确性 / 架构 / 安全 / 性能 / 影响面 / bugfix 时残留扫描）→ `finding-merger` → `report-writer`。终稿格式与上表相同。
 
 ---
 
