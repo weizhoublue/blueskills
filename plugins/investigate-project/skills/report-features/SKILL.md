@@ -83,6 +83,7 @@ REPORT_ROOT = <当前工作目录绝对路径>/analysis-report
 - **R14（改进记录免质审）**：各阶段可向 `{REPORT_ROOT}/improvement-log/` 追加执行困难/可疑点；`report-quality-challenger` **不得**据此提出 blocking/major，**不得**要求删除或「证实」这些记录。设计见 [`docs/superpowers/specs/2026-06-02-improvement-log-design.md`](../../../../docs/superpowers/specs/2026-06-02-improvement-log-design.md)。
 - **R15（用户报告禁表）**：`overview.md` 与 `features/<slug>.md` **禁止** markdown 表格（`| ... |`）；用 `###`、有序/无序列表、分组 bullet。编排文档内部表格不受限。
 - **R16（叙事深度）**：`scenarios` / `problems_solved` 须多层因果（L1 情境 → L2 后果 → [L3] → L4 本项目机制 → L5 用户结果）+ 专名首现解释；质审按 `report-quality-challenger.md` 执行；禁止为过关仅加长字数。
+- **R17（机制动机）**：叙事中的关键机制须可回答 W1–W3；可选 `key_mechanisms[]` 于 NarrativeBlock。质审 `mechanism_motivation` 为 **major**（非 blocking）。禁止「用于保持连接」类同义反复代替 W2。本轮不强制 `integrations` W。
 
 ## 改进记录（improvement-log）
 

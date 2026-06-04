@@ -1,6 +1,6 @@
 ---
 name: report-quality-challenger
-description: 报告质量质审员（只读中间产物 + 写 quality-review 审计）。多层因果推敲（L1–L5）、术语首现、证据对齐；对 project-overview.json、features/<slug>.json、integrations.json、可选 overview.md 质审；每目标最多 5 轮；禁止修改 feature-plan.json。
+description: 报告质量质审员。L1–L5 多层因果 + 机制动机 W1–W3（major）；术语与证据对齐；每 target ≤5 轮。Write 仅 quality-review/。
 model: inherit
 tools: Read, Write
 ---
@@ -48,6 +48,36 @@ tools: Read, Write
 
 若存在 `causal_chain[]`，先核对链条是否断档，再核对 `narrative` 是否与 chain 一致（防止「字数够但链只有两层」）。
 
+## 机制动机 W1–W3（与 L 正交；target: project-overview, features/<slug>）
+
+| 层 | 含义 |
+| --- | --- |
+| **W1** | 机制在架构/请求路径中的角色 |
+| **W2** | 为何采用该手段（相对替代方案） |
+| **W3** | 失灵/不一致时如何接到 L2 可观察后果 |
+
+**分工：** L3 = 不用本项目时行业/默认做法为何仍痛；L4 = 本项目在哪一抽象阶段介入；**W2** = L4 路径上**某一零件**（长连接、ext-proc、sidecar 超时等）为何这样设计。
+
+**关键机制启发式（须写入 `mechanism_motivation_audit[]`）：** 超时数值；keep-alive/idle/长连接/连接池；sidecar/proxy/router；调度/解析组件名；与兄弟模块不同的配置策略。
+
+| 反模式 | severity |
+| --- | --- |
+| 手段复述（「用于保持连接等待请求」）无 W2 | `major` |
+| 谈机制无架构角色（缺 W1） | `major` |
+| 未接到 L2 后果（缺 W3） | `major` |
+| `mechanism_at_a_glance` 仅组件+动词 | `major` |
+| `principle` 步骤只有动作无动机 | `major` |
+
+**禁止：** 因缺 W2 单独 `blocking`；要求将 inference 动机升格为 `confirmed`；`suggestion` 仅写「写长一点」。
+
+**M1（缺 W2）：** 读者知道 {手段}，但不知道在 {部署} 下为何不用 {替代}。建议补 `key_mechanisms[].w2_why_not_alternative` 或 narrative 同段。
+
+**M2（缺 W1）：** 未说明 {组件} 在路径中的角色即谈 timeout/连接策略。
+
+**M3（缺 W3）：** 未把 {机制} 与对端/默认不一致时的 {symptom} 接到 L2。
+
+与 L 层：缺 L2/L4 仍按上表 **blocking**；L3 已够但机制浅 → 仅 `mechanism_motivation` major。
+
 ## 可读输入
 
 | target | 读取路径 |
@@ -83,11 +113,12 @@ Schema：
   "status": "issues_found",
   "issues": [
     {
-      "severity": "blocking",
-      "field_path": "problems_solved[0].narrative",
-      "question": "正文不足 150 字，未交代部署情境",
-      "suggestion": "补充谁在什么环境使用该能力，并增加 refs",
-      "required_evidence_tier": "doc_declared"
+      "severity": "major",
+      "field_path": "problems_solved[0].key_mechanisms",
+      "question": "提到长连接但未说明相对短连接的业务目的",
+      "suggestion": "补 key_mechanisms[].w2_why_not_alternative：在 {部署} 下通过 {手段} 以便 {目的}；若 {替代} 则 {代价}",
+      "required_evidence_tier": "doc_declared",
+      "dimension": "mechanism_motivation"
     }
   ],
   "checklist_scores": {},
@@ -101,6 +132,15 @@ Schema：
   ],
   "terminology_audit": [
     {"term": "EPP", "field_path": "problems_solved[0].narrative", "explained": false}
+  ],
+  "mechanism_motivation_audit": [
+    {
+      "mechanism": "Gateway 侧 ext-proc 长连接",
+      "field_path": "problems_solved[1].narrative",
+      "layers_present": ["W1"],
+      "layers_missing": ["W2", "W3"],
+      "severity_if_incomplete": "major"
+    }
   ],
   "metrics": {
     "scenarios_count": 2,
@@ -116,8 +156,8 @@ Schema：
 
 `checklist_scores` 按 target 填写（**全部为 true 才可 passed**）：
 
-- **project-overview**：`causal_layers_complete`, `terminology_explained`, `tier_refs_consistent`, `module_landscape_complete`, `narrative_structure_ok`
-- **features/<slug>**：`causal_layers_complete`, `terminology_explained`, `tier_refs_consistent`, `sub_features_depth`, `narrative_structure_ok`, `principle_linked`（`problems_solved` 与 `principle` 可对应）
+- **project-overview**：`causal_layers_complete`, `terminology_explained`, `tier_refs_consistent`, `module_landscape_complete`, `narrative_structure_ok`, `mechanism_motivation_ok`
+- **features/<slug>**：`causal_layers_complete`, `terminology_explained`, `tier_refs_consistent`, `sub_features_depth`, `narrative_structure_ok`, `principle_linked`（`problems_solved` 与 `principle` 可对应）, `mechanism_motivation_ok`
 - **integrations**：`owner_feature_valid`, `refs_complete`, `notes_depth`, `terminology_in_notes`
 - **overview-md**：`no_markdown_tables`, `section6_present`, `narrative_sections_ok`, `not_shrunk_vs_json`
 
@@ -129,6 +169,12 @@ Schema：
 - `issues_found`：存在需回灌的 `blocking` 或 `major`，或任一 `checklist_scores` 为 `false`。
 
 ## 质量清单
+
+### 共用：机制动机（§ 机制动机 W1–W3；仅 project-overview、features/<slug>）
+
+- [ ] 对 narrative / `mechanism_at_a_glance` / `key_mechanisms[]` / `principle` 非空维度中的关键机制，填写 `mechanism_motivation_audit[]`。
+- [ ] `key_mechanisms` 若有项，须 `w1_role` + `w2_why_not_alternative` 非空；否则从 narrative 扫 W 反模式。
+- [ ] `issues[]` 中 `dimension: mechanism_motivation` 的 `suggestion` 使用 M1–M3 骨架。
 
 ### 共用：多层因果（§ 多层因果模型）
 
@@ -147,6 +193,9 @@ Schema：
 4. **机制落点（L4）**：本项目在请求/控制路径的哪一**阶段**介入？（禁止函数名）
 5. **读者检验**：遮住项目名，小白能否复述因果链？
 6. **证据对齐**：`refs` 中哪一条支撑你 narrative 里的哪一句？
+14. **机制 W2**：提到 {机制}，不用 {替代} 时多付出什么代价？补 `key_mechanisms` 或 narrative。
+15. **机制 W1**：{组件} 在架构里负责什么，再谈其连接/超时策略？
+16. **机制 W3**：机制失效或与对端不一致时，是否已接到 L2？
 
 ### 共用：术语与可读性
 

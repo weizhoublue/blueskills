@@ -26,6 +26,8 @@ else
     [[ "$al" -ge 2 ]] || err "module_landscape.architecture_layers < 2"
     ok_ps=$(jq '[.problems_solved[] | ((.causal_chain // []) | length >= 3) or (((.contrast // "") | length > 0) and ((.mechanism_at_a_glance // "") | length > 0))] | all' "$PO" 2>/dev/null || echo false)
     [[ "$ok_ps" == "true" ]] || err "某条 problems_solved 缺 causal_chain(≥3层) 或 contrast+mechanism_at_a_glance"
+    km_ok=$(jq '[.scenarios[], .problems_solved[]] | (.key_mechanisms // [])[] | (.name | length > 0) and ((.w1_role | length) >= 10) and ((.w2_why_not_alternative | length) >= 10)] | if length == 0 then true else all end' "$PO" 2>/dev/null || echo true)
+    [[ "$km_ok" == "true" ]] || err "project-overview 某条 key_mechanisms 项缺 name/w1/w2 最小长度"
     if [[ "$STRICT" == "--strict" ]]; then
       min_chars=$(jq '[.problems_solved[].narrative | length] | min // 0' "$PO")
       [[ "$min_chars" -ge 120 ]] || warn_msg "某条 problems_solved.narrative < 120 字（结构齐全时可接受）"
@@ -50,6 +52,15 @@ if [[ -f "$OV" ]]; then
       err "存在 *-final.json 但 overview 仍写「全部通过」"
     fi
   fi
+fi
+
+# --- features/*.json key_mechanisms ---
+if command -v jq >/dev/null 2>&1; then
+  for fj in "$ROOT"/features/*.json; do
+    [[ -f "$fj" ]] || continue
+    km_ok=$(jq '[.scenarios[], .problems_solved[]] | (.key_mechanisms // [])[] | (.name | length > 0) and ((.w1_role | length) >= 10) and ((.w2_why_not_alternative | length) >= 10)] | if length == 0 then true else all end' "$fj" 2>/dev/null || echo true)
+    [[ "$km_ok" == "true" ]] || err "$(basename "$fj") key_mechanisms 项不完整"
+  done
 fi
 
 # --- feature-plan vs finals ---

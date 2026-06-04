@@ -76,6 +76,17 @@ tools: Read, Write, Glob
 
 若 `terms[]` 非空，另起：**术语：** 逐条 `term` — `glossary`（须说明作用，勿只重复英文全称）
 
+若 `key_mechanisms[]` 非空，另起：
+
+**关键机制与设计动机**
+
+- **<name>**
+  - **角色（W1）：** <w1_role>
+  - **动机（W2）：** <w2_why_not_alternative>
+  - **失灵或边界（W3）：** <w3_when_breaks>（空则省略该行）
+
+**禁止**从 narrative 外补造 W 内容；无 `key_mechanisms` 时不造此块。
+
 **禁止**把多条 scenario/problem 合并进一个表格单元格；每条独立 `###` 小节。
 
 `industry_context_notes` 仅在 §3「解决的问题与痛点」章末增加子节 `#### 行业背景补充（无项目内证据）`，逐条渲染，不并入主列表。

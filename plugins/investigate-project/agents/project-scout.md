@@ -103,7 +103,8 @@ tools: Read, Grep, Glob, Bash
       "evidence_tier": "confirmed",
       "background": "≤ 120 字；无材料则 \"\"",
       "terms": [{"term": "CRD", "glossary": "≤ 80 字：是什么 + 在本条上下文中的作用"}],
-      "refs": ["docs/foo.md:12", "pkg/controller/foo.go:88"]
+      "refs": ["docs/foo.md:12", "pkg/controller/foo.go:88"],
+      "key_mechanisms": []
     }
   ],
   "problems_solved": [
@@ -122,7 +123,16 @@ tools: Read, Grep, Glob, Bash
       "evidence_tier": "doc_declared",
       "background": "",
       "terms": [],
-      "refs": ["CHANGELOG.md#v2.0"]
+      "refs": ["CHANGELOG.md#v2.0"],
+      "key_mechanisms": [{
+        "name": "EPP ext-proc 上下文拉取",
+        "w1_role": "在 Gateway 与后端之间获取请求上下文，供调度阶段使用",
+        "w2_why_not_alternative": "相对纯轮询，能感知 prefix 命中，避免同会话重复 prefill",
+        "w3_when_breaks": "若 ext-proc 不可用，调度退化为近似轮询，GPU 与延迟抖动上升",
+        "evidence_tier": "doc_declared",
+        "refs": [],
+        "uncertainty_note": ""
+      }]
     }
   ],
   "industry_context_notes": [
@@ -178,9 +188,10 @@ tools: Read, Grep, Glob, Bash
 **两阶段（每条 scenario / problem 强制执行）：**
 
 1. **证据卡**（可先写在草稿，再写入 `causal_chain`）：3~5 条 `claim` + `ref` +「该 ref 证明了什么」；禁止无 ref 的 claim。
-2. **再写** `narrative` / `contrast` / `mechanism_at_a_glance`：仅允许改写证据卡，禁止引入无 ref 新主张。
+2. **再写** `narrative` / `contrast` / `mechanism_at_a_glance` / 可选 `key_mechanisms[]`：仅允许改写证据卡，禁止引入无 ref 新主张。
+3. **关键机制（软性）**：对含多组件协作的 `problems_solved` 或复杂 `scenarios`，识别 1–2 个关键机制，填 `key_mechanisms[]`（W1 角色 + W2 动机；W3 建议有）。`mechanism_at_a_glance` 写 L4 摘要，**不能**代替 W2。
 
-**七项自检（写入前逐条勾选）：** 情境(L1)、对比(contrast/L2)、因果链完整、机制(L4)、用户结果(L5)、术语首现已解释、refs 与主张对应。
+**八项自检（写入前逐条勾选）：** 情境(L1)、对比(contrast/L2)、因果链完整、机制(L4)、用户结果(L5)、术语首现已解释、refs 与主张对应、**机制动机（关键机制 W1+W2）**。
 
 **浅 / 深对照（勿模仿浅例）：**
 
@@ -224,7 +235,7 @@ tools: Read, Grep, Glob, Bash
 
 - **仅修订 Part 1** 项目级概览 JSON；**保持 Part 2 候选清单不变**（不重扫全仓、不增删候选 id、不改 Part 2 任何字段）。
 - **禁止**读取 `feature-plan.json`、`boundary-review/`。
-- 逐条处理 `severity ∈ {blocking, major}`：按质询**补因果层（L1–L5）/ 术语 / refs**，禁止仅加长 `narrative`；补 `causal_chain`、`contrast`、`mechanism_at_a_glance`、`module_landscape`、修正 tier/refs。
+- 逐条处理 `severity ∈ {blocking, major}`：按质询**补因果层（L1–L5）/ 术语 / refs**；`dimension==mechanism_motivation` 时优先补 `key_mechanisms` 与 narrative；禁止仅加长 `narrative`；补 `causal_chain`、`contrast`、`mechanism_at_a_glance`、`module_landscape`、修正 tier/refs。
 - 完成后在返回 markdown 中同时给出更新后的 Part 1 与**未改动的** Part 2，并注明 `revision_round: <N>`。
 
 ## 窄扫模式（targeted mode）—— 由 SKILL 阶段 3 用户 `add` 时触发
