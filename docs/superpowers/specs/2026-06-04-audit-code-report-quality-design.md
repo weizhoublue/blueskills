@@ -73,7 +73,11 @@ REVIEW_RESULT=mark_ignore|mark_should_fix
 
 - **禁止**「做得好的地方」「验证说明」独立节（验证一句可并入 §1 末尾，可选）。
 - **§4** 仅一行 `REVIEW_RESULT=...`（R16）；禁止其它文字。
-- R15：禁止 markdown/HTML 表格。
+- **R15（全报告硬性）**：**禁止使用 Markdown 表格**表达任何内容——包括但不限于：
+  - GitHub 风格 pipe 表（`| 列 | 列 |`、`|---|---|`）
+  - HTML `<table>` / `<tr>` / `<td>`
+  - 用表格呈现 finding 列表、严重度统计、路径对照、维度对比等  
+  **一律改用** `###` / `####` 标题 + 嵌套无序列表（`- **标签**：值`）。`peer_path`、`related_symbols`、P0–P2 计数均用列表，不用表。
 - **P3** 与 P0–P2 **同列表**，标题 `#### P3 — …`；不驱动 `REVIEW_RESULT`。
 
 ## 6. change-context：`pr_narrative`
@@ -169,7 +173,26 @@ REVIEW_RESULT=mark_ignore|mark_should_fix
 3. 噪音类不出现在 `merged.json`（或仅在 `rejected.json`）。
 4. 终稿无「做得好的地方」；§4 仅 `REVIEW_RESULT` 一行。
 5. DRY 类仅为 P3，出现在 §2 或 §3 的 `#### P3` 下。
-6. `./scripts/verify-audit-code-plugin.sh` 通过更新后的 rg 检查。
+6. 终稿全文**无任何** Markdown/HTML 表格（人工或脚本抽检 + verify 脚本 rg）。
+7. `./scripts/verify-audit-code-plugin.sh` 通过更新后的 rg 检查（含「禁止表格」关键词与反模式检测，见实施计划）。
+
+## 11.1 report-writer 实施要点（R15）
+
+`report-writer.md` 须在「硬性」小节**重复**上述 R15，并给出**反例 / 正例**各一段，避免模型默认用表排 finding：
+
+反例（禁止）：
+
+```markdown
+| 等级 | 文件 | 问题 |
+| P1 | foo.go | … |
+```
+
+正例（允许）：
+
+```markdown
+#### P1 — …
+- **位置**：`foo.go:42` · `bar`
+```
 
 ## 12. Spec 自检（2026-06-04）
 
