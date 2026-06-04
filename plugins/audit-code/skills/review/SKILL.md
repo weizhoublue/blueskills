@@ -1,5 +1,5 @@
 ---
-description: 意图驱动的 Code Review（PR URL、staged、相对分支、commit 范围或路径）。在目标仓库根运行；只读、不跑测试；七维并行 + merger gate；终稿仅 stdout。
+description: 意图驱动的 Code Review（PR URL、staged、相对分支、commit 范围或路径）。在目标仓库根运行；只读、不跑测试；六维并行 + merger gate；终稿仅 stdout。
 ---
 
 # review
@@ -127,15 +127,15 @@ gh pr view "$PR_URL" --json number,title,body,labels,comments,reviews \
   > "$REVIEW_TMP/pr-snapshot.json"
 ```
 
-### 阶段 3b：change-context-analyst（串行，七维前）
+### 阶段 3b：change-context-analyst（串行，六维前）
 
 委派 `change-context-analyst` → `$REVIEW_TMP/change-context.json`
 
-须含：`stated_intent`, `change_kind`, `modules[]`, `feature_positioning`, `prod_entry_refs[]`, `primary_flows[]`
+须含：`stated_intent`, `change_kind`, `modules[]`, `feature_positioning`, `prod_entry_refs[]`, `primary_flows[]`, `pr_narrative`（`top_level_call_chain`；`before_problem`/`after_fix` 各含 `user_facing` + `software_level`）
 
 摘要：「阶段 3b：背景调研完成」
 
-### 阶段 4：七维并行（须在 3b 之后）
+### 阶段 4：六维并行（须在 3b 之后）
 
 委派时附全局红线 +：
 
@@ -148,7 +148,6 @@ gh pr view "$PR_URL" --json number,title,body,labels,comments,reviews \
 | agent | 输出 | 条件 |
 |-------|------|------|
 | correctness-analyst | findings/correctness.json | 总是 |
-| readability-analyst | findings/readability.json | 总是 |
 | architecture-analyst | findings/architecture.json | 总是 |
 | security-analyst | findings/security.json | 总是 |
 | performance-analyst | findings/performance.json | 总是 |
@@ -190,7 +189,6 @@ REVIEW_RESULT=mark_ignore|mark_should_fix
 |------|------|
 | change-context-analyst | change-context.json |
 | correctness-analyst | findings/correctness.json |
-| readability-analyst | findings/readability.json |
 | architecture-analyst | findings/architecture.json |
 | security-analyst | findings/security.json |
 | performance-analyst | findings/performance.json |

@@ -44,8 +44,9 @@
 ## 1. 修改意图分析
 
 - **审查范围**：…
-- **修改前问题**：…
-- **修改后达成**：…
+- **顶层调用链**：…
+- **修改前问题**（用户侧 / 软件侧）
+- **修改后达成**（用户侧 / 软件侧）
 - **方案原理**：…
 
 ## 2. 发现的 PR 自身缺陷
@@ -86,13 +87,21 @@ REVIEW_RESULT=mark_ignore|mark_should_fix
 
 ```json
 "pr_narrative": {
-  "before_problem": "修改前存在的问题（1–4 句，可 cite path:line）",
-  "after_fix": "本 PR 实现的行为（1–4 句）",
+  "top_level_call_chain": "从生产/对外入口沿本次变更符号向下串联（2–6 句，path:line · symbol）",
+  "before_problem": {
+    "user_facing": "修改前用户可感知的功能表现（1–3 句）",
+    "software_level": "修改前软件内部行为（1–3 句）"
+  },
+  "after_fix": {
+    "user_facing": "修改后用户可感知的功能表现（1–3 句）",
+    "software_level": "修改后软件内部行为（1–3 句）"
+  },
   "design_approach": "实现思路/原理（1–4 句）"
 }
 ```
 
-- 信息不足时写 `unknown` 并列入 `open_questions[]`，禁止编造。
+- **必须先**写 `top_level_call_chain`，再在相同路径语境下写 `before_problem` / `after_fix` 的用户侧与软件侧对照；禁止跳过调用链只写 diff 摘要。
+- 信息不足时字段写 `unknown` 并列入 `open_questions[]`，禁止编造。
 - `feature_positioning`、`modules` 保留；**改动面、子系统范围**只出现在 §1 叙事，**不得**作为 finding。
 
 ## 7. Finding schema 扩展
@@ -149,7 +158,7 @@ REVIEW_RESULT=mark_ignore|mark_should_fix
 | `change-context-analyst` | 输出 `pr_narrative` |
 | `correctness` / `security` / `performance` / `impact` | 新 schema；scenario 必填；禁噪音 |
 | `architecture` | DRY 仅用 `finding_category: dry_duplicate`，**最高 P3**；禁 meta-scope |
-| `readability` | 禁行数/注释/日志/测试类 finding |
+| （已移除 readability 维） | 风格/行数/注释/日志/测试类由 merger `out_of_scope_style` 拒收 |
 | `residual-defect-scout` | 同 schema；仅 `residual_existing` |
 | `finding-merger` | §8 规则 |
 | `report-writer` | §5 四节模板 |

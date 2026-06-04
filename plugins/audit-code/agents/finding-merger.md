@@ -1,6 +1,6 @@
 ---
 name: finding-merger
-description: 合并七维 findings：去重、issue_origin/reachability 校验、ECC Pre-Report Gate、可达性降级。输出 merged.json 与 rejected.json。
+description: 合并六维 findings：去重、issue_origin/reachability 校验、ECC Pre-Report Gate、可达性降级。输出 merged.json 与 rejected.json。
 model: inherit
 tools: Read, Write
 ---

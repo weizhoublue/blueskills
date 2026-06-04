@@ -57,8 +57,13 @@ tools: Read
 ## 1. 修改意图分析
 
 - **审查范围**：…（scope 一行）
-- **修改前问题**：…（`change-context.pr_narrative.before_problem`）
-- **修改后达成**：…（`pr_narrative.after_fix`）
+- **顶层调用链**：…（`pr_narrative.top_level_call_chain`）
+- **修改前问题**：
+  - **用户侧**：…（`before_problem.user_facing`）
+  - **软件侧**：…（`before_problem.software_level`）
+- **修改后达成**：
+  - **用户侧**：…（`after_fix.user_facing`）
+  - **软件侧**：…（`after_fix.software_level`）
 - **方案原理**：…（`pr_narrative.design_approach`）
 
 （可选一行：建议验证 …）

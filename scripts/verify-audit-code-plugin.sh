@@ -5,11 +5,15 @@ cd "$root"
 
 test -f plugins/audit-code/.claude-plugin/plugin.json
 test -f plugins/audit-code/skills/review/SKILL.md
-for a in change-context-analyst correctness-analyst readability-analyst architecture-analyst \
+for a in change-context-analyst correctness-analyst architecture-analyst \
   security-analyst performance-analyst impact-analyst residual-defect-scout \
   finding-merger report-writer; do
   test -f "plugins/audit-code/agents/${a}.md"
 done
+if test -f plugins/audit-code/agents/readability-analyst.md; then
+  echo "readability-analyst must be removed" >&2
+  exit 1
+fi
 
 python3 -c "
 import json
@@ -36,6 +40,14 @@ rg -q 'residual-defect-scout' plugins/audit-code/skills/review/SKILL.md
 rg -q 'mark_should_fix' plugins/audit-code/skills/review/SKILL.md
 rg -q 'mark_ignore' plugins/audit-code/skills/review/SKILL.md
 rg -q 'pr_narrative' plugins/audit-code/agents/change-context-analyst.md
+rg -q 'top_level_call_chain' plugins/audit-code/agents/change-context-analyst.md
+rg -q 'user_facing' plugins/audit-code/agents/change-context-analyst.md
+rg -q 'software_level' plugins/audit-code/agents/change-context-analyst.md
+rg -q '顶层调用链' plugins/audit-code/agents/report-writer.md
+if rg -q 'readability-analyst' plugins/audit-code/skills/review/SKILL.md 2>/dev/null; then
+  echo "SKILL must not reference readability-analyst" >&2
+  exit 1
+fi
 rg -q 'trigger.scenario' plugins/audit-code/agents/correctness-analyst.md
 rg -q 'meta_scope_not_a_defect' plugins/audit-code/agents/finding-merger.md
 rg -q 'out_of_scope_style' plugins/audit-code/agents/finding-merger.md

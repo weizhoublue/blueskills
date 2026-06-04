@@ -17,10 +17,10 @@
 新插件 `review` 的目标：
 
 1. **意图驱动**：用户用自然语言指定审查对象（线上 PR、开放 PR、本地 staged/分支/range/路径等）；含糊时**只问一个**澄清问题。
-2. **变更背景调研（七维前）**：先产出 `change-context.json`（修改意图、涉及模块、该功能在项目中的定位），再进入七维并行。
-3. **七维并行发现**：addyosmani 五轴 + **影响面（impact）** + **残留同类缺陷（residual，仅 bugfix）**。
+2. **变更背景调研（六维前）**：先产出 `change-context.json`（修改意图、模块定位、`pr_narrative` 顶层调用链 + 用户/软件前后表现），再进入六维并行。
+3. **六维并行发现**：addyosmani 四轴（正确性、架构、安全、性能）+ **影响面（impact）** + **残留同类缺陷（residual，仅 bugfix）**；**不含**可读性维（风格/嵌套/命名类噪音由 merger `out_of_scope_style` 拒收）。
 4. **全局 finding 属性**：每条问题必须标注 `issue_origin`：`pr_introduced`（本 PR 修改引入）| `residual_existing`（仓库内同类残留，非本 PR 引入）。
-5. **顶层入口可达性（七维硬要求）**：任何 finding 须从软件**生产主路径入口**向下回溯调用链，证明问题**真的可能在生产中发生**；入口以下已被 guard/类型/框架挡住的，不得按 P0/P1 上报。
+5. **顶层入口可达性（六维硬要求）**：任何 finding 须从软件**生产主路径入口**向下回溯调用链，证明问题**真的可能在生产中发生**；入口以下已被 guard/类型/框架挡住的，不得按 P0/P1 上报。
 6. **v1 高召回、轻收口**：发现 → `finding-merger`（去重 + Gate + 定级）→ 报告；**不做**多轮辩驳。
 7. **结论契约**：报告**最后一节**仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`；≥1 条 P0–P2 → `mark_should_fix`。
 
@@ -45,12 +45,11 @@ blueskills/
     └── agents/
         ├── change-context-analyst.md   # 六维前：变更意图 + 模块定位 + 项目内功能角色
         ├── correctness-analyst.md
-        ├── readability-analyst.md
         ├── architecture-analyst.md
         ├── security-analyst.md
         ├── performance-analyst.md
         ├── impact-analyst.md
-        ├── residual-defect-scout.md   # 第 7 维：仅 bugfix，搜仓库同类残留
+        ├── residual-defect-scout.md   # 第 6 维：仅 bugfix，搜仓库同类残留
         ├── finding-merger.md
         └── report-writer.md
 ```
@@ -117,7 +116,7 @@ blueskills/
 | 2b | Shell | `review-files.json` |
 | 3 | Shell（PR 时） | `pr-snapshot.json`（title/body/comments 摘要，可选） |
 | **3b** | **`change-context-analyst`** | **`change-context.json`**（意图 + 模块 + 定位 + `change_kind`） |
-| 4 | **七维并行** | `findings/*.json`（**必读** `change-context.json`；第 7 维见 §8.5） |
+| 4 | **六维并行** | `findings/*.json`（**必读** `change-context.json`；第 6 维见 §8.5） |
 | 5 | `finding-merger` | `findings/merged.json`, `findings/rejected.json` |
 | 6 | `report-writer` | Markdown → stdout |
 | 清理 | trap | 默认 `rm -rf $REVIEW_TMP`；`REVIEW_KEEP_TMP=1` 保留 |
@@ -125,11 +124,11 @@ blueskills/
 **阶段 3 / 3b 分工：**
 
 - **阶段 3**：主编排 Shell/`gh` 拉 PR 元数据写入 `pr-snapshot.json`（非 PR 则跳过）；不做深度代码调研。
-- **阶段 3b**：`change-context-analyst` 产出七维共用的**审查背景板**；其中 `change_kind` 决定是否启用第 7 维。
+- **阶段 3b**：`change-context-analyst` 产出六维共用的**审查背景板**（含 `pr_narrative`）；其中 `change_kind` 决定是否启用第 6 维（residual）。
 
 **输出策略**（同 audit）：对话内仅阶段摘要；禁止粘贴 findings JSON 全文；sub-agent 返回 ≤6 行。
 
-## 7. change-context-analyst（七维前背景调研）
+## 7. change-context-analyst（六维前背景调研）
 
 ### 7.0 职责
 
@@ -186,7 +185,7 @@ blueskills/
 - Read ≤35，Grep ≤25（可 Read 未在 diff 中的入口/注册文件）
 - 返回主线程 ≤6 行
 
-### 7.0.4 与七维的关系
+### 7.0.4 与六维的关系
 
 阶段 4 委派**任意** analyst 时，主编排 prompt **必须**附：
 
@@ -198,9 +197,9 @@ finding 应结合 stated_intent 与 feature_positioning；无关背景的臆测 
 
 ---
 
-## 8. 七维 analyst
+## 8. 六维 analyst
 
-### 8.0 全局硬要求（七个 agent 共同遵守）
+### 8.0 全局硬要求（六个 agent 共同遵守）
 
 #### 8.0.1 问题来源 `issue_origin`（每条 finding 必填）
 
@@ -209,8 +208,8 @@ finding 应结合 stated_intent 与 feature_positioning；无关背景的臆测 
 | `pr_introduced` | 缺陷由**本 PR 修改**引入，或仅存在于本次改动触及的逻辑 | diff 内新 bug、改坏调用方、改签名未改全 |
 | `residual_existing` | **本 PR 修改之前**仓库已存在同类问题；本 PR 未修到 | 兄弟模块同 pattern 未修、上下游遗留；**第 7 维主责** |
 
-- 第 1–6 维：以 `pr_introduced` 为主；若在**未改文件**发现与 PR 修复模式相同的遗漏 → `residual_existing`（或与第 7 维去重后保留一条）。
-- 第 7 维：输出**仅** `residual_existing`。
+- 第 1–5 维：以 `pr_introduced` 为主；若在**未改文件**发现与 PR 修复模式相同的遗漏 → `residual_existing`（或与第 6 维去重后保留一条）。
+- 第 6 维（residual）：输出**仅** `residual_existing`。
 - `report-writer` 终稿须分组或标签展示来源，禁止混为一谈。
 
 #### 8.0.2 顶层入口可达性 `reachability`（防局部放大）
@@ -239,16 +238,15 @@ finding 应结合 stated_intent 与 feature_positioning；无关背景的臆测 
 | Agent | 维度 | 职责 |
 |-------|------|------|
 | correctness-analyst | 正确性 | 逻辑、边界、错误路径、与测试意图一致性（不执行测试） |
-| readability-analyst | 可读性 | 命名、嵌套、结构、非必要复杂度 |
 | architecture-analyst | 架构 | 模式一致性、模块边界、依赖方向、重复代码 |
 | security-analyst | 安全 | 注入、鉴权、密钥、不可信输入、依赖风险提示 |
 | performance-analyst | 性能 | N+1、无界查询/循环、热路径、UI 不必要重渲染 |
 | impact-analyst | 影响面 | 本 PR 改动对兄弟路径/调用链/配置的波及（多为 `pr_introduced`） |
 | residual-defect-scout | 残留同类缺陷 | **仅 bugfix**：仓库内同修复模式未修位置（仅 `residual_existing`） |
 
-### 8.2 impact-analyst（第 6 维）
+### 8.2 impact-analyst（第 5 维）
 
-与第 7 维分工：**impact** 关注「这次改动是否牵连他人」；**residual** 关注「这次修 bug 的模式别处还有没有」。
+与第 6 维分工：**impact** 关注「这次改动是否牵连他人」；**residual** 关注「这次修 bug 的模式别处还有没有」。
 
 ### 8.3 impact-analyst 发现逻辑（自 audit 提炼，无质询）
 
@@ -383,7 +381,7 @@ Analyst 可标 draft severity；**最终 severity 以 merger 为准**。
 }
 ```
 
-`id` 前缀建议：`C` correctness, `R` readability, `A` architecture, `S` security, `P` performance, `I` impact；merger 可重编号为 `F-001`。
+`id` 前缀建议：`C` correctness, `A` architecture, `S` security, `P` performance, `I` impact；merger 可重编号为 `F-001`。
 
 ## 11. REVIEW_RESULT 与报告
 
@@ -470,10 +468,10 @@ trap '[[ -z "${REVIEW_KEEP_TMP:-}" ]] && rm -rf "$REVIEW_TMP"' EXIT
 
 1. 用户给定开放 PR URL → 能产出带 `REVIEW_RESULT` 的 stdout 报告。
 2. 用户给定「审 staged」→ 仅针对暂存区 diff 审查。
-3. 阶段 3b 产出 `change-context.json`（含 `prod_entry_refs`），七维 agent 含「必读 change-context」与 §8.0。
+3. 阶段 3b 产出 `change-context.json`（含 `prod_entry_refs`、`pr_narrative`），六维 agent 含「必读 change-context」与 §8.0。
 4. bugfix 时第 7 维产出 `residual.json`；非 bugfix 为空数组。
 5. 所有 finding 含 `issue_origin` + `reachability`；不可达 P0/P1 被 merger 降级/拒绝。
-6. 七维各写出 `findings/<dimension>.json`；merger 去重后无重复 P0–P2 双份同根因。
+6. 六维各写出 `findings/<dimension>.json`；merger 去重后无重复 P0–P2 双份同根因。
 7. 故意含糊输入 → 主编排**只问 1 个**澄清问题，不猜测范围。
 8. 干净小 diff → 允许 `fix_mark_ignore` 零 finding，不捏造问题。
 
@@ -483,6 +481,6 @@ trap '[[ -z "${REVIEW_KEEP_TMP:-}" ]] && rm -rf "$REVIEW_TMP"' EXIT
 - [x] REVIEW_RESULT 与 P2+ 阈值一致（§11.1）
 - [x] v1 无辩驳与 §13 v2 不矛盾
 - [x] impact 与 audit peer/edge 职责边界：仅发现，无质询
-- [x] change-context 在七维前（§7.0.4）
-- [x] 七维含 residual（§8.4）；issue_origin + reachability（§8.0、§10）
+- [x] change-context 在六维前（§7.0.4）
+- [x] 六维含 residual（§8.4）；issue_origin + reachability（§8.0、§10）
 - [x] 范围：单插件单 skill，可支撑后续 implementation plan 拆分
