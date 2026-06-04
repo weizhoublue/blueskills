@@ -1,7 +1,7 @@
 {
   "name": "audit-code",
   "displayName": "Audit Code",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "意图驱动的 Code Review（主编排出题 + probe 验证 + 汇编报告）；终稿 stdout",
   "keywords": ["code-review", "pr-review", "security"],
   "license": "MIT"
