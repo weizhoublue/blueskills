@@ -1,7 +1,7 @@
 # 设计文档：investigate-issue — 取消「问题后果」独立节，故障表现并入「触发条件」
 
 - 日期：2026-06-04
-- 状态：已审阅（brainstorming 确认）
+- 状态：已实现（plan 2026-06-04）
 - 父 spec：[`2026-06-03-investigate-issue-plugin-design.md`](2026-06-03-investigate-issue-plugin-design.md)
 - 相关：R17 条件严谨性、R20 场景证据、[`2026-06-04-investigate-issue-mechanism-motivation-design.md`](2026-06-04-investigate-issue-mechanism-motivation-design.md)
 

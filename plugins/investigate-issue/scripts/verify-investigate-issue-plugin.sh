@@ -47,6 +47,16 @@ grep -q '未能从代码确认\|R20' "$ROOT/agents/issue-writer.md" || err "writ
 grep -q 'scenario_kind\|unverified' "$ROOT/agents/code-tracer.md" || err "code-tracer missing R20 scenario_kind/unverified"
 grep -q 'R20\|unverified' "$SKILL" || err "SKILL missing R20 or unverified merge"
 
+# three-section report (no standalone consequences section)
+grep -q '故障表现' "$ROOT/agents/issue-writer.md" || err "writer missing 故障表现 subsection"
+grep -q 'sections/consequences.md' "$SKILL" && err "SKILL must not reference sections/consequences.md"
+grep -q '## 2\. 问题后果' "$SKILL" && err "SKILL stdout must not have ## 2. 问题后果"
+grep -q '## 2\. 触发条件' "$SKILL" || err "SKILL stdout must have ## 2. 触发条件"
+grep -q '## 3\. 结论' "$SKILL" || err "SKILL stdout must have ## 3. 结论"
+grep -q '缺.*故障表现' "$ROOT/agents/issue-challenger.md" || err "challenger missing 故障表现 gap checks"
+grep -q 'sections/consequences.md' "$ROOT/agents/issue-challenger.md" && err "challenger must not read consequences.md"
+grep -q 'target_section.*consequences' "$ROOT/agents/issue-challenger.md" && err "challenger target_section must not include consequences"
+
 # no investigate-project paths in plugin content
 if rg -q 'REPORT_ROOT|analysis-report' "$ROOT/agents" "$ROOT/skills" 2>/dev/null; then
   err "plugin must not reference REPORT_ROOT or analysis-report"

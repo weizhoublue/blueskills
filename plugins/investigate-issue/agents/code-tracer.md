@@ -39,6 +39,7 @@ tools: Read, Grep, Glob, Write
 2. Grep 调用点；Read 完整函数体（非仅 diff 片段）
 3. 自入口向下追踪至缺陷落点，再追踪至可观察后果
 4. 填写 `consequences`（code_level + user_impact）与 `trigger_conditions`
+   - `consequences` **不**对应独立报告节；由 issue-writer 写入 `trigger-conditions` 的 **`### 故障表现`**（素材以 `user_impact` 为主）。
 5. **条件严谨性（R17）**：后果与触发条件必须**条件化**——禁止把单一配置/分支写成「必然发生」；须从代码中找 guard、缓存、fallback、早退分支，填写**正向（何时触发）**与**反向（何时不触发）**。
 
 ## 条件严谨性 R17（trace 层）
