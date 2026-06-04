@@ -25,10 +25,35 @@ rg -q 'change-context-analyst' plugins/audit-code/skills/review/SKILL.md
 rg -q 'residual-defect-scout' plugins/audit-code/skills/review/SKILL.md
 rg -q 'mark_should_fix' plugins/audit-code/skills/review/SKILL.md
 rg -q 'mark_ignore' plugins/audit-code/skills/review/SKILL.md
-rg -q '### 结论' plugins/audit-code/agents/report-writer.md
+rg -q 'pr_narrative' plugins/audit-code/agents/change-context-analyst.md
+rg -q 'trigger.scenario' plugins/audit-code/agents/correctness-analyst.md
+rg -q 'meta_scope_not_a_defect' plugins/audit-code/agents/finding-merger.md
+rg -q 'out_of_scope_style' plugins/audit-code/agents/finding-merger.md
+rg -q 'dry_duplicate' plugins/audit-code/agents/architecture-analyst.md
+rg -q '## 1. 修改意图分析' plugins/audit-code/agents/report-writer.md
+rg -q '## 2. 发现的 PR 自身缺陷' plugins/audit-code/agents/report-writer.md
+rg -q '## 3. 发现的仓库中的残留缺陷' plugins/audit-code/agents/report-writer.md
+rg -q '## 4. 结论' plugins/audit-code/agents/report-writer.md
+rg -q '禁止' plugins/audit-code/agents/report-writer.md
+rg -q 'pipe 表' plugins/audit-code/agents/report-writer.md
 rg -q 'R16' plugins/audit-code/skills/review/SKILL.md
+rg -q 'REVIEW_RESULT' plugins/audit-code/agents/report-writer.md
+rg -q 'report-quality-design' plugins/audit-code/skills/review/SKILL.md
+
 if rg -q 'audit-challenger' plugins/audit-code/skills/review/SKILL.md 2>/dev/null; then
   echo "SKILL must not reference audit-challenger in v1" >&2
+  exit 1
+fi
+if rg -q '### 做得好的地方' plugins/audit-code/agents/report-writer.md 2>/dev/null; then
+  echo "report-writer must not include ### 做得好的地方 section" >&2
+  exit 1
+fi
+if rg -q '至少 1 条' plugins/audit-code/agents/report-writer.md 2>/dev/null; then
+  echo "report-writer must not require 做得好的地方 entries" >&2
+  exit 1
+fi
+if rg -q '### 摘要' plugins/audit-code/agents/report-writer.md 2>/dev/null; then
+  echo "report-writer must use 四节结构 not ### 摘要" >&2
   exit 1
 fi
 

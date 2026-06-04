@@ -21,7 +21,17 @@ tools: Read, Grep, Glob, Write
 - 可 Read/Grep `review-files` **之外**的 related 文件；Read ≤60, Grep ≤40
 - `issue_origin`：波及多为 `pr_introduced`；若仅描述未改文件旧 bug → `residual_existing`（与 residual 去重）
 - `reachability` 必填；P0/P1 须 `reachable_in_prod: true`
+- **finding schema 同 correctness-analyst**
 - Write 仅 `findings/impact.json`
+
+## 禁止作为 finding
+
+**不得**产出仅描述下列内容、且无具体 `failure_mode` 的项（merger → `meta_scope_not_a_defect`）：
+
+- 「本 PR 影响 Standard Gateway + GAMMA / N 种 Route 类型 / 两个 controller」
+- 「核心功能范围」「改动面大」等 meta-scope 描述
+
+impact finding 必须指向具体 call site / 兄弟路径上的**可验证坏结果**，可填 `impact.related_sites[]`。
 
 ## 可选字段
 
@@ -34,7 +44,7 @@ tools: Read, Grep, Glob, Write
 
 ## finding
 
-`dimension`: `impact`；`id` 前缀 `I-`；其余同 correctness-analyst。
+`dimension`: `impact`；`id` 前缀 `I-`；`finding_category`: `impact`。
 
 ## 返回主线程（≤6 行）
 

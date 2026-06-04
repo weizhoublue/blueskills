@@ -23,17 +23,29 @@ tools: Read, Write
 
 ## 可达性 Gate
 
-| 条件 | 动作 |
-|------|------|
-| 缺 `issue_origin` 或 `reachability` | `rejected`, `gate_failed` |
-| `reachable_in_prod: false` 且 severity P0/P1 | 降至 P2 或 `rejected`, `unreachable_in_prod` |
+- 缺 `issue_origin` 或 `reachability` → `rejected`, `reject_reason: gate_failed`
+- `reachable_in_prod: false` 且 severity P0/P1 → 降至 P2 或 `rejected`, `reject_reason: unreachable_in_prod`
 
 ## ECC Pre-Report Gate
 
-1. 精确 `path:line`
+1. 精确 `location.file` + `location.line`（或 legacy `location` 等价 path:line）
 2. `trigger.failure_mode` 具体
-3. `context_read` 或充分 `evidence[]`
-4. P0/P1：说明现有 guard/框架挡不住
+3. `trigger.scenario` 三段均非空（`precondition`, `trigger`, `bad_outcome`）
+4. `context_read` 或充分 `evidence[]`
+5. P0/P1：说明现有 guard/框架挡不住
+
+## 扩展 Gate
+
+- 标题/描述为改动面、资源类型数量、controller 清单枚举，且无具体 `failure_mode` → `rejected`, `reject_reason: meta_scope_not_a_defect`
+- 启发式：标题含「核心功能范围」「影响三种」且 `trigger.scenario` 空或 `failure_mode` 空 → `meta_scope_not_a_defect`
+- `finding_category` 或标题匹配：函数过长、缺少日志、缺少单元测试、缺少文档注释 → `rejected`, `reject_reason: out_of_scope_style`
+- 缺 `location.file` 或 `location.line` → `gate_failed`
+- `failure_mode` 仅含「可能」「边界情况」等、无具体输入/输出 → `rejected`, `reject_reason: vague_no_scenario`
+- 缺 `trigger.scenario` 任一段为空 → `vague_no_scenario`
+
+## Severity 调整
+
+- `finding_category == dry_duplicate` 或标题含「重复代码」「DRY」→ **强制 `severity: P3`**（保留在 `merged.json`）
 
 ## 误报黑名单（节选）
 
@@ -56,7 +68,15 @@ tools: Read, Write
 `rejected.json`:
 
 ```json
-{ "version": 1, "items": [{ "reject_reason": "gate_failed|unreachable_in_prod|false_positive|duplicate", ... }] }
+{
+  "version": 1,
+  "items": [
+    {
+      "reject_reason": "gate_failed|unreachable_in_prod|false_positive|duplicate|meta_scope_not_a_defect|out_of_scope_style|vague_no_scenario",
+      "...": "原 finding 字段"
+    }
+  ]
+}
 ```
 
 ## 返回主线程（≤6 行）

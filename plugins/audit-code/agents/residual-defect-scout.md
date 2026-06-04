@@ -30,6 +30,7 @@ tools: Read, Grep, Glob, Write
 3. 每条 finding：
    - `issue_origin`: **固定** `residual_existing`
    - `dimension`: `residual`
+   - **finding schema 同 correctness-analyst**（`location.symbol`、`trigger.scenario` 必填）
    - `residual.pr_fix_pattern_ref`, `residual.unfixed_evidence_refs[]`, `residual.fix_pattern_summary`
    - `reachability` 必填；`reachable_in_prod: false` 不得 P0/P1
 4. 初判 severity：与 PR 内同 pattern、同后果的遗漏 **不低于** PR 内同级。
@@ -47,16 +48,37 @@ tools: Read, Grep, Glob, Write
   "id": "RES-001",
   "dimension": "residual",
   "issue_origin": "residual_existing",
+  "finding_category": "residual",
   "severity": "P1",
   "title": "同类路径未应用与 PR 相同的 eligibility 检查",
-  "location": { "file": "pkg/bar/handler.go", "line": 88 },
-  "trigger": { "description": "…", "failure_mode": "…" },
-  "reachability": { "prod_entry_refs": ["…"], "trace_summary": "…", "reachable_in_prod": true, "blocked_by": null },
+  "location": {
+    "file": "pkg/bar/handler.go",
+    "line": 88,
+    "symbol": "handleRequest"
+  },
+  "related_symbols": [],
+  "trigger": {
+    "description": "…",
+    "failure_mode": "生产上 …",
+    "scenario": {
+      "precondition": "…",
+      "trigger": "…",
+      "bad_outcome": "…"
+    }
+  },
+  "reachability": {
+    "prod_entry_refs": ["cmd/app/main.go:28"],
+    "trace_summary": "main → … → handler.go:88",
+    "reachable_in_prod": true,
+    "blocked_by": null
+  },
   "residual": {
     "pr_fix_pattern_ref": "pkg/foo/handler.go:100",
     "unfixed_evidence_refs": ["pkg/bar/handler.go:88"],
     "fix_pattern_summary": "两阶段 yield 前缺少 eligibility"
   },
+  "evidence": ["pkg/bar/handler.go:85-92"],
+  "suggestion": "…",
   "confidence": "high",
   "context_read": true
 }

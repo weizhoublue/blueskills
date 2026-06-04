@@ -25,8 +25,11 @@ tools: Read, Grep, Glob, Write
 4. **生产入口**：`prod_entry_refs[]`（如 `cmd/*/main.go`, `ServeHTTP`, controller `Reconcile`）；供各 analyst 做 **reachability 向下追溯**。
 5. **change_kind**：`bugfix|feature|refactor|chore|docs|unknown`。
 6. PR 时提取 `author_positions[]`（waive/defer，若有）。
+7. **PR 叙事**：填写 `pr_narrative`（修改前问题 / 修改后达成 / 方案原理），供 report-writer §1 使用。
 
 信息不足填 `open_questions[]`（≤3）；**禁止编造**。
+
+**改动面、子系统范围、涉及资源类型**只写入 `pr_narrative` 或 `feature_positioning`，**不得**由下游 analyst 作为 finding 上报。
 
 ## 输出 schema
 
@@ -36,6 +39,11 @@ tools: Read, Grep, Glob, Write
   "stated_intent": "一句话",
   "user_stated_goal": "用户提示摘要",
   "change_kind": "bugfix",
+  "pr_narrative": {
+    "before_problem": "修改前存在的问题（1–4 句，可 cite path:line）",
+    "after_fix": "本 PR 实现的行为（1–4 句）",
+    "design_approach": "实现思路/原理（1–4 句）"
+  },
   "modules": [
     {
       "id": "M1",

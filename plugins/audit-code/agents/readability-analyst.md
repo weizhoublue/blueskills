@@ -15,10 +15,21 @@ tools: Read, Grep, Glob, Write
 - 每条 finding：`issue_origin`, `reachability`（可读性问题若不影响生产行为，`reachable_in_prod` 可为 false，则 severity 通常 ≤P2）
 - `id` 前缀 `R-`；Read ≤40, Grep ≤30
 - 不报告 linter 已覆盖的纯格式问题
+- **finding schema 同 correctness-analyst**（含 `location.symbol`、`trigger.scenario` 三段）
+
+## 禁止作为 finding
+
+以下**不得**写入 `findings/readability.json`（merger 亦会 `out_of_scope_style` 拒收）：
+
+- 函数过长 / 超过行数上限
+- 缺少日志
+- 缺少单元测试
+- 缺少文档注释
+- 纯格式 / linter 已覆盖项
 
 ## finding
 
-`dimension`: `readability`；schema 同 correctness-analyst（改 id 前缀与 dimension）。
+`dimension`: `readability`；schema 同 correctness-analyst（改 `id` 前缀与 `finding_category`）。
 
 ## 返回主线程（≤6 行）
 
