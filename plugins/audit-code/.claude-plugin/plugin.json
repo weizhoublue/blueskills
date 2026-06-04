@@ -1,7 +1,7 @@
 {
   "name": "audit-code",
   "displayName": "Audit Code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "意图驱动的通用 Code Review（PR / 本地 diff / 路径）；七维并行 + merger gate；终稿 stdout",
   "keywords": ["code-review", "pr-review", "security"],
   "license": "MIT"

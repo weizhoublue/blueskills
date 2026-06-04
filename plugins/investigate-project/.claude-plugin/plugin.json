@@ -1,7 +1,7 @@
 {
   "name": "investigate-project",
   "displayName": "Investigate Project",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "分析开源项目代码，梳理面向用户的业务功能并产出综合分析报告（report-features Skill + 六个 sub-agent）",
   "keywords": ["code-analysis", "project-investigation", "documentation"],
   "license": "MIT"
