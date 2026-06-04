@@ -1,5 +1,5 @@
 ---
-description: 意图驱动的 Code Review。默认问题驱动（主编排出题 + probe）；REVIEW_LEGACY_DIMENSIONS=1 恢复六维。只读；终稿 stdout。
+description: 意图驱动的 Code Review（主编排出题 + probe 验证 + 汇编报告）。只读；终稿 stdout。
 ---
 
 # review
@@ -22,7 +22,6 @@ description: 意图驱动的 Code Review。默认问题驱动（主编排出题 
 | 变量 | 效果 |
 |------|------|
 | `REVIEW_DEPTH=full` | investigation-plan 含 `should` 题；triage 启用 architecture |
-| `REVIEW_LEGACY_DIMENSIONS=1` | 走文末 **§Legacy 六维路径**（慢） |
 | `REVIEW_KEEP_TMP=1` | 保留 `REVIEW_TMP` |
 | `AUDIT_CODE_SCRIPTS` | 指向含 `audit-code-hunk-index.sh` 的目录（默认见下） |
 
@@ -60,7 +59,7 @@ mkdir -p "$REVIEW_TMP/findings/probes"
 
 sub-agent 返回主线程：**≤6 行**，禁止粘贴 JSON 全文。
 
-## 全局红线（probe / legacy analyst）
+## 全局红线（probe）
 
 1. 只读；不跑测试。
 2. 每条 finding **必填** `issue_origin`、`reachability`、`location`（file+line+symbol）、`trigger.scenario`；P0–P2 必填 `trigger.defect_mechanism`。
@@ -72,9 +71,7 @@ sub-agent 返回主线程：**≤6 行**，禁止粘贴 JSON 全文。
 
 ---
 
-## 工作流（默认：问题驱动）
-
-若 `REVIEW_LEGACY_DIMENSIONS=1` → 跳至文末 **§Legacy**。
+## 工作流
 
 ### 阶段 0～2b
 
@@ -147,7 +144,7 @@ probe 全局红线 + `必读 review-brief.md + 本簇 questions`。
 
 ---
 
-## Sub-agent 清单（默认 v2）
+## Sub-agent 清单
 
 | name | 输出 |
 |------|------|
@@ -156,41 +153,6 @@ probe 全局红线 + `必读 review-brief.md + 本簇 questions`。
 | probe-worker | findings/probes/<cluster-id>.json |
 | report-assembler | Markdown（返回主线程） |
 
----
-
-## §Legacy（`REVIEW_LEGACY_DIMENSIONS=1`）
-
-六维盲扫 + merger + report-writer（慢路径，兼容旧行为）。
-
-### 阶段 3b（legacy）
-
-`change-context-analyst` 可写完整 `pr_narrative`（不需 narrative-writer）。
-
-### 阶段 4：六维并行
-
-```text
-必读：change-context.json
-扫描：review-files.json
-```
-
-| agent | 输出 | 条件 |
-|-------|------|------|
-| correctness-analyst | findings/correctness.json | 总是 |
-| architecture-analyst | findings/architecture.json | 总是 |
-| security-analyst | findings/security.json | 总是 |
-| performance-analyst | findings/performance.json | 总是 |
-| impact-analyst | findings/impact.json | 总是 |
-| residual-defect-scout | findings/residual.json | bugfix；否则 skipped |
-
-### 阶段 5～6
-
-`finding-merger` → `report-writer` → stdout。
-
-| agent | 输出 |
-|------|------|
-| finding-merger | merged.json, rejected.json |
-| report-writer | Markdown |
-
-## v2 预留
+## 预留
 
 `REVIEW_ENABLE_CHALLENGE=1` 可对 P0/P1 启用单轮 `review-challenger`。

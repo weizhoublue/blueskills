@@ -2,7 +2,7 @@
   "name": "audit-code",
   "displayName": "Audit Code",
   "version": "0.2.2",
-  "description": "意图驱动的 Code Review；默认主编排出题 + probe 验证；REVIEW_LEGACY_DIMENSIONS=1 恢复六维；终稿 stdout",
+  "description": "意图驱动的 Code Review（主编排出题 + probe 验证 + 汇编报告）；终稿 stdout",
   "keywords": ["code-review", "pr-review", "security"],
   "license": "MIT"
 }

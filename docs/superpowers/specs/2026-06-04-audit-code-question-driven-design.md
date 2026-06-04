@@ -28,7 +28,7 @@
 2. **共享理解只构建一次**：`review-brief.md` + `change-context` core；探针仅读 `question.scope`。
 3. 控制 sub-agent 调用次数：典型 **3–4 次 Task**（probe 簇 ×2–3 + narrative 可选 + assembler），替代 6+2。
 4. 保留终稿四节、finding schema、`defect_mechanism`、merger gate 语义（可内嵌 assembler）。
-5. 提供 **`REVIEW_DEPTH=full`** 与 **`REVIEW_LEGACY_DIMENSIONS=1`** 兜底。
+5. 提供 **`REVIEW_DEPTH=full`** 加深审查档位。
 
 ### 2.2 非目标
 
@@ -175,7 +175,7 @@ $REVIEW_TMP/
 | 非 bugfix | `enable_residual: false` |
 | 无 auth/http/input 触点 | `enable_security: false` |
 
-环境变量覆盖：`REVIEW_DEPTH=full` 强制启用 should 题与 architecture；`REVIEW_LEGACY_DIMENSIONS=1` 走旧六维 SKILL 分支（维护期）。
+环境变量覆盖：`REVIEW_DEPTH=full` 强制启用 should 题与 architecture。
 
 ## 7. `investigation-plan.json` schema
 
@@ -281,9 +281,7 @@ $REVIEW_TMP/
 |------|------|
 | 默认 | question-driven 路径 |
 | `REVIEW_DEPTH=full` | `should` 题 + architecture + 更高 Grep 上限 |
-| `REVIEW_LEGACY_DIMENSIONS=1` | 保留现六维 + merger + report-writer（文档标注 deprecated） |
-
-现有 agent 文件：**不立即删除**；probe-worker 可复用 `correctness-analyst.md` 的 schema 段，新建 `probe-logic-ripple.md` 等或通用 `probe-worker.md` + `worker` 参数。
+插件仅保留 4 个 agent：`change-context-analyst`、`narrative-writer`、`probe-worker`、`report-assembler`（finding schema 与 merger gate 内嵌于后两者）。
 
 ## 11. 验收标准
 
@@ -301,7 +299,7 @@ $REVIEW_TMP/
 | 出题过宽 | 每题必填 `scope`；assembler 拒 scope 外 cite |
 | Task 过多 | 按簇合并，目标 3–4 Task |
 | 大 PR 主编排 context 爆 | 仅读 hunk-index；brief ≤2KB |
-| 召回下降 | `REVIEW_DEPTH=full`；遗留六维开关 |
+| 召回下降 | `REVIEW_DEPTH=full`；主编排标准题包回退 |
 
 ## 13. 实现计划（下一步）
 

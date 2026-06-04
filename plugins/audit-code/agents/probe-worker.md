@@ -28,15 +28,58 @@ tools: Read, Grep, Glob, Write
 - **Read ≤ 12**，**Grep ≤ 15**
 - `worker == logic-ripple` 且含 `kind: residual` 题时：**Grep ≤ 25**，路径限 `question.sibling_prefix` 或 `scope` 中目录前缀
 - 每题 `verdict`：`confirmed` | `refuted` | `inconclusive`
-- `confirmed` → 附 **1 条** finding（schema 同 `correctness-analyst`）
+- `confirmed` → 附 **1 条** finding（见下方 schema）
 - **Write 仅** `$REVIEW_TMP/findings/probes/<cluster_id>.json`
+- >80% 置信才 `confirmed`；禁止 meta-scope、函数过长/缺日志/缺单测/缺注释类项
 
 ## finding 要求（confirmed 时）
 
-与 `correctness-analyst` 相同：`issue_origin`, `reachability`, `location`（file+line+symbol）, `trigger.scenario` 三段, P0–P2 的 `trigger.defect_mechanism`, `finding_category`。
+- `issue_origin`：`pr_introduced`（默认）| `residual_existing`（`kind: residual` 固定）
+- `reachability` 必填；P0/P1 仅当 `reachable_in_prod: true`
+- `location.file` + `location.line` + `location.symbol` 必填
+- `trigger.scenario` 三段必填；`failure_mode` 须具体
+- P0–P2 必填 `trigger.defect_mechanism`（符号 + 错误语义 + 因果）
+- 比较语义/状态类 → `finding_category: correctness`（勿标 performance）
+- `kind: residual` → `dimension`: `residual`
 
-- `kind: residual` → `issue_origin` 固定 `residual_existing`，`dimension`: `residual`
-- 其它题 → 默认 `issue_origin: pr_introduced`
+## finding schema
+
+```json
+{
+  "id": "Q-001-F",
+  "dimension": "correctness",
+  "issue_origin": "pr_introduced",
+  "finding_category": "correctness",
+  "severity": "P2",
+  "title": "简短标题",
+  "location": {
+    "file": "pkg/foo.go",
+    "line": 42,
+    "symbol": "mergeStatusConditions"
+  },
+  "related_symbols": [],
+  "trigger": {
+    "defect_mechanism": "错在哪 + 为何该写法破坏不变量 + 如何导致 bad_outcome",
+    "description": "…",
+    "failure_mode": "生产后果 + 具体字段/输入",
+    "scenario": {
+      "precondition": "…",
+      "trigger": "…",
+      "bad_outcome": "…"
+    }
+  },
+  "reachability": {
+    "prod_entry_refs": ["cmd/app/main.go:28"],
+    "trace_summary": "main → … → foo:42",
+    "reachable_in_prod": true,
+    "blocked_by": null
+  },
+  "evidence": ["pkg/foo.go:40-45"],
+  "suggestion": "…",
+  "confidence": "high",
+  "context_read": true
+}
+```
 
 ## 输出 schema
 
@@ -46,21 +89,14 @@ tools: Read, Grep, Glob, Write
   "cluster_id": "logic-1",
   "worker": "logic-ripple",
   "answers": [
-    {
-      "question_id": "Q-001",
-      "verdict": "confirmed",
-      "finding": { }
-    },
-    {
-      "question_id": "Q-002",
-      "verdict": "refuted"
-    }
+    { "question_id": "Q-001", "verdict": "confirmed", "finding": {} },
+    { "question_id": "Q-002", "verdict": "refuted" }
   ],
   "items": []
 }
 ```
 
-`items[]` = 所有 `confirmed` 的 finding 扁平列表（供 report-assembler）。
+`items[]` = 所有 `confirmed` 的 finding 扁平列表。
 
 ## 返回主线程（≤6 行）
 

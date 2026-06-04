@@ -60,7 +60,7 @@
 
 **干什么**：意图驱动的 **Code Review**（skill 名 `review`）——审 PR、本地 staged/分支 diff 或指定路径；只读、不跑测试；终稿为一份四节 Markdown（stdout）。
 
-与旧版「六个专科各扫一遍仓库」不同，**默认走问题驱动**：主编排先根据 diff 列出要查的具体问题，再派探针只读相关代码段验证，减少重复读盘、缩短耗时。
+采用**问题驱动**：主编排根据 diff 列出要查的具体问题，探针只读相关代码段验证，减少重复读盘、缩短耗时。
 
 **怎么用**：
 
@@ -103,15 +103,10 @@
 | 变量 | 效果 |
 |------|------|
 | `REVIEW_DEPTH=full` | 加深：更多出题、可启用架构审查簇 |
-| `REVIEW_LEGACY_DIMENSIONS=1` | **旧路径**：六维并行 + merger + report-writer（更慢，兼容旧行为） |
 | `REVIEW_KEEP_TMP=1` | 保留临时目录便于排查 |
 | `AUDIT_CODE_SCRIPTS` | 指向 `audit-code-hunk-index.sh` / `audit-code-triage.sh` 所在目录（在被审仓库找不到插件脚本时使用） |
 
 脚本默认查找顺序：`AUDIT_CODE_SCRIPTS` → 当前仓库 `plugins/audit-code/scripts` → `scripts/`。
-
-**流程（Legacy — `REVIEW_LEGACY_DIMENSIONS=1`）**：
-
-1. `change-context-analyst`（含完整 PR 叙事）→ 六维并行（正确性 / 架构 / 安全 / 性能 / 影响面 / bugfix 时残留扫描）→ `finding-merger` → `report-writer`。终稿格式与上表相同。
 
 ---
 

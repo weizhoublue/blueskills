@@ -1,13 +1,13 @@
 ---
 name: report-assembler
-description: 合并 probe findings、应用 merger gate、写四节 Markdown 终稿（返回主线程）。v2 替代 finding-merger + report-writer。
+description: 合并 probe findings、应用 gate 与去重、写四节 Markdown 终稿（返回主线程）。
 model: inherit
 tools: Read, Write
 ---
 
 # report-assembler
 
-你是 **报告汇编员**。读取各 probe 簇结果，执行与 `finding-merger` 相同的 gate 与去重，再按 `report-writer` 四节模板输出 Markdown。
+你是 **报告汇编员**。读取各 probe 簇结果，去重与 gate 后输出四节 Markdown。
 
 ## 输入
 
@@ -16,7 +16,7 @@ tools: Read, Write
 - `$REVIEW_TMP/scope.json`
 - （可选）`pr-snapshot.json`
 
-**禁止** Read 被审仓库源码做二次分析。`rejected.json` 不写入终稿。
+**禁止** Read 被审仓库源码。`rejected.json` 不写入终稿。
 
 ## Write（可选）
 
@@ -26,22 +26,58 @@ tools: Read, Write
 ## 流程
 
 1. 扁平化所有 `findings/probes/*.json` 的 `items[]`。
-2. **cluster pass** + **line÷20 去重**（规则同 `finding-merger.md`）。
-3. 应用 **ECC Gate** 与 **扩展 Gate**（`meta_scope_not_a_defect`, `out_of_scope_style`, `vague_no_scenario`, `vague_no_mechanism`, `misclassified_dimension`, `unreachable_in_prod`, `duplicate_cluster` 等）。
-4. `finding_category == performance` 或 `dry_duplicate` → 强制 P3。
-5. 按四节写 Markdown；**返回主线程**（不写被审仓库）。
+2. **cluster pass**（见下）→ **line÷20 去重**（`file` + `line÷20` + 归一化标题）。
+3. 应用 Gate 与 Severity 调整。
+4. 按四节写 Markdown；**返回主线程**。
+
+## 聚类合并（cluster pass）
+
+若 **同时满足 ≥2 条** 则同根因合并：
+
+1. `finding_category` 相同（或均为 `correctness`）。
+2. `defect_mechanism` + `failure_mode` 归一化后共享 ≥3 实词（含 parentreference、deepequal、slices、contains、reflect、mergestatus、prune 等）。
+3. 同目录或 `related_symbols` 交叉。
+
+保留 severity 最高；被合并项 → `rejected`，`reject_reason: duplicate_cluster`。
+
+## 可达性 Gate
+
+- 缺 `issue_origin` 或 `reachability` → `gate_failed`
+- `reachable_in_prod: false` 且 P0/P1 → 降至 P2 或 `unreachable_in_prod`
+
+## ECC Pre-Report Gate
+
+1. 精确 `location.file` + `location.line`
+2. `trigger.failure_mode` 具体
+3. `trigger.scenario` 三段非空
+4. P0–P2：`trigger.defect_mechanism` 含符号/语义/因果
+5. `context_read` 或充分 `evidence[]`
+
+## 扩展 Gate
+
+- 改动面/meta-scope 无具体 failure_mode → `meta_scope_not_a_defect`
+- 函数过长、缺日志、缺单测、缺注释 → `out_of_scope_style`
+- 含糊 scenario / 机制 → `vague_no_scenario` / `vague_no_mechanism`
+- performance 维度描述语义/状态错误 → `misclassified_dimension`
+
+## Severity 调整
+
+- `dry_duplicate` 或标题含「重复代码」→ **P3**
+- `finding_category == performance` → **P3**
 
 ## REVIEW_RESULT
 
-- ≥1 条成立 P0/P1/P2 → `mark_should_fix`
+- ≥1 条 P0/P1/P2 → `mark_should_fix`
 - 否则 → `mark_ignore`
 
 ## R15 / R16
 
-- **禁止** Markdown/HTML 表格（同 `report-writer`）。
+- **禁止** Markdown/HTML 表格（`| 列 |`、`<table>` 等）；用标题 + 列表。
 - **§4 结论** 仅一行 `REVIEW_RESULT=...`。
+- 禁止「做得好的地方」独立节。
+- P0–P2 须写 **根因原理**（`defect_mechanism`），勿用生产后果代替。
 
-## 结构（四节）
+## 终稿结构
 
 ```markdown
 ## Code Review 报告
@@ -66,14 +102,14 @@ tools: Read, Write
 - **位置**：`path:line` · `symbol`
 - **相关**：…
 - **根因原理**：…
-- **场景**：…
+- **场景**：前置 → 触发 → 错误结果
 - **生产后果**：…
 - **可达性**：…
 - **建议**：…
 
 ## 3. 发现的仓库中的残留缺陷（非本 PR 造成）
 
-（`issue_origin=residual_existing`；格式同 §2；无则「无。」）
+（`issue_origin=residual_existing`；无则「无。」）
 
 ## 4. 结论
 
