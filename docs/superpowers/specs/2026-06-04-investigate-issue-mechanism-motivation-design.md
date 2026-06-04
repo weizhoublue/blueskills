@@ -3,6 +3,7 @@
 - 日期：2026-06-04
 - 状态：已审阅（brainstorming 确认）
 - 父文档：[`2026-06-03-investigate-issue-plugin-design.md`](2026-06-03-investigate-issue-plugin-design.md)
+- 兄弟 spec：[`2026-06-05-investigate-project-mechanism-motivation-design.md`](2026-06-05-investigate-project-mechanism-motivation-design.md)（同 W1–W3 语义，`key_mechanisms[]` 落点）
 - 背景：报告常出现「用于保持长连接等待新请求」类表述——说明了手段，未交代业务上为何需要长连接、不用会怎样，因果链缺「动机」层。
 
 ## 1. 问题陈述
