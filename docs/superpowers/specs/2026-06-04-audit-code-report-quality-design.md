@@ -1,7 +1,7 @@
 # 设计文档：audit-code 报告质量与四节终稿结构
 
 - 日期：2026-06-04
-- 状态：待用户审阅
+- 状态：已审阅（2026-06-04）
 - 范围：`plugins/audit-code`（skill `review`、agents、verify 脚本）
 - 前置：头脑风暴确认（Gateway API PR #46296 试跑反馈）
 
