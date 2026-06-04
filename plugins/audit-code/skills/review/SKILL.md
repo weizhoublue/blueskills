@@ -62,10 +62,12 @@ sub-agent 返回主线程：**≤6 行**，禁止粘贴 JSON 全文。
 ## 全局红线（probe）
 
 1. 只读；不跑测试。
-2. 每条 finding **必填** `issue_origin`、`reachability`、`location`（file+line+symbol）、`trigger.scenario`；P0–P2 必填 `trigger.defect_mechanism`。
-3. P0/P1 须 `reachability.reachable_in_prod: true`。
-4. >80% 置信才报；禁止 meta-scope、噪音类 finding。
-5. **终稿四节 Markdown，禁止表格（R15）**；§4 仅一行 `REVIEW_RESULT`（R16）。
+2. **每题必须先**从 `entry_ref` / `prod_entry_refs` **向下追溯**到 `scope` 内符号，再判定；禁止只看 scope 几行就 `confirmed`。
+3. 每条 finding **必填** `issue_origin`、`reachability`（`trace_summary` 须与追溯一致）、`location`、`trigger.scenario`；P0–P2 必填 `trigger.defect_mechanism`。
+4. P0/P1 须 `reachable_in_prod: true` 且链上无挡板；否则 `refuted` 或 `inconclusive`。
+5. >80% 置信才 `confirmed`；链未走通 → `inconclusive`。
+6. 禁止 meta-scope、噪音类 finding。
+7. **终稿四节 Markdown，禁止表格（R15）**；§4 仅一行 `REVIEW_RESULT`（R16）。
 
 **REVIEW_RESULT：** ≥1 条 P0–P2 → `mark_should_fix`；否则 `mark_ignore`。
 
@@ -117,6 +119,7 @@ bash "$AUDIT_CODE_SCRIPTS/audit-code-hunk-index.sh" "$REVIEW_TMP"
 
 2. **`investigation-plan.json`**  
    - 注入模板种子（design spec §7.2）：bugfix→residual；auth/http→security；多包→architecture  
+   - **每题必填** `entry_ref`（生产入口 → … → scope 符号，1 句）、`scope`（path 或 path:line-range）、`hypothesis`  
    - `must` 题 ≥3；按 `kind` 聚簇为 `clusters[]`（`logic-ripple` / `nonfunctional` / `architecture`）  
    - `REVIEW_DEPTH=full` 时含 `should` 题  
    - 若 `review-profile.enable_architecture=false` → 无 architecture 簇  
@@ -132,7 +135,7 @@ bash "$AUDIT_CODE_SCRIPTS/audit-code-hunk-index.sh" "$REVIEW_TMP"
 
 并行委派 **narrative-writer**（补全 `pr_narrative`）。
 
-probe 全局红线 + `必读 review-brief.md + 本簇 questions`。
+probe 全局红线 + `必读 review-brief、change-context、本簇 questions`；**每题先向下追溯再 verdict**。
 
 摘要：「阶段 4′：probe ×M + narrative 完成」
 

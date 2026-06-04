@@ -52,6 +52,8 @@ tools: Read, Write
 3. `trigger.scenario` 三段非空
 4. P0–P2：`trigger.defect_mechanism` 含符号/语义/因果
 5. `context_read` 或充分 `evidence[]`
+6. `reachability.trace_summary` 含 ≥2 跳且与 `prod_entry_refs` 衔接；仅 scope 内一句、无入口 → `gate_failed`（`reject_reason: missing_call_chain`）
+7. P0/P1：`reachable_in_prod: true` 时 `evidence[]` 须含链上 ≥1 个非 scope 文件引用
 
 ## 扩展 Gate
 

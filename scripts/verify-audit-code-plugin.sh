@@ -59,6 +59,11 @@ rg -q 'review-brief.md' plugins/audit-code/agents/probe-worker.md
 rg -q 'findings/probes' plugins/audit-code/agents/probe-worker.md
 rg -q 'defect_mechanism' plugins/audit-code/agents/probe-worker.md
 rg -q 'trigger.scenario' plugins/audit-code/agents/probe-worker.md
+rg -q 'entry_ref' plugins/audit-code/agents/probe-worker.md
+rg -q '向下追溯' plugins/audit-code/agents/probe-worker.md
+rg -q 'call_chain_trace' plugins/audit-code/agents/probe-worker.md
+rg -q 'entry_ref' plugins/audit-code/skills/review/SKILL.md
+rg -q 'missing_call_chain' plugins/audit-code/agents/report-assembler.md
 rg -q 'user_facing' plugins/audit-code/agents/narrative-writer.md
 rg -q 'meta_scope_not_a_defect' plugins/audit-code/agents/report-assembler.md
 rg -q 'duplicate_cluster' plugins/audit-code/agents/report-assembler.md
