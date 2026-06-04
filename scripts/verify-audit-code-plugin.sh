@@ -62,6 +62,10 @@ rg -q 'trigger.scenario' plugins/audit-code/agents/probe-worker.md
 rg -q 'entry_ref' plugins/audit-code/agents/probe-worker.md
 rg -q '向下追溯' plugins/audit-code/agents/probe-worker.md
 rg -q 'call_chain_trace' plugins/audit-code/agents/probe-worker.md
+rg -q 'peer_pattern_compare' plugins/audit-code/agents/probe-worker.md
+rg -q 'peer_compare_refs' plugins/audit-code/agents/probe-worker.md
+rg -q 'peer_compare_refs' plugins/audit-code/skills/review/SKILL.md
+rg -q 'missing_peer_compare' plugins/audit-code/agents/report-assembler.md
 rg -q 'entry_ref' plugins/audit-code/skills/review/SKILL.md
 rg -q 'missing_call_chain' plugins/audit-code/agents/report-assembler.md
 rg -q 'user_facing' plugins/audit-code/agents/narrative-writer.md
