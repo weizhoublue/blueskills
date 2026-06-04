@@ -38,6 +38,10 @@ grep -q 'R17\|conditional_rigor' "$ROOT/agents/issue-challenger.md" || err "chal
 grep -q 'R19\|REVIEW_RESULT' "$SKILL" || err "SKILL missing R19 verdict"
 grep -q '仅一行\|禁止.*其他' "$ROOT/agents/issue-writer.md" || err "writer must require verdict one line only"
 grep -q 'R19\|verdict' "$ROOT/agents/issue-challenger.md" || err "challenger missing R19 verdict"
+grep -q 'mechanism_motivation\|motivation_audit\|R18' "$ROOT/agents/issue-challenger.md" || err "challenger missing R18 mechanism_motivation"
+grep -q '关键机制为何如此设计\|R18' "$ROOT/agents/issue-writer.md" || err "writer missing R18 subsection"
+grep -q 'design_rationale' "$ROOT/agents/business-context-analyst.md" || err "business-context missing design_rationale"
+grep -q 'R18\|design_rationale' "$SKILL" || err "SKILL missing R18 or design_rationale merge"
 
 # no investigate-project paths in plugin content
 if rg -q 'REPORT_ROOT|analysis-report' "$ROOT/agents" "$ROOT/skills" 2>/dev/null; then

@@ -69,7 +69,7 @@ tools: Read, Grep, Glob, Write
     "location": "path:line",
     "function": "",
     "action": "",
-    "business_meaning": "该步在业务/用户视角下的含义（必填，禁止仅写函数名）",
+    "business_meaning": "该步在业务/用户视角下的含义（必填，禁止仅写函数名）。若体现连接复用、keep-alive、idle timeout、路由策略，须写清业务目的（W2：为何需要该策略），禁止仅写「保持连接」",
     "causal_layer": "C0|C1|C2|C3|C4",
     "refs": ["path:line"]
   }],

@@ -37,6 +37,7 @@ tools: Read, Grep, Glob, Write
 3. 对比「缺陷路径」与「兄弟路径」的差异
 4. 填写 upstream/downstream/scenario
 5. 填写 `non_trigger_scenarios[]`：从业务/部署角度列出**已知或高概率**的不触发情形（可与 code-tracer 的 `when_does_not_trigger` 互补；无 code 证据标 `inference`）
+6. （软性）对问题因果链上的连接/超时/路由策略，尽量写 1 条 `design_rationale[]`（W1–W3 句子）；无 code 证据一律 `inference`
 
 ## 输出 business-context.json
 
@@ -77,9 +78,20 @@ tools: Read, Grep, Glob, Write
     "evidence_tier": "confirmed|inference",
     "refs": [],
     "uncertainty_note": ""
+  }],
+  "design_rationale": [{
+    "mechanism": "sidecar long-lived HTTP to prefill",
+    "w1_role": "",
+    "w2_why_not_alternative": "",
+    "w3_when_breaks": "",
+    "evidence_tier": "inference",
+    "refs": [],
+    "uncertainty_note": ""
   }]
 }
 ```
+
+**`design_rationale[]` 可选**；无则 `[]`。issue-challenger **不得**因本字段缺失而 gap 本 agent。
 
 ## 返回主线程（≤6 行）
 
