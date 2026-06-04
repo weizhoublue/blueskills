@@ -8,7 +8,7 @@ description: 意图驱动的 Code Review（PR URL、staged、相对分支、comm
 
 **禁止**修改被审仓库源码；**禁止**运行测试。
 
-设计 spec：`docs/superpowers/specs/2026-06-04-review-plugin-design.md`；报告质量：`docs/superpowers/specs/2026-06-04-audit-code-report-quality-design.md`
+设计 spec：`docs/superpowers/specs/2026-06-04-review-plugin-design.md`；报告质量：`docs/superpowers/specs/2026-06-04-audit-code-report-quality-design.md`；报告质量（机制/去重）：`docs/superpowers/specs/2026-06-04-audit-code-mechanism-dedup-design.md`
 
 ## 适用范围
 
@@ -41,7 +41,7 @@ sub-agent 返回主线程：**≤6 行**，禁止粘贴 JSON 全文。
 
 1. 只读；不跑测试。
 2. **必读** `$REVIEW_TMP/change-context.json`（阶段 4 起）。
-3. 每条 finding **必填** `issue_origin`、`reachability`、扩展 `location`（`file`+`line`+`symbol`）、`trigger.scenario` 三段。
+3. 每条 finding **必填** `issue_origin`、`reachability`、扩展 `location`（`file`+`line`+`symbol`）、`trigger.scenario` 三段；P0–P2 必填 `trigger.defect_mechanism`（终稿 **根因原理**）。
 4. P0/P1 须 `reachability.reachable_in_prod: true`；否则不得标 P0/P1。
 5. 扫描 `review-files.json`；impact/residual 可 Read/Grep 扩展文件。
 6. >80% 置信才报；禁止臆测；禁止 meta-scope、噪音类 finding（见 merger）。
@@ -54,7 +54,9 @@ sub-agent 返回主线程：**≤6 行**，禁止粘贴 JSON 全文。
 | P0 | 生产主路径崩溃/死锁/核心不可用 |
 | P1 | 核心功能错误、数据错丢、可利用且影响生产的安全问题 |
 | P2 | 边缘路径；有 workaround |
-| P3 | 日志/指标/文案/代码注释；不影响正确性 |
+| P3 | 日志/指标/文案/代码注释；不影响正确性；含 **dry_duplicate**、**纯 performance** |
+
+**Merger 要点：** `finding_category == performance` → 强制 P3；语义/状态类不得用 performance（→ `misclassified_dimension`）；cluster pass 合并同根因 → `duplicate_cluster`；缺机制 → `vague_no_mechanism`。
 
 **REVIEW_RESULT**（报告 **§4 结论仅一行**）：存在 ≥1 条成立 **P0–P2** → `mark_should_fix`；否则 `mark_ignore`。P3 可见但不驱动结论。
 
@@ -164,7 +166,7 @@ gh pr view "$PR_URL" --json number,title,body,labels,comments,reviews \
 ### 阶段 6：report-writer
 
 - 仅读 `merged.json`, `scope.json`, `change-context.json`（含 `pr_narrative`）
-- 四节终稿：§1 修改意图 → §2 PR 缺陷 → §3 残留缺陷 → §4 仅 `REVIEW_RESULT`
+- 四节终稿：§1 修改意图 → §2 PR 缺陷（含 **根因原理**）→ §3 残留缺陷 → §4 仅 `REVIEW_RESULT`
 - R15 禁止表格；R16 §4 仅一行
 - 将 Markdown **一次性 stdout**
 

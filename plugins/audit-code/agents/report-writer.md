@@ -70,6 +70,7 @@ tools: Read
 #### P1 — 标题
 - **位置**：`path:line` · `symbol`
 - **相关**：`path:line` · `symbol`（来自 `related_symbols[]`；可无）
+- **根因原理**：…（`trigger.defect_mechanism`）
 - **场景**：前置 → 触发 → 错误结果（来自 `trigger.scenario`）
 - **生产后果**：…（`failure_mode`）
 - **可达性**：…（`trace_summary`）
@@ -97,6 +98,8 @@ REVIEW_RESULT=mark_should_fix
 - **禁止**「做得好的地方」「验证说明」独立节
 - **§4** 内只能有一行 `REVIEW_RESULT=...`（R16）
 - P3 与 P0–P2 **同列表**，标题 `#### P3 — …`；不驱动 `REVIEW_RESULT`
+- P0–P2 无 `defect_mechanism` 的 finding 不应出现在 merged（merger 已拒收）；若出现则跳过该条，不编造根因。
+- **禁止**用「生产后果」代替「根因原理」；二者分工：机制 vs 后果。
 
 ## 返回
 

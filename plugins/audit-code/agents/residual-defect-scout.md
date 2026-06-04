@@ -30,7 +30,7 @@ tools: Read, Grep, Glob, Write
 3. 每条 finding：
    - `issue_origin`: **固定** `residual_existing`
    - `dimension`: `residual`
-   - **finding schema 同 correctness-analyst**（`location.symbol`、`trigger.scenario` 必填）
+   - **finding schema 同 correctness-analyst**（`location.symbol`、`trigger.scenario`、`trigger.defect_mechanism` 必填）
    - `residual.pr_fix_pattern_ref`, `residual.unfixed_evidence_refs[]`, `residual.fix_pattern_summary`
    - `reachability` 必填；`reachable_in_prod: false` 不得 P0/P1
 4. 初判 severity：与 PR 内同 pattern、同后果的遗漏 **不低于** PR 内同级。
@@ -58,6 +58,7 @@ tools: Read, Grep, Glob, Write
   },
   "related_symbols": [],
   "trigger": {
+    "defect_mechanism": "错在哪 + 为何该写法破坏不变量/语义 + 如何导致 bad_outcome",
     "description": "…",
     "failure_mode": "生产上 …",
     "scenario": {

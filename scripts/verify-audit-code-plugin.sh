@@ -39,6 +39,15 @@ rg -q 'pipe 表' plugins/audit-code/agents/report-writer.md
 rg -q 'R16' plugins/audit-code/skills/review/SKILL.md
 rg -q 'REVIEW_RESULT' plugins/audit-code/agents/report-writer.md
 rg -q 'report-quality-design' plugins/audit-code/skills/review/SKILL.md
+rg -q 'defect_mechanism' plugins/audit-code/agents/correctness-analyst.md
+rg -q 'defect_mechanism' plugins/audit-code/agents/finding-merger.md
+rg -q 'vague_no_mechanism' plugins/audit-code/agents/finding-merger.md
+rg -q 'duplicate_cluster' plugins/audit-code/agents/finding-merger.md
+rg -q 'misclassified_dimension' plugins/audit-code/agents/finding-merger.md
+rg -q '根因原理' plugins/audit-code/agents/report-writer.md
+rg -q 'finding_category == performance' plugins/audit-code/agents/finding-merger.md
+rg -q 'mechanism-dedup-design' plugins/audit-code/skills/review/SKILL.md
+rg -q '不得超过 P3' plugins/audit-code/agents/performance-analyst.md
 
 if rg -q 'audit-challenger' plugins/audit-code/skills/review/SKILL.md 2>/dev/null; then
   echo "SKILL must not reference audit-challenger in v1" >&2

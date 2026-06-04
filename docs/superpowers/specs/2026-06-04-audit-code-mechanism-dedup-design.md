@@ -1,7 +1,7 @@
 # 设计文档：audit-code 根因机制、性能分级与启发式去重
 
 - 日期：2026-06-04
-- 状态：待审阅
+- 状态：已审阅（2026-06-04）
 - 范围：`plugins/audit-code`（skill `review`、agents、verify 脚本）
 - 前置：
   - `docs/superpowers/specs/2026-06-04-audit-code-report-quality-design.md`（四节终稿、scenario、merger 基础 gate）

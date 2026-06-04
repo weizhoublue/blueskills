@@ -14,7 +14,8 @@ tools: Read, Grep, Glob, Write
 - **先 Read** `change-context.json`；对照 `feature_positioning` 与 `modules`
 - 检查：是否破坏模块边界、引入循环依赖、与项目既有模式不一致
 - 读项目 `CLAUDE.md` / 规则（若存在）
-- 每条 finding：`issue_origin`, `reachability`；**finding schema 同 correctness-analyst**
+- 每条 finding：`issue_origin`, `reachability`；**finding schema 同 correctness-analyst**（含 `trigger.defect_mechanism`）
+- P0–P2 必填 `trigger.defect_mechanism`（同 correctness-analyst §硬性要求 10）
 - `id` 前缀 `A-`；Write 仅 `findings/architecture.json`；Read ≤40, Grep ≤30
 - **禁止** meta-scope finding（仅改动面/资源类型数量）
 

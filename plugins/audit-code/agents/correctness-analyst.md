@@ -20,6 +20,8 @@ tools: Read, Grep, Glob, Write
 7. `trigger.scenario` 三段（`precondition` / `trigger` / `bad_outcome`）必填；`failure_mode` 须含可核对输入与生产后果。
 8. **禁止**上报：函数过长、缺日志、缺单测、缺文档注释；禁止 meta-scope（仅改动面/资源类型数量）finding。
 9. **禁止**将「触及核心模块」标为 P0；P0 仅用于生产主路径不可用类缺陷。
+10. P0–P2 必填 `trigger.defect_mechanism`（错在哪 / 为何这么写会错 / 如何连到 bad_outcome）；禁止只写「可能影响」「语义不一致」而无字段级机制。
+11. 比较语义、协调状态重复/误删类问题用 `finding_category: correctness`，即使 PR 动机含性能优化。
 
 ## finding schema
 
@@ -40,6 +42,7 @@ tools: Read, Grep, Glob, Write
     { "file": "pkg/foo.go", "line": 200, "symbol": "setHTTPRouteStatuses" }
   ],
   "trigger": {
+    "defect_mechanism": "错在哪 + 为何该写法破坏不变量/语义 + 如何导致 bad_outcome（可含 1–3 行关键逻辑）",
     "description": "…",
     "failure_mode": "生产后果 + 具体字段/输入取值",
     "scenario": {

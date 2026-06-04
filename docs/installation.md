@@ -100,7 +100,7 @@
 /audit-code:review 相对 upstream/main 的 diff，忽略 vendor
 ```
 
-在被审仓库根目录执行；PR 场景需 `gh`。只读分析，不跑测试；终稿为四节 Markdown（修改意图 / PR 缺陷 / 残留缺陷 / 结论），**不使用表格**；§4 仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。
+在被审仓库根目录执行；PR 场景需 `gh`。只读分析，不跑测试；终稿为四节 Markdown（修改意图 / PR 缺陷 / 残留缺陷 / 结论），**不使用表格**；每条 P0–P2 缺陷含 **根因原理**（代码机制）；纯性能项为 P3；§4 仅一行 `REVIEW_RESULT=mark_ignore|mark_should_fix`。
 
 **与 audit 区别**：`audit` 插件 + `audit-merged-pr` skill，面向已合入 PR、多轮质询；`audit-code` 插件 + `review` skill，输入更灵活、偏高召回、v1 无质询。
 
