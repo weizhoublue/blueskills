@@ -77,7 +77,34 @@ sub-agent 返回主线程：**≤6 行**，禁止粘贴 JSON 全文。
 
 ### 阶段 0～2b
 
-同前：自检 → scope → REVIEW_TMP → diff → `review-files.json`（空则 `REVIEW_RESULT=mark_ignore` 退出）。
+1. **自检** → `scope.json`（含糊则只问 1 题）。
+2. **REVIEW_TMP** + `mkdir -p "$REVIEW_TMP/findings/probes"`。
+3. **RTK 探测（阶段 2 前，一行）** — 决定本地 `git diff` 怎么写 patch：
+
+```bash
+if command -v rtk >/dev/null 2>&1; then AUDIT_CODE_RTK=1; else AUDIT_CODE_RTK=0; fi
+```
+
+| `AUDIT_CODE_RTK` | 含义 | 本地 `git diff` 写入 `raw-diff.patch` |
+|------------------|------|--------------------------------------|
+| `1` | 已装 **rtk** CLI；Claude/Cursor 等 Bash hook 常把裸 `git diff` 改成压缩输出 | **禁止**裸 `git diff > patch`。须用其一：`RTK_DISABLED=1 git diff …`、`rtk proxy git diff …`、`rtk git diff --no-compact …` |
+| `0` | 无 rtk | 常规 `git diff … > "$REVIEW_TMP/raw-diff.patch"` |
+
+- **`gh pr diff`** 一般不经 RTK hook，可直接 `gh pr diff … > "$REVIEW_TMP/raw-diff.patch"`。
+- 写入后 **快速确认**：`grep -q '^diff --git ' "$REVIEW_TMP/raw-diff.patch"`（或合法空 diff）。若无 `diff --git` 且有改动 → 换用上表 bypass 命令重采，**勿**进入 2d/3c。
+- **scope 示例**（无 RTK）：`git diff --staged`、`git diff "${base}...HEAD"`、`git diff A..B`、`git diff -- path`。
+- **scope 示例**（有 RTK）：`RTK_DISABLED=1 git diff --staged` 等（参数同左）。
+
+4. **`changed-files.json`** + **阶段 2b `review-files.json`**：
+
+```json
+{ "version": 1, "files": ["relative/path.go"] }
+```
+
+- `files` 为**字符串路径数组**；禁止把 `changed-files.json` 整结构误写入。
+- 应用默认 `ignore_patterns`（spec §5）；空列表 → stdout 短句 + `REVIEW_RESULT=mark_ignore` + 退出。
+
+5. **2d 后自检（有 RTK 时尤其重要）**：若 `hunk-index.json` 各文件 `lines_added`/`lines_removed` 全为 0，且 patch 无 `diff --git` → 判定 diff 被 RTK 压缩，回到步骤 3 用 bypass 重采。
 
 ### 阶段 2c：triage
 

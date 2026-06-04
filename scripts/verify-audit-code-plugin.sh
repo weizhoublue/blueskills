@@ -88,6 +88,9 @@ rg -q 'manifestations' plugins/audit-code/agents/probe-worker.md
 rg -q 'root_cause pass' plugins/audit-code/agents/report-assembler.md
 rg -q 'duplicate_root_cause' plugins/audit-code/agents/report-assembler.md
 rg -q '表现点' plugins/audit-code/agents/report-assembler.md
+rg -q 'AUDIT_CODE_RTK' plugins/audit-code/skills/review/SKILL.md
+rg -q 'RTK_DISABLED' plugins/audit-code/skills/review/SKILL.md
+rg -q 'command -v rtk' plugins/audit-code/skills/review/SKILL.md
 
 if rg -q 'audit-challenger' plugins/audit-code/skills/review/SKILL.md 2>/dev/null; then
   echo "SKILL must not reference audit-challenger in v1" >&2

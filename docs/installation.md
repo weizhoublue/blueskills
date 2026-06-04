@@ -110,6 +110,8 @@
 
 脚本默认查找顺序：`AUDIT_CODE_SCRIPTS` → 当前仓库 `plugins/audit-code/scripts` → `scripts/`。
 
+**RTK：** 若本机有 `rtk` 命令，审查时本地 `git diff` 须加 `RTK_DISABLED=1` 或 `rtk proxy`（见 skill 阶段 2）；否则 `hunk-index` 可能统计为 0。PR 场景优先 `gh pr diff`。
+
 ---
 
 ## 卸载
