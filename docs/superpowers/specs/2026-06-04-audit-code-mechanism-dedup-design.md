@@ -6,6 +6,7 @@
 - 前置：
   - `docs/superpowers/specs/2026-06-04-audit-code-report-quality-design.md`（四节终稿、scenario、merger 基础 gate）
   - 试跑反馈（Gateway API PR #46296 类）：finding 有场景/后果但缺「为何这么写会错」；性能误标 P2；同根因多条未合并
+- 后续：**根因聚合与表现点**见 `docs/superpowers/specs/2026-06-04-audit-code-root-cause-manifestations-design.md`（plan 按 `root_cause_key` 出题、终稿一因多表现点）
 
 ## 1. 问题陈述
 
