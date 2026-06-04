@@ -77,9 +77,9 @@
 
 **流程（默认 — 问题驱动）**：
 
-1. **准备材料（Shell）**：解析审查范围 → 拉 diff → 过滤待审文件；按改动类型做 **triage**（如文档-only 可跳过性能/安全）；生成 **hunk-index**（每文件改动行、触及符号、diff 摘要）。
+1. **准备材料（Shell）**：解析审查范围 → 拉 diff → 过滤待审文件；按改动类型做 **triage**（`bugfix` 时 `enable_residual=true`）；生成 **hunk-index**（每文件改动行、触及符号、diff 摘要）。
 2. **背景 core**：`change-context-analyst` 写修改意图、模块、生产入口等（`pr_narrative` 先占位）。
-3. **主编排出题（主线程）**：读 core + hunk-index + triage，写 **审查简报** `review-brief.md` 与 **出题单** `investigation-plan.json`（每题带文件/行号范围；按逻辑/非功能/架构聚成 2～3 簇）。
+3. **主编排出题（主线程）**：读 core + hunk-index + triage，写 **审查简报** 与 **出题单**；**bugfix 时强制 ≥1 道「同类残留」题**（`kind: residual`），在兄弟路径 Grep 是否仍有与 PR 修复前相同的未修 pattern。
 4. **并行验证**：
    - **probe-worker**（每簇一个）：对每题 **(1) 从入口向下追溯调用链 (2) 与兄弟/同类文件对比 pattern 是否对齐 (3) 检查挡板**，再判定假设；避免只看单行 diff 或缺少横向对比导致误报。成立则记缺陷（含调用链、peer 对照、根因原理、场景、可达性）。
    - **narrative-writer**：补全 §1 用的 PR 叙事（顶层调用链、修改前后**用户侧**与**软件侧**表现、方案原理）。

@@ -65,6 +65,9 @@ rg -q 'call_chain_trace' plugins/audit-code/agents/probe-worker.md
 rg -q 'peer_pattern_compare' plugins/audit-code/agents/probe-worker.md
 rg -q 'peer_compare_refs' plugins/audit-code/agents/probe-worker.md
 rg -q 'peer_compare_refs' plugins/audit-code/skills/review/SKILL.md
+rg -q 'residual_peer_pattern' plugins/audit-code/skills/review/SKILL.md
+rg -q 'fix_pattern_summary' plugins/audit-code/skills/review/SKILL.md
+rg -q 'grep_tokens' plugins/audit-code/skills/review/SKILL.md
 rg -q 'missing_peer_compare' plugins/audit-code/agents/report-assembler.md
 rg -q 'entry_ref' plugins/audit-code/skills/review/SKILL.md
 rg -q 'missing_call_chain' plugins/audit-code/agents/report-assembler.md

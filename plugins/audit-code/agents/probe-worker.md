@@ -22,7 +22,7 @@ tools: Read, Grep, Glob, Write
 
 1. `$REVIEW_TMP/review-brief.md`
 2. `$REVIEW_TMP/change-context.json`（`prod_entry_refs[]`、`modules[]` 含 `neighbors`）
-3. `$REVIEW_TMP/investigation-plan.json` 本簇 `questions[]`
+3. `$REVIEW_TMP/investigation-plan.json` 本簇 `questions[]`（bugfix 时 plan 根级可有 `fix_pattern_summary`、`pr_fix_refs[]`）
 
 ## 每题执行顺序（硬性，不得跳过）
 
@@ -45,7 +45,7 @@ tools: Read, Grep, Glob, Write
 1. 本题 `peer_compare_refs[]`（主编排指定）
 2. `change-context.modules[].neighbors` 下同名/同职责文件
 3. 与 `scope` **同目录**或同 controller 包的兄弟 handler（Glob 限 1 层）
-4. `kind: residual` 题：在 `sibling_prefix` 或 neighbors 内 Grep **与 PR 修复 pattern 相同的关键词**（如 `DeepEqual`、`ParentReference`、函数名片段）
+4. `kind: residual` 题：对照 plan 的 `fix_pattern_summary` / `pr_fix_refs[]`；在 `peer_compare_refs` + `sibling_prefix` 内 Grep 本题 `grep_tokens[]`（若无则从 `fix_pattern_summary` 提取），找**仍使用旧 pattern、未等价修复**的兄弟位置
 
 **须至少找到 1 处可 cite 的 peer**（`path:line` · `symbol`），并回答：
 

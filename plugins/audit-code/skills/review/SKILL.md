@@ -118,15 +118,38 @@ bash "$AUDIT_CODE_SCRIPTS/audit-code-hunk-index.sh" "$REVIEW_TMP"
    - 简版顶层调用链、`hunk-index` 符号表、`risks_to_watch`
 
 2. **`investigation-plan.json`**  
-   - 注入模板种子（design spec §7.2）：bugfix→residual；auth/http→security；多包→architecture  
    - **每题必填** `entry_ref`、`scope`、`hypothesis`  
-   - **logic-ripple / correctness / ripple / residual 题必填** `peer_compare_refs[]`（1～3 个兄弟路径前缀或文件，如 `pkg/grpcroute/`、`pkg/httproute/status.go`）  
+   - **logic-ripple / correctness / ripple / residual 题必填** `peer_compare_refs[]`（1～3 个兄弟路径前缀或文件）  
    - `must` 题 ≥3；按 `kind` 聚簇为 `clusters[]`（`logic-ripple` / `nonfunctional` / `architecture`）  
    - `REVIEW_DEPTH=full` 时含 `should` 题  
    - 若 `review-profile.enable_architecture=false` → 无 architecture 簇  
    - 若 `enable_security=false` 或 `skip_kinds` 含 security/performance → 无 nonfunctional 簇或缩减  
-   - 若 `enable_residual=false` → logic 簇不含 residual 题  
-   - 题数不足 → **标准题包**（5×must，scope 取自 hunk-index 前 3 文件）
+
+   **Bugfix 残留扫描（`review-profile.enable_residual=true` 时硬性）：**
+
+   1. 在 plan 根级写 `fix_pattern_summary`（本 PR 修复模式一句话）与 `pr_fix_refs[]`（已修位置 `path:line` · `symbol`，来自 hunk-index）。  
+   2. **必须注入 ≥1 道** `template: residual_peer_pattern`、`kind: residual`、`priority: must` 的题（**不得删除**）；`peer_compare_refs` 覆盖 PR **未改** 的兄弟模块/同类 Route 路径。  
+   3. 示例题：
+
+   ```json
+   {
+     "id": "Q-RES-1",
+     "kind": "residual",
+     "priority": "must",
+     "template": "residual_peer_pattern",
+     "hypothesis": "仓库内仍有与 PR 修复前相同的错误 pattern，且未应用本 PR 的等价修复",
+     "scope": ["pkg/grpcroute/status.go"],
+     "entry_ref": "GRPCRoute Reconcile → setStatuses",
+     "peer_compare_refs": ["pkg/grpcroute/", "pkg/httproute/"],
+     "sibling_prefix": "pkg/",
+     "grep_tokens": ["DeepEqual", "ParentReference"]
+   }
+   ```
+
+   4. 其它模板种子：auth/http→security；多包→architecture。  
+   5. 若 `enable_residual=false` → 禁止 `kind: residual` 题。  
+
+   **标准题包**（题数不足时）：5×must，且当 `enable_residual=true` 时**其中 1 道必须是** `residual_peer_pattern`。
 
 摘要：「阶段 3c：plan N 题 / M 簇」
 
