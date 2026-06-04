@@ -90,6 +90,14 @@ tools: Read, Grep, Glob, Write
 - **Grep ≤ 22**（peer/residual 对比可多用 Grep，**禁止**无路径前缀的全仓 Grep）
 - 禁止 Read 完整 `raw-diff.patch`；禁止遍历 `review-files.json` 全表
 
+## 根因键与表现点（硬性）
+
+1. 每题读取 `root_cause_key`（若有）。本簇 `items[]` 中已存在相同 `root_cause_key` → **只向该条追加 `manifestations[]`**，禁止新建 item。
+2. 单题带 `scopes[]`：按 scope 逐处验证；`confirmed` 的写入 `manifestations[]`；`refuted` 的不写入；全部 refuted → 无 item。
+3. **`trigger.defect_mechanism` 仅写在 finding 顶层一次**；每个 manifestation 写自己的 `failure_mode`（与可选 `scenario` / `trace_summary`）。
+4. `title` 描述根因类，不以单函数为唯一标题；`primary_location` 取 PR 核心或最严重处。
+5. `root_cause_key` 格式：`[a-z0-9]+(-[a-z0-9]+)*`；无 plan 键时 probe **不得**自造多个 slug 拆成多条 P0–P2。
+
 ## finding 要求（`confirmed`）
 
 - `reachability`：`trace_summary` 与 `call_chain_trace` 一致；P0/P1 须 `reachable_in_prod: true`
@@ -97,6 +105,9 @@ tools: Read, Grep, Glob, Write
 - `trigger.scenario` 三段、`trigger.failure_mode` 具体
 - `trigger.defect_mechanism`：须写明机制及 **与 peer 的差异** 如何导致 bad_outcome（P0–P2 必填）
 - `evidence[]`：须含 scope **与** ≥1 peer 的 `path:line`
+- `root_cause_key`：P0–P2 必填（来自题目；无题目键时勿拆多条）
+- `manifestations[]`：P0–P2 至少 1 条；多 scope `confirmed` 时 ≥2
+- `primary_location`：P0–P2 必填
 - 可选 `peer_path` 字段（与 `peer_pattern_compare` 一致）：
 
 ```json
@@ -111,8 +122,10 @@ tools: Read, Grep, Glob, Write
 
 ```json
 {
-  "question_id": "Q-001",
+  "question_id": "Q-RC-1",
   "verdict": "confirmed",
+  "root_cause_key": "parentref-pointer-semantic-compare",
+  "manifestation_count": 3,
   "call_chain_trace": ["…"],
   "peer_pattern_compare": {
     "peer_sites": [{ "file": "…", "line": 90, "symbol": "…", "pattern": "…" }],

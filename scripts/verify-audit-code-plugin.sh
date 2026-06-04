@@ -80,6 +80,14 @@ rg -q '## 1. 修改意图分析' plugins/audit-code/agents/report-assembler.md
 rg -q '根因原理' plugins/audit-code/agents/report-assembler.md
 rg -q 'mark_should_fix' plugins/audit-code/skills/review/SKILL.md
 rg -q 'mechanism-dedup-design' plugins/audit-code/skills/review/SKILL.md
+rg -q 'root-cause-manifestations-design' plugins/audit-code/skills/review/SKILL.md
+rg -q 'root_cause_key' plugins/audit-code/skills/review/SKILL.md
+rg -q 'scopes\[\]' plugins/audit-code/skills/review/SKILL.md
+rg -q 'root_cause_key' plugins/audit-code/agents/probe-worker.md
+rg -q 'manifestations' plugins/audit-code/agents/probe-worker.md
+rg -q 'root_cause pass' plugins/audit-code/agents/report-assembler.md
+rg -q 'duplicate_root_cause' plugins/audit-code/agents/report-assembler.md
+rg -q '表现点' plugins/audit-code/agents/report-assembler.md
 
 if rg -q 'audit-challenger' plugins/audit-code/skills/review/SKILL.md 2>/dev/null; then
   echo "SKILL must not reference audit-challenger in v1" >&2

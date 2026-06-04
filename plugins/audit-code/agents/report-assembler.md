@@ -13,6 +13,7 @@ tools: Read, Write
 
 - `$REVIEW_TMP/findings/probes/*.json`
 - `$REVIEW_TMP/change-context.json`（含完整 `pr_narrative`）
+- `$REVIEW_TMP/investigation-plan.json`（`root_causes[]`、题目 `grep_tokens`）
 - `$REVIEW_TMP/scope.json`
 - （可选）`pr-snapshot.json`
 
@@ -26,9 +27,25 @@ tools: Read, Write
 ## 流程
 
 1. 扁平化所有 `findings/probes/*.json` 的 `items[]`。
-2. **cluster pass**（见下）→ **line÷20 去重**（`file` + `line÷20` + 归一化标题）。
+2. **root_cause pass**（见下）→ **cluster pass**（见下；合并结果写入 `manifestations`）→ **line÷20 去重**（`file` + `line÷20` + 归一化标题）。
 3. 应用 Gate 与 Severity 调整。
 4. 按四节写 Markdown；**返回主线程**。
+
+## 根因合并（root_cause pass）
+
+在 cluster pass **之前**执行。
+
+| 条件 | 动作 |
+|------|------|
+| 相同非空 `root_cause_key` | 合并为 1 条；`manifestations` 并集；`trigger.defect_mechanism` 取更具体者 |
+| 无 key，plan.`root_causes[].grep_tokens` 与 title/mechanism 命中 ≥2 | 赋 key 后合并 |
+| 无 key，同 `finding_category` 且从 plan 题目提取的 `grep_tokens` 交集 ≥2 | 合并，`root_cause_key: inferred-<8hex>` |
+
+合并规则：
+
+- 仅 `location` 的 loser → 迁入 winner 的 `manifestations[]`（含 `failure_mode`，可从原 `trigger.failure_mode` 复制）。
+- `related_symbols` 并集；`severity` 取最高；`title` 保留根因类表述。
+- 被合并项 → `rejected.json`，`reject_reason: duplicate_root_cause`，`merged_into: <id>`。
 
 ## 聚类合并（cluster pass）
 
@@ -38,7 +55,9 @@ tools: Read, Write
 2. `defect_mechanism` + `failure_mode` 归一化后共享 ≥3 实词（含 parentreference、deepequal、slices、contains、reflect、mergestatus、prune 等）。
 3. 同目录或 `related_symbols` 交叉。
 
-保留 severity 最高；被合并项 → `rejected`，`reject_reason: duplicate_cluster`。
+保留 severity 最高；被合并项 → `rejected`，`reject_reason: duplicate_cluster`；loser 的 `location` / 后果写入 winner 的 `manifestations[]`（若尚无）。
+
+- 当条目已共享 `root_cause_key` 或刚经 root_cause pass 合并时，**不要求**「同目录」才合并。
 
 ## 可达性 Gate
 
@@ -73,6 +92,8 @@ tools: Read, Write
 - ≥1 条 P0/P1/P2 → `mark_should_fix`
 - 否则 → `mark_ignore`
 
+§4 结论可注明合并后条数，例如：`1 个 P2（含 3 处表现点）`（推荐，非强制）。
+
 ## R15 / R16
 
 - **禁止** Markdown/HTML 表格（`| 列 |`、`<table>` 等）；用标题 + 列表。
@@ -100,6 +121,18 @@ tools: Read, Write
 ## 2. 发现的 PR 自身缺陷
 
 （`issue_origin=pr_introduced`；P0→P1→P2→P3；无则「无。」）
+
+**多表现点**（`manifestations.length >= 2`）：
+
+#### P2 — 标题（根因类）
+- **根因原理**：…（`trigger.defect_mechanism`）
+- **表现点**：
+  1. `path:line` · `symbol` — **后果**：…
+  2. …
+- **可达性**：…
+- **建议**：…（一条统一修复）
+
+**单点**（无 `manifestations` 或 length < 2）：
 
 #### P1 — 标题
 - **位置**：`path:line` · `symbol`

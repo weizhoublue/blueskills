@@ -79,11 +79,13 @@
 
 1. **准备材料（Shell）**：解析审查范围 → 拉 diff → 过滤待审文件；按改动类型做 **triage**（`bugfix` 时 `enable_residual=true`）；生成 **hunk-index**（每文件改动行、触及符号、diff 摘要）。
 2. **背景 core**：`change-context-analyst` 写修改意图、模块、生产入口等（`pr_narrative` 先占位）。
-3. **主编排出题（主线程）**：读 core + hunk-index + triage，写 **审查简报** 与 **出题单**；**bugfix 时强制 ≥1 道「同类残留」题**（`kind: residual`），在兄弟路径 Grep 是否仍有与 PR 修复前相同的未修 pattern。
+3. **主编排出题（主线程）**：先归纳 **根因**（`root_causes[]`），再按 `root_cause_key` 出题（一因一题、`scopes[]` 多文件，避免同根因拆成多道 must 题）；**bugfix 时强制 ≥1 道「同类残留」题**（`kind: residual`）。
 4. **并行验证**：
    - **probe-worker**（每簇一个）：对每题 **(1) 从入口向下追溯调用链 (2) 与兄弟/同类文件对比 pattern 是否对齐 (3) 检查挡板**，再判定假设；避免只看单行 diff 或缺少横向对比导致误报。成立则记缺陷（含调用链、peer 对照、根因原理、场景、可达性）。
    - **narrative-writer**：补全 §1 用的 PR 叙事（顶层调用链、修改前后**用户侧**与**软件侧**表现、方案原理）。
-5. **汇编报告**：`report-assembler` 合并探针结果、去重与 gate，输出四节终稿；**§4 结论** 仅一行 `REVIEW_RESULT=mark_ignore` 或 `mark_should_fix`（存在 ≥1 条 P0–P2 则为 `mark_should_fix`）。
+5. **汇编报告**：`report-assembler` 合并探针结果、**根因合并**（`root_cause pass`）与 gate，输出四节终稿；**§4 结论** 仅一行 `REVIEW_RESULT=mark_ignore` 或 `mark_should_fix`（存在 ≥1 条 P0–P2 则为 `mark_should_fix`）。
+
+**一因多表现点：** 同一根因（如 ParentReference 指针比较）在多处文件表现不同时，终稿合并为 **1 条** finding：**根因原理** 写一次，**表现点** 有序列表列出各 `path:line` 与各自后果；`REVIEW_RESULT` 按合并后条数计（非表现点数）。
 
 中间产物在临时目录 `REVIEW_TMP`；默认审完删除。调试时可设 `REVIEW_KEEP_TMP=1` 查看 `investigation-plan.json`、`findings/probes/*.json` 等。
 
@@ -92,7 +94,7 @@
 | 节 | 内容 |
 |----|------|
 | §1 修改意图分析 | 审查范围、顶层调用链、修改前/后（用户侧 + 软件侧）、方案原理 |
-| §2 PR 自身缺陷 | `issue_origin=pr_introduced`；每条含位置、**根因原理**、场景、后果、建议 |
+| §2 PR 自身缺陷 | `issue_origin=pr_introduced`；同根因合并为一条：**根因原理** + **表现点**（多位置/多后果）或单点格式 |
 | §3 仓库残留缺陷 | `issue_origin=residual_existing`（非本 PR 造成）；格式同 §2 |
 | §4 结论 | 仅 `REVIEW_RESULT=…` 一行 |
 

@@ -179,10 +179,19 @@ $REVIEW_TMP/
 
 ## 7. `investigation-plan.json` schema
 
+根因聚合与 `manifestations[]` 见 `2026-06-04-audit-code-root-cause-manifestations-design.md`。
+
 ```json
 {
   "version": 1,
   "depth": "fast",
+  "root_causes": [
+    {
+      "key": "parentref-pointer-semantic-compare",
+      "summary": "ParentReference 指针字段语义比较失效",
+      "grep_tokens": ["ParentReference", "slices.Contains", "DeepEqual"]
+    }
+  ],
   "clusters": [
     {
       "id": "logic-1",
@@ -193,9 +202,12 @@ $REVIEW_TMP/
           "kind": "correctness",
           "priority": "must",
           "hypothesis": "…可证伪的一句话…",
+          "root_cause_key": "parentref-pointer-semantic-compare",
+          "scopes": ["pkg/foo/", "pkg/bar/status.go"],
           "scope": ["pkg/foo.go:120-200"],
           "entry_ref": "Reconcile → setHTTPRouteStatuses",
           "template": "semantic_compare",
+          "grep_tokens": ["ParentReference", "DeepEqual"],
           "sibling_prefix": null
         }
       ]
