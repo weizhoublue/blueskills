@@ -21,6 +21,11 @@
       "name": "audit-code",
       "source": "./plugins/audit-code",
       "description": "Intent-driven code review via /audit-code:review (PR, local git diff, paths); seven-axis analysts + merger gate; stdout only."
+    },
+    {
+      "name": "audit",
+      "source": "./plugins/audit",
+      "description": "对本地代码变更、在线 PR 等进行缺陷分析和质量评审，输出一份完整的缺陷和严重等级的分析报告"
     }
   ]
 }
