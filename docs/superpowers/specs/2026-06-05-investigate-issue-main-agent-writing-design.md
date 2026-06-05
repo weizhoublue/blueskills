@@ -154,17 +154,17 @@ continue
 
 ```json
 {
-  "version": "0.4.1",
+  "version": "0.5.1",
   "description": "针对软件项目单个故障做深度分析（单 SKILL.md；主线程撰写初稿；评审/补充仍委派）"
 }
 ```
 
 ## 完成标准
 
-- [ ] `SKILL.md` 无「报告撰写员」委派；阶段 3 由主编排完成综合+初稿
-- [ ] 阶段 5 仍委派评审员与补充员；补充员 prompt 无「撰写员」引用
-- [ ] rollback 伪代码为「重做阶段 3」，无阶段 4 / 撰写员
-- [ ] `docs/installation.md` 与 v0.4.1 描述一致
+- [x] `SKILL.md` 无「报告撰写员」委派；阶段 3 由主编排完成综合+初稿
+- [x] 阶段 5 仍委派评审员与补充员；补充员 prompt 无「撰写员」引用
+- [x] rollback 伪代码为「重做阶段 3」，无阶段 4 / 撰写员
+- [x] `docs/installation.md` 与 v0.5.1 描述一致
 - [ ] 人工试跑：stdout 含 `REVIEW_RESULT=`；`needs_enrichment` 路径仍经补充员产出完整三节
 
 ## 风险与缓解
