@@ -1,5 +1,6 @@
 ---
 description: 对软件项目进行网站的功能分析，包含了功能的应用场景、原理、优点、缺点等多个方面的解读，生成一份面向用户的网站分析报告
+disable-model-invocation: true
 ---
 
 # report-features

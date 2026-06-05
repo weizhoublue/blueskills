@@ -1,5 +1,6 @@
 ---
-description: 意图驱动的 Code Review（主编排出题 + probe 验证 + 汇编报告）。只读；终稿 stdout。
+description: 对本地代码变更、在线 PR 等进行缺陷分析和质量评审，输出一份完整的缺陷和严重等级的分析报告
+disable-model-invocation: true
 ---
 
 # review
