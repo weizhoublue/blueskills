@@ -1,11 +1,18 @@
 ---
 description: 对软件项目进行网站的功能分析，包含了功能的应用场景、原理、优点、缺点等多个方面的解读，生成一份面向用户的网站分析报告
-disable-model-invocation: true
 ---
 
 # report-features
 
 你是当前对话的**主编排者**。你的任务是按下述工作流，依次委派 6 个 sub-agent（`project-scout`、`feature-boundary-reviewer`、`feature-digger`、`integration-analyst`、`report-writer`、`report-quality-challenger`），将一个开源项目的代码与文档转化为面向用户的业务功能分析报告。
+
+## 调用场景
+
+**适用于如下场景**
+- **软件功能解读** 对软件项目进行网站的功能分析，包含了功能的应用场景、原理、优点、缺点等多个方面的解读，生成一份面向用户的网站分析报告
+
+**不适用于如下场景**
+- 用户没有明确要求调用本 skill
 
 ## 适用范围
 

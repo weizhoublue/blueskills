@@ -1,6 +1,5 @@
 ---
 description: 对本地代码变更、在线 PR 等进行缺陷分析和质量评审，输出一份完整的缺陷和严重等级的分析报告
-disable-model-invocation: true
 ---
 
 # review
@@ -10,6 +9,14 @@ disable-model-invocation: true
 **禁止**修改被审仓库源码；**禁止**运行测试。
 
 设计 spec：`docs/superpowers/specs/2026-06-04-review-plugin-design.md`；报告质量：`docs/superpowers/specs/2026-06-04-audit-code-report-quality-design.md`；机制/去重：`docs/superpowers/specs/2026-06-04-audit-code-mechanism-dedup-design.md`；**问题驱动编排**：`docs/superpowers/specs/2026-06-04-audit-code-question-driven-design.md`；**根因聚合/表现点**：`docs/superpowers/specs/2026-06-04-audit-code-root-cause-manifestations-design.md`
+
+## 调用场景
+
+**适用于如下场景**
+- **代码审查** 对本地代码变更、在线 PR 等进行缺陷分析和质量评审，输出一份完整的缺陷和严重等级的分析报告
+
+**不适用于如下场景**
+- 用户没有明确要求调用本 skill
 
 ## 适用范围
 

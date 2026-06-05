@@ -1,7 +1,7 @@
 {
   "name": "investigate-issue",
   "displayName": "Investigate Issue",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "针对开源项目单个问题做深度分析,生成一份完整的报告，便于理解问题的背景、根源和影响（investigate Skill + 五个 sub-agent，终稿 stdout）",
   "keywords": ["issue-analysis", "code-tracing", "debugging"],
   "license": "MIT"

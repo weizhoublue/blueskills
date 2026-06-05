@@ -1,7 +1,6 @@
 ---
 name: investigate
 description: 对软件项目的某个故障进行深入分析，对代码调用链、业务功能进行详细解读，理解业务背景、根因和影响
-disable-model-invocation: true
 ---
 
 # investigate
@@ -16,6 +15,7 @@ disable-model-invocation: true
 **不适用于如下场景**
 - 本地代码变更的质量审查
 - 在线 PR 的质量评审
+- 用户没有明确要求调用本 skill
 
 ## ISSUE_TMP（临时目录）
 
