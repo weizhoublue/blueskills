@@ -1,8 +1,0 @@
-{
-  "name": "audit-code",
-  "displayName": "Audit Code",
-  "version": "0.2.8",
-  "description": "对本地代码变更、在线 PR 等进行缺陷分析和质量评审，输出一份完整的缺陷和严重等级的分析报告",
-  "keywords": ["code-review", "pr-review", "security"],
-  "license": "MIT"
-}

@@ -1,7 +1,7 @@
 {
   "name": "audit",
   "displayName": "Audit",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "对本地代码变更、在线 PR 等进行缺陷分析和质量评审，输出一份完整的缺陷和严重等级的分析报告",
   "keywords": ["code-review", "pr-review", "audit"],
   "license": "MIT"

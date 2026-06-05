@@ -3,7 +3,9 @@
 
 ## investigate-project
 
-**干什么**：读懂整个项目有哪些业务功能，写出一份功能分析报告。
+**干什么**：读懂整个项目有哪些业务功能，写出一份面向用户的功能分析报告。
+
+**插件形态（v0.3.0+）**：仅一个 skill 文件 `report-features`（`SKILL.md`），主编排按阶段 **委派 Task sub-agent**；各阶段在对话里用 **Markdown 全文** 传递上游结果（prompt 内粘贴），**不写**中间 `*.json`、`quality-review/`、`boundary-review/` 等文件。维护者只需读一份 SKILL 即可理解全流程（与 `audit` 插件同模式）。
 
 **怎么用**：
 
@@ -14,24 +16,34 @@
 /investigate-project:report-features
 ```
 
+在被分析**项目根目录**执行（不要在 blueskills marketplace 仓库里跑）；skill 会创建并确认 `REPORT_ROOT`（默认 `<项目根>/analysis-report`）。
+
 **流程**：
 
-1. **读仓库**：扫描 README、文档和代码入口，摸清项目结构和用户能用到哪些能力。
-2. **几个 agent 分工**：
-   - scout 先把项目里可能的功能点列出来；
-   - reviewer 帮你校准「什么算一个功能、什么不算」；
-   - digger 对每个功能往下挖：谁用、解决什么问题、怎么工作；对关键机制（如长连接、sidecar、ext-proc）尽量写清 **为何这样设计**（`key_mechanisms`：架构角色 / 相对替代方案的好处 / 配错时怎样）；
-   - integration-analyst 看功能之间怎么配合；
-   - writer 把以上内容写成 `analysis-report/` 里的报告（overview 中可含「关键机制与设计动机」小节）。
-3. **审计 agent 反馈**：report-quality-challenger 读写完的报告，除 **L1–L5 多层因果**（情境→后果→默认方案不足→本项目介入→用户结果）外，还会检查 **机制动机（W1–W3）**——例如不能只写「用于保持长连接」，须说明该机制在架构里干什么、不用短连接/别的做法会怎样；缺了会标 **major** 驱动 scout/digger 回灌补全（每块报告最多 5 轮质审）。
+1. **读仓库（project-scout）**：Glob/Grep 建索引后定向读取，产出 `## 项目扫描结果`（项目概览叙事 + 候选一级功能表，均在 Markdown 中返回）。
+2. **项目概览质审（≤5 轮）**：质审 sub-agent 检查 **L1–L5 多层因果** 与 **机制动机 W1–W3**；未通过则回灌 scout 只修订概览部分；第 5 轮仍有 blocking/major 时，主编排记入「未闭合项」列表（**不落盘** `*-final.json`）。
+3. **功能边界（reviewer）**：对候选表做 `keep/exclude/merge/split` 初审；随后在**主线程**多轮与你确认清单（自然语言改项、`done` 结束）；`done` 后为每条保留项分配英文 `slug`，形成 `## 功能清单（终稿）`（仅存在于编排上下文，不写 `feature-plan.json`）。
+4. **按功能深挖（feature-digger × N）**：每个 slug 委派一次 sub-agent，**只写入** `{REPORT_ROOT}/features/<slug>.md`；对关键机制写清 W1/W2/W3；每功能质审 ≤5 轮，修订同一 md 文件。
+5. **集成分析（integration-analyst）**：返回 `## 集成能力分析` Markdown，供 overview §8 使用（不写 `integrations.json`）。
+6. **汇总（report-writer）**：读取已落盘的各 `features/<slug>.md`，结合主编排持有的概览/清单/集成/未闭合项 Markdown，**只写入** `{REPORT_ROOT}/overview.md`；overview 成稿再质审 ≤5 轮。
 
-报告落在当前目录的 `analysis-report/`，不是 stdout。
+**磁盘产物（仅此两类）**：
+
+```text
+analysis-report/
+├── overview.md              # 项目总体报告
+└── features/<slug>.md       # 各一级功能报告（slug 为英文 kebab-case）
+```
+
+报告**不是** stdout。overview 禁止 Markdown 表格；§9 根据是否有质审未闭合项二选一表述（有未闭合项时须有 `### 质审未闭合项`，且不得写「全部通过」）。
 
 ---
 
 ## investigate-issue
 
 **干什么**：针对**某一个具体问题**（bug、异常行为等）做深度分析，解释业务上怎么回事、怎么触发、有什么后果。
+
+**插件形态（v0.4.0+）**：仅一个 skill 文件 `investigate`（`SKILL.md`），主编排委派 Task sub-agent，阶段间用 **Markdown 在对话中传递**（无 `ISSUE_TMP`、无 `scout.json` / `jq` 合并、无独立 `agents/*.md` 文件）。
 
 **怎么用**：
 
@@ -42,17 +54,19 @@
 /investigate-issue:investigate 你的问题描述
 ```
 
+在被分析**项目根目录**执行；输入应包含可分析的现象或组件线索（若只说「帮我分析」未指明问题，skill 会只问 1 个澄清问题）。
+
 **流程**：
 
-1. **读仓库**：根据你写的问题描述，在代码和文档里找相关模块、配置入口和调用路径。
-2. **几个 agent 分工**：
-   - scout 收集和问题相关的线索；
-   - code-tracer 从配置/输入往下追函数级调用链；运行时状态（如「字段为 nil」）须有 path:line 或写入 `unverified[]`；
-   - business-context-analyst 看业务上下游、和兄弟路径有什么不同，并可提供机制设计动机素材（`design_rationale`）；
-   - writer 一次写好三节（问题描述、触发条件、结论）；**§1 问题描述** 中推荐含 **「关键机制为何如此设计」**（W1/W2/W3），避免只写手段复述；**§2 触发条件** 在正向清单后须有 **「故障表现」**（用户可见坏结果，素材来自分析中的 `consequences`，不设独立「问题后果」节）；正向清单仅列代码已证实状态，未能证实的场景进「未能从代码确认的前提」（R20）；**§3 结论** 仅一行 `REVIEW_RESULT=issue_true` 或 `REVIEW_RESULT=issue_false`。
-3. **审计 agent 反馈**：issue-challenger 通读整份报告，看叙事、触发条件（含故障表现、不重复正向清单）、**机制动机（R18）**、**场景证据（R20）**、**结论是否仅一行且与前文一致**，驱动 writer 补全（整稿最多 3 轮；动机/场景类缺失为 **major**，3 轮后仍可 `partial` 收尾）。
+1. **问题信息搜集**：根据 `issue_brief` 在仓库中建索引，返回 `## 问题信息搜集结果`（候选模块、入口线索等）。
+2. **并行分析**：
+   - **代码追踪**：函数级调用链 C0–C4，每步 `path:line` + 业务含义；触发条件正向/反向；未能证实的运行时主张列入「未能确认的主张」；
+   - **业务上下文**：B1–B5 业务因果、兄弟分支对比、可选机制动机 W1–W3。
+3. **主编排综合**（不委派）：在上下文中合并上述 Markdown，再委派撰写。
+4. **撰写三节初稿**：`## 1. 问题描述`（含「业务上发生了什么」「关键机制为何如此设计」等）、`## 2. 触发条件`（正向 + **故障表现** + 反向 + 未能确认前提）、`## 3. 结论`（**仅一行** `REVIEW_RESULT=issue_true|false`）。
+5. **整稿深化（≤3 轮）**：质审 sub-agent 检查叙事（R16）、条件严谨性（R17）、机制动机（R18）、场景证据（R20）、结论格式（R19）；需要时由撰写 sub-agent 按缺失清单补全；若 call_chain 类 blocking 过多可 **回滚重追踪 1 次**。
 
-终稿 stdout 的 **§3 结论** 下也**只有**一行 `REVIEW_RESULT=…`。
+**输出**：完整报告打印到 **stdout**（不写仓库内中间文件）。终稿禁止 Markdown 表格；**§3 结论** 下也**只有**一行 `REVIEW_RESULT=…`。
 
 ---
 
@@ -118,5 +132,6 @@
 
 ```text
 /plugin uninstall investigate-project@blueskills
+/plugin uninstall investigate-issue@blueskills
 /plugin marketplace remove weizhoublue/blueskills
 ```
