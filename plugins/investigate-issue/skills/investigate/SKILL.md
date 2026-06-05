@@ -1,21 +1,21 @@
 ---
-description: 针对开源项目单个问题做深度分析（自由文本输入）。在目标仓库根目录运行；只读分析、不跑测试；三节报告（问题描述、触发条件含故障表现、结论 REVIEW_RESULT）最终仅输出到 stdout。编排 issue-scout、code-tracer、business-context-analyst、issue-writer、issue-challenger（三节初稿后整稿评审，最多 3 轮）。
+name: investigate
+description: 对软件项目的某个故障进行深入分析，对代码调用链、业务功能进行详细解读，理解业务背景、根因和影响
+disable-model-invocation: true
 ---
 
 # investigate
 
-你是当前对话的**主编排者**。输入：用户自由文本**问题描述**（斜杠命令参数或用户首条消息）。
+针对软件代码仓库的某个故障问题形成完整的分析报告
 
-**禁止**修改被分析仓库源码；**禁止**运行测试。
+## 调用场景
 
-设计 spec（维护者）：`docs/superpowers/specs/2026-06-03-investigate-issue-plugin-design.md`
+**适用于如下场景**
+- **故障解读** 对软件项目的某个故障进行深入分析，对代码调用链、业务功能进行详细解读，理解业务背景、根因和影响
 
-## 适用范围
-
-- **环境**：Claude Code，`/investigate-issue:investigate <问题描述>`
-- **cwd**：用户已 `cd` 到**被分析项目仓库根**（非本 marketplace 克隆）
-- **终稿**：**仅 stdout** 一份 Markdown（§最终报告）；中间 JSON 只写 `ISSUE_TMP`
-- **全自动**：除用户输入问题外，流程不暂停等待确认
+**不适用于如下场景**
+- 本地代码变更的质量审查
+- 在线 PR 的质量评审
 
 ## ISSUE_TMP（临时目录）
 

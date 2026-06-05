@@ -1,5 +1,5 @@
 ---
-description: 分析当前工作目录下的开源项目，产出写入 <cwd>/analysis-report/ 的综合报告（阶段 0 锁定 REPORT_ROOT 绝对路径）。编排六个 sub-agent + 多轮人工确认 + 质审（≤5 轮）。使用前请先 cd 到待分析项目根目录。
+description: 对软件项目进行网站的功能分析，包含了功能的应用场景、原理、优点、缺点等多个方面的解读，生成一份面向用户的网站分析报告
 ---
 
 # report-features
