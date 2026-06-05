@@ -436,7 +436,7 @@ sub-agent 扮演**目的与兼容性审查员**。
 
 ## 最终结论
 
-REVIEW_RESULT=issue_true 
+REVIEW_RESULT=review_mark_should_fix 
 
 （本节正文**仅允许**上述一行，禁止任何解释。）
 ```
@@ -463,7 +463,7 @@ REVIEW_RESULT=issue_true
 
 ## 最终结论
 
-REVIEW_RESULT=issue_false
+REVIEW_RESULT=review_mark_ignore
 
 （本节正文**仅允许**上述一行，表示是否发现了缺陷。禁止任何解释。）
 
