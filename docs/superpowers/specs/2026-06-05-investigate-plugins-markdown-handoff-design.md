@@ -5,6 +5,7 @@
 | 文档 | 关系 |
 |------|------|
 | 本文 | **总设计**：两插件共用原则 + Phase 1/2 范围 |
+| `2026-06-05-investigate-issue-main-agent-writing-design.md` | Phase 1 **增量修订**（主线程撰写/改稿）；与本文冲突时以该文为准 |
 | `2026-06-05-investigate-issue-inline-refactor-design.md` | Phase 1 **细节已对齐**；实现以本文 §4 为准，冲突时以本文为准 |
 | `plans/2026-06-05-investigate-issue-inline-refactor.md` | Phase 1 实现计划草稿；实现前应由 `writing-plans` 刷新 |
 
