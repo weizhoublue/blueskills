@@ -98,7 +98,7 @@ if command -v rtk >/dev/null 2>&1; then AUDIT_CODE_RTK=1; else AUDIT_CODE_RTK=0;
 | `1` | 已装 **rtk** CLI；Claude/Cursor 等 Bash hook 常把裸 `git diff` 改成压缩输出 | **禁止**裸 `git diff > patch`。须用其一：`RTK_DISABLED=1 git diff …`、`rtk proxy git diff …`、`rtk git diff --no-compact …` |
 | `0` | 无 rtk | 常规 `git diff … > "$REVIEW_TMP/raw-diff.patch"` |
 
-- **`gh pr diff`** 一般不经 RTK hook，可直接 `gh pr diff … > "$REVIEW_TMP/raw-diff.patch"`。
+- **`gh pr diff`** 一般不经 RTK hook，可直接 `gh pr diff <number> --repo <owner/repo> > "$REVIEW_TMP/raw-diff.patch"`。`gh pr diff` 只接受 `--color`/`--name-only`/`--patch`/`-w` 四个 flag，**不支持 `--stat`**。
 - 写入后 **快速确认**：`grep -q '^diff --git ' "$REVIEW_TMP/raw-diff.patch"`（或合法空 diff）。若无 `diff --git` 且有改动 → 换用上表 bypass 命令重采，**勿**进入 2d/3c。
 - **scope 示例**（无 RTK）：`git diff --staged`、`git diff "${base}...HEAD"`、`git diff A..B`、`git diff -- path`。
 - **scope 示例**（有 RTK）：`RTK_DISABLED=1 git diff --staged` 等（参数同左）。
@@ -110,6 +110,7 @@ if command -v rtk >/dev/null 2>&1; then AUDIT_CODE_RTK=1; else AUDIT_CODE_RTK=0;
 ```
 
 - `files` 为**字符串路径数组**；禁止把 `changed-files.json` 整结构误写入。
+- **PR 场景**获取变更文件路径：`gh pr diff <number> --repo <owner/repo> --name-only`。**禁止**用 `gh pr files`（不存在）或 `gh pr diff --stat`（无此 flag）。
 - 应用默认 `ignore_patterns`（spec §5）；空列表 → stdout 短句 + `REVIEW_RESULT=mark_ignore` + 退出。
 
 5. **2d 后自检（有 RTK 时尤其重要）**：若 `hunk-index.json` 各文件 `lines_added`/`lines_removed` 全为 0，且 patch 无 `diff --git` → 判定 diff 被 RTK 压缩，回到步骤 3 用 bypass 重采。
@@ -132,7 +133,32 @@ bash "$AUDIT_CODE_SCRIPTS/audit-code-hunk-index.sh" "$REVIEW_TMP"
 
 ### 阶段 3：pr-snapshot（仅 PR）
 
-`gh pr view ... > pr-snapshot.json`
+**目标**：获取 PR 元数据（标题、描述、作者、变更文件数、base/head 分支名、additions/deletions、合并状态），写入 `$REVIEW_TMP/pr-snapshot.json`。
+
+> **`gh` 命令安全提示**：若不确定某子命令的可用字段或 flag，先运行 `gh <sub-command> --help` 确认后再执行，避免使用不存在的字段或 flag。
+
+**参考命令**（已验证字段，直接可用）：
+
+```bash
+gh pr view <number> --repo <owner/repo> \
+  --json title,body,state,baseRefName,headRefName,changedFiles,additions,deletions,author,mergeable \
+  > "$REVIEW_TMP/pr-snapshot.json"
+```
+
+常用合法 `--json` 字段一览（`gh pr view --help` 可查完整列表）：
+
+| 字段 | 含义 |
+|---|---|
+| `title` | PR 标题 |
+| `body` | PR 描述 |
+| `state` | OPEN / MERGED / CLOSED |
+| `baseRefName` | 目标分支名（≠ `base`） |
+| `headRefName` | 来源分支名（≠ `head`） |
+| `author` | 作者对象（≠ `user`） |
+| `changedFiles` | 变更文件数（整数） |
+| `additions` | 新增行数 |
+| `deletions` | 删除行数 |
+| `mergeable` | MERGEABLE / CONFLICTING / UNKNOWN |
 
 ### 阶段 3b：change-context core
 
