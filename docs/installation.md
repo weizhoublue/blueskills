@@ -70,61 +70,42 @@ analysis-report/
 
 ---
 
-## audit-code
+## audit
 
-**干什么**：意图驱动的 **Code Review**（skill 名 `review`）——审 PR、本地 staged/分支 diff 或指定路径；只读、不跑测试；终稿为一份四节 Markdown（stdout）。
+**干什么**：对 PR、commit、patch 或 diff 做**静态代码缺陷审计**（skill 名 `review`）——只报有证据、有触发条件、与本次变更相关的真实缺陷；只读、不跑测试；终稿输出到 **stdout**。
 
-采用**问题驱动**：主编排根据 diff 列出要查的具体问题，探针只读相关代码段验证，减少重复读盘、缩短耗时。
+**插件形态（v0.7.0+）**：仅一个 skill 文件 `review`（`SKILL.md`）；阶段 2 **并行**三个 specialist sub-agent（变更代码本身 / 周边影响 / 目的与兼容性），由主编排合并候选缺陷并做覆盖说明门禁；阶段间 Markdown 在对话中传递（无 `REVIEW_TMP`、无 `jq`、无 shell 脚本、无独立 `agents/*.md`）。
 
 **怎么用**：
 
 ```text
 /plugin marketplace add weizhoublue/blueskills
-/plugin install audit-code@blueskills
+/plugin install audit@blueskills
 /reload-plugins
-/audit-code:review 审一下当前 staged 改动
-/audit-code:review https://github.com/OWNER/REPO/pull/42
-/audit-code:review 相对 upstream/main 的 diff，忽略 vendor
+/audit:review 审一下当前 staged 改动
+/audit:review https://github.com/OWNER/REPO/pull/42
+/audit:review <commit-hash>
 ```
 
-在被审**目标仓库根目录**执行（不是 blueskills 本仓库）；PR 场景需安装并登录 `gh`。
+在被审**目标仓库根目录**执行（不是 blueskills 本仓库）；PR 场景建议安装并登录 `gh`。输入支持 PR URL、commit hash、patch、diff 正文或本地路径；若只说「帮我审一下」未指明范围，skill 只问 1 个澄清问题。
 
-**流程（默认 — 问题驱动）**：
+**流程**：
 
-1. **准备材料（Shell）**：解析审查范围 → 拉 diff → 过滤待审文件；按改动类型做 **triage**（`bugfix` 时 `enable_residual=true`）；生成 **hunk-index**（每文件改动行、触及符号、diff 摘要）。
-2. **背景 core**：`change-context-analyst` 写修改意图、模块、生产入口等（`pr_narrative` 先占位）。
-3. **主编排出题（主线程）**：先归纳 **根因**（`root_causes[]`），再按 `root_cause_key` 出题（一因一题、`scopes[]` 多文件，避免同根因拆成多道 must 题）；**bugfix 时强制 ≥1 道「同类残留」题**（`kind: residual`）。
-4. **并行验证**：
-   - **probe-worker**（每簇一个）：对每题 **(1) 从入口向下追溯调用链 (2) 与兄弟/同类文件对比 pattern 是否对齐 (3) 检查挡板**，再判定假设；避免只看单行 diff 或缺少横向对比导致误报。成立则记缺陷（含调用链、peer 对照、根因原理、场景、可达性）。
-   - **narrative-writer**：补全 §1 用的 PR 叙事（顶层调用链、修改前后**用户侧**与**软件侧**表现、方案原理）。
-5. **汇编报告**：`report-assembler` 合并探针结果、**根因合并**（`root_cause pass`）与 gate，输出四节终稿；**§4 结论** 仅一行 `REVIEW_RESULT=mark_ignore` 或 `mark_should_fix`（存在 ≥1 条 P0–P2 则为 `mark_should_fix`）。
+1. **变更意图分析**：根据 diff 与 PR/commit 元数据返回 `## 变更意图分析`（变更性质、声称目标、涉及文件等）；本阶段不输出缺陷。
+2. **代码缺陷扫描（并行）**：
+   - **2a 变更代码本身**：语言/运行时缺陷、安全、边界条件（须 Read 变更所在完整函数）；
+   - **2b 变更周边影响**：上下游调用链、兄弟/同类对比；bugfix 时搜索同类残留；
+   - **2c 目的与兼容性**：变更意图是否实现、API/配置/schema/升级与回滚兼容性。
+   每个 agent 须附 **`## 扫描覆盖说明`**（即使零缺陷）；主编排合并去重并做覆盖门禁后交给质检。
+3. **缺陷质检**：逐条反证核查，删除证据不足项；不得因「其他 scanner 未报」而删除成立项。
+4. **报告拼装（主编排）**：按 P0→P1→P2 排列，合并同根因，输出终稿。
 
-**一因多表现点：** 同一根因（如 ParentReference 指针比较）在多处文件表现不同时，终稿合并为 **1 条** finding：**根因原理** 写一次，**表现点** 有序列表列出各 `path:line` 与各自后果；`REVIEW_RESULT` 按合并后条数计（非表现点数）。
+**输出**：完整报告打印到 **stdout**（不写仓库内中间文件）。**结论** 节仅一行：
 
-中间产物在临时目录 `REVIEW_TMP`；默认审完删除。调试时可设 `REVIEW_KEEP_TMP=1` 查看 `investigation-plan.json`、`findings/probes/*.json` 等。
+- 存在 ≥1 条 P0–P2 缺陷：`REVIEW_RESULT=review_mark_should_fix`
+- 否则：`REVIEW_RESULT=review_mark_ignore`
 
-**终稿结构**：
-
-| 节 | 内容 |
-|----|------|
-| §1 修改意图分析 | 审查范围、顶层调用链、修改前/后（用户侧 + 软件侧）、方案原理 |
-| §2 PR 自身缺陷 | `issue_origin=pr_introduced`；同根因合并为一条：**根因原理** + **表现点**（多位置/多后果）或单点格式 |
-| §3 仓库残留缺陷 | `issue_origin=residual_existing`（非本 PR 造成）；格式同 §2 |
-| §4 结论 | 仅 `REVIEW_RESULT=…` 一行 |
-
-报告**不使用 Markdown 表格**。P3（如纯性能、重复代码）可列出，但不驱动 `mark_should_fix`。
-
-**环境变量（可选）**：
-
-| 变量 | 效果 |
-|------|------|
-| `REVIEW_DEPTH=full` | 加深：更多出题、可启用架构审查簇 |
-| `REVIEW_KEEP_TMP=1` | 保留临时目录便于排查 |
-| `AUDIT_CODE_SCRIPTS` | 指向 `audit-code-hunk-index.sh` / `audit-code-triage.sh` 所在目录（在被审仓库找不到插件脚本时使用） |
-
-脚本默认查找顺序：`AUDIT_CODE_SCRIPTS` → 当前仓库 `plugins/audit-code/scripts` → `scripts/`。
-
-**RTK：** 若本机有 `rtk` 命令，审查时本地 `git diff` 须加 `RTK_DISABLED=1` 或 `rtk proxy`（见 skill 阶段 2）；否则 `hunk-index` 可能统计为 0。PR 场景优先 `gh pr diff`。
+终稿含 `## 代码变更背景`、`## 缺陷`（每条含性质、等级、证据、触发条件、解读、后果、反证、建议）、`## 最终结论`。忽略 P3；不报风格/命名/缺测试类噪音。
 
 ---
 
@@ -133,5 +114,6 @@ analysis-report/
 ```text
 /plugin uninstall investigate-project@blueskills
 /plugin uninstall investigate-issue@blueskills
+/plugin uninstall audit@blueskills
 /plugin marketplace remove weizhoublue/blueskills
 ```
