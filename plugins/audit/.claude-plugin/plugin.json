@@ -1,7 +1,7 @@
 {
   "name": "audit",
   "displayName": "Audit",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "对 PR/commit/diff 做缺陷审计；阶段2 三维度并行扫描（代码本身/周边影响/目的兼容），主编排合并后质检",
   "keywords": ["code-review", "pr-review", "audit"],
   "license": "MIT"
