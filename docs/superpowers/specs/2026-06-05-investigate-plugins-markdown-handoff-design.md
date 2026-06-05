@@ -71,8 +71,8 @@
 - **全局规则**：分析规则 + 报告规则（原 15 条红线）
 - **证据层级**：`confirmed` / `doc_declared` / `inference`（无 JSON schema）
 - **工作流** 阶段 0–6：每阶段含目标、委派说明、Markdown 输出模板
-- 阶段 5：评审员 / 补充员、blocking 维度、rollback 伪代码
-- 阶段 6：stdout 终稿模板 + 附录 B/C
+- 阶段 4：评审员 / 补充员、blocking 维度、rollback 伪代码
+- 阶段 5：stdout 终稿模板 + 附录 B/C
 
 ### 工作流
 
@@ -84,8 +84,8 @@
   2b 业务上下文 → ## 业务上下文分析结果
 阶段3：主编排综合（上下文内 Markdown，不委派）
 阶段4：撰写三节初稿 → 三节 Markdown
-阶段5：整稿深化 ≤3 轮（评审 / 补充 Markdown；rollback 最多 1 次）
-阶段6：组装 stdout 终稿
+阶段4：整稿深化 ≤3 轮（评审 / 补充 Markdown；rollback 最多 1 次）
+阶段5：组装 stdout 终稿
 ```
 
 ### 删除的能力
