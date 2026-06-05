@@ -1,7 +1,9 @@
 # audit 插件设计文档
 
 **日期：** 2026-06-05  
-**状态：** 已确认
+**状态：** 已确认  
+
+**增量修订：** 阶段 2 拆为三并行 scanner + 主编排合并，见 [`2026-06-05-audit-parallel-scanners-design.md`](./2026-06-05-audit-parallel-scanners-design.md)。
 
 ---
 
