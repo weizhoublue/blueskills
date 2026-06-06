@@ -1,7 +1,7 @@
 # 设计文档：investigate-issue — 触发条件场景具象化（R21）
 
 - 日期：2026-06-06
-- 状态：已审阅（brainstorming 确认）
+- 状态：implemented（2026-06-06，见 plan `2026-06-06-investigate-trigger-scenario-concretization.md`）
 - 父文档：[`2026-06-03-investigate-issue-plugin-design.md`](2026-06-03-investigate-issue-plugin-design.md)
 - 相关 spec：
   - [`2026-06-05-investigate-issue-scenario-evidence-design.md`](2026-06-05-investigate-issue-scenario-evidence-design.md)（R20 场景证据层级）
