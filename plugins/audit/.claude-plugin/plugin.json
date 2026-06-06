@@ -1,7 +1,7 @@
 {
   "name": "audit",
   "displayName": "Audit",
-  "version": "0.8.4",
+  "version": "0.9.0",
   "description": "对 PR/commit/diff 做缺陷审计；阶段2 强制同轮并行 Task（2a/2b/2c + bugfix 时 2d），主编排合并后质检；T1–T3 触发条件顶层具象化",
   "keywords": ["code-review", "pr-review", "audit"],
   "license": "MIT"
