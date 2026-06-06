@@ -1,7 +1,7 @@
 {
   "name": "investigate-issue",
   "displayName": "Investigate Issue",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "针对单个故障做深度分析；阶段2 强制同轮并行 Task（2a+2b），主线程撰写初稿",
   "keywords": ["issue-analysis", "code-tracing", "debugging"],
   "license": "MIT"
