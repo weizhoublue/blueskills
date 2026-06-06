@@ -1,7 +1,7 @@
 # 设计文档：audit/review — 缺陷触发条件顶层具象化（T1–T3）
 
 - 日期：2026-06-06
-- 状态：已审阅（brainstorming 确认）
+- 状态：implemented（2026-06-06，见 plan `2026-06-06-audit-review-trigger-concretization.md`）
 - 父文档：[`2026-06-05-audit-plugin-design.md`](2026-06-05-audit-plugin-design.md)
 - 相关 spec：
   - [`2026-06-06-investigate-trigger-scenario-concretization-design.md`](2026-06-06-investigate-trigger-scenario-concretization-design.md)（investigate R21，心智模型对齐）
