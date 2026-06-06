@@ -1,7 +1,7 @@
 # audit review 审计范围排除设计
 
 **日期：** 2026-06-06  
-**状态：** 待实施  
+**状态：** 已实施  
 **目标文件：** `plugins/audit/skills/review/SKILL.md`
 
 ---
