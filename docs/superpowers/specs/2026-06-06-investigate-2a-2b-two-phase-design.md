@@ -1,7 +1,7 @@
 # investigate 阶段 2a/2b 两阶段扫描与 2b 前提核实设计
 
 **日期：** 2026-06-06  
-**状态：** 待实施  
+**状态：** 已实施  
 **插件：** `plugins/investigate-issue`（skill：`investigate`）
 
 ---
