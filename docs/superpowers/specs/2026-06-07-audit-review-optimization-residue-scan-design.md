@@ -266,3 +266,10 @@
 3. 阶段 2 委派规则明确：`residue_scan=yes` → 4 Task，否则 3 Task。
 4. 示例 PR「优化补校验」在文档中明确应触发 2d。
 5. 2d 职责与 finding 性质第 3 类定义未变。
+
+---
+
+## 修订记录（2026-06-07）
+
+- **Supersede：** 删除 `residue_scan` 字段及 7 条技术启发式。
+- **新规则：** 2d 委派仅看变更性质是否含 `bugfix` 或任意 `optimization/<子标签>`。
