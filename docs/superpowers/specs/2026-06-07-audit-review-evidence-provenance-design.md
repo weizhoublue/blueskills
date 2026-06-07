@@ -1,7 +1,7 @@
 # 设计文档：audit/review — 证据出处与可达性追溯增强（E1 / R1 / T3 v2）
 
 - 日期：2026-06-07
-- 状态：待审阅（brainstorming 确认）
+- 状态：approved（2026-06-07；plan `2026-06-07-audit-review-evidence-provenance.md`）
 - 父文档：[`2026-06-06-audit-review-trigger-concretization-design.md`](2026-06-06-audit-review-trigger-concretization-design.md)
 - 背景：T1–T3 落地后，实际输出仍存在四类问题：（1）可达性证据仅写一层 caller，未从用户可见入口追到缺陷函数；（2）参考场景配置/输入为裸字段，缺少 CLI/YAML/env 出处；（3）量化观测与「造成的后果」重复；（4）变更点证据仅行号，缺符号与代码片段。
 
