@@ -1,7 +1,7 @@
 # audit review 2d 始终委派 & 内部双模式扫描设计
 
 **日期：** 2026-06-08  
-**状态：** 待实施  
+**状态：** implemented（2026-06-08，见 plan `2026-06-08-audit-review-2d-always-dispatch.md`）  
 **插件：** `plugins/audit`（skill：`review`）
 
 ---
