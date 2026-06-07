@@ -1,7 +1,7 @@
 # audit review 变更性质扩展 & 2d 残留扫描触发重构设计
 
 **日期：** 2026-06-07  
-**状态：** 待实施  
+**状态：** implemented（2026-06-07，见 plan `2026-06-07-audit-review-optimization-residue-scan.md`）  
 **插件：** `plugins/audit`（skill：`review`）
 
 ---

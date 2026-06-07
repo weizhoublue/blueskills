@@ -1,8 +1,8 @@
 {
   "name": "audit",
   "displayName": "Audit",
-  "version": "1.0.1",
-  "description": "对 PR/commit/diff 做缺陷审计，输出完整的审计报告",
+  "version": "1.0.2",
+  "description": "对 PR/commit/diff 做缺陷审计；optimization 子标签 taxonomy；residue_scan 控制 2d 同类残留扫描；T3 v3 参考触发场景；可选 T4 非触发场景",
   "keywords": ["code-review", "pr-review", "audit"],
   "license": "MIT"
 }
