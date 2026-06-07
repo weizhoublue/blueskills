@@ -270,7 +270,7 @@ REVIEW_RESULT=review_mark_ignore
 
 ## 目标
 
-**并行**委派 specialist sub-agent：**始终** 2a / 2b / 2c；**当且仅当**阶段 1「变更性质」含 **bugfix** 时，**同时**委派 2d。
+**并行**委派 specialist sub-agent：**始终** 2a / 2b / 2c；**当且仅当**阶段 1「残留扫描（residue_scan）」为 **yes** 时，**同时**委派 2d。
 
 各 agent 输入均为：（1）阶段 0 生成的**可审 diff**（非原始 diff）；（2）阶段 1「变更意图分析」Markdown 全文；（3）本节下方「共享规则」全文（缺陷成立条件、候选格式等）；（4）「变更预处理摘要」（只读）。
 
@@ -292,8 +292,8 @@ REVIEW_RESULT=review_mark_ignore
 **必须（主编排）：**
 
 - 阶段 1 完成后，**先**在编排上下文写好共享输入（可审 diff + 阶段 1 全文 + 共享规则 + 变更预处理摘要），**再**在同一轮回复一次性发起 `Task`：
-  - **非 bugfix**（阶段 1 变更性质不含 `bugfix`）：**三次** Task（2a / 2b / 2c）
-  - **bugfix**（阶段 1 变更性质含 `bugfix`）：**四次** Task（2a / 2b / 2c / 2d）
+  - **residue_scan=no**（阶段 1 残留扫描为 `no`）：**三次** Task（2a / 2b / 2c）
+  - **residue_scan=yes**（阶段 1 残留扫描为 `yes`）：**四次** Task（2a / 2b / 2c / 2d）
 - 每个 Task 的 `description` 须与下表「角色名」一致（如 `2a: 变更代码本身审查`）。
 
 **禁止（违反即编排错误，须立即补派未发起的 scanner）：**
@@ -306,7 +306,7 @@ REVIEW_RESULT=review_mark_ignore
 **委派前准备：**
 
 ```text
-1. 确认阶段 1「变更性质」是否含 bugfix → 确定 Task 数量（3 或 4）
+1. 确认阶段 1「残留扫描（residue_scan）」为 yes 或 no → 确定 Task 数量（3 或 4）
 2. 组装共享 prompt 块（可审 diff、阶段 1、共享规则、变更预处理摘要）——只组装一次
 3. 单条 assistant 消息内连续发出全部 Task，中间不插入等待或中间总结
 ```
@@ -316,7 +316,7 @@ REVIEW_RESULT=review_mark_ignore
 ```markdown
 ## 阶段 2 委派自检
 - [ ] 已在同一轮回复发起全部 Task（3 或 4 个）
-- [ ] 2a / 2b / 2c（及 2d 若 bugfix）输出均已收齐
+- [ ] 2a / 2b / 2c（及 2d 若 residue_scan=yes）输出均已收齐
 - [ ] 未在收齐前做合并或质检
 ```
 
@@ -325,7 +325,7 @@ REVIEW_RESULT=review_mark_ignore
 | **2a** | 变更代码本身审查 | 语言缺陷、安全、边界条件 | 始终 |
 | **2b** | 变更周边影响审查 | 一层上下游清单、R1 向上追溯、兄弟对比 | 始终 |
 | **2c** | 目的与兼容性审查 | 修复完整性、升级兼容性 | 始终 |
-| **2d** | 同类残留审查 | 全仓同模式 Grep 与核实 | 仅 bugfix |
+| **2d** | 同类残留审查 | 全仓同模式 Grep 与核实 | 仅 residue_scan=yes |
 
 ## 共享规则
 
