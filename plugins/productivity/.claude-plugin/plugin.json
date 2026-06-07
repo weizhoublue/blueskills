@@ -1,0 +1,8 @@
+{
+  "name": "productivity",
+  "displayName": "Productivity",
+  "version": "0.1.0",
+  "description": "中文表达压缩；caveman-chinese skill",
+  "keywords": ["writing", "chinese", "concise", "productivity"],
+  "license": "MIT"
+}
