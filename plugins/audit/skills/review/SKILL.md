@@ -175,7 +175,7 @@ REVIEW_RESULT=review_mark_ignore
 - 变更涉及的文件；
 - 变更涉及的函数、类型、配置、API。
 
-## 变更性质与 2d 委派
+## 变更性质
 
 ### 变更性质 taxonomy
 
@@ -203,14 +203,7 @@ REVIEW_RESULT=review_mark_ignore
 
 判定以**可审 diff 实际行为**为准，不以 PR 标题用词为准。
 
-### 2d 委派规则
-
-阶段 2 是否并行委派 **2d**，由阶段 1「变更性质」**直接**决定：
-
-- **委派 2d**（4 Task）：变更性质含 `bugfix`，**或**含任意 `optimization/<子标签>`
-- **不委派 2d**（3 Task）：变更性质**仅**为 `feature` / `refactor` / `test` / `docs` / `other`（不含 bugfix 与 optimization）
-
-复合标签按**或**逻辑；判定以可审 diff 实际行为为准，不以 PR 标题用词为准。
+变更性质标签仅用于报告与阶段 2 上下文；**不**门控是否委派 2d（2d 始终委派，见 2d 阶段 0'）。
 
 ## 输出
 
@@ -235,7 +228,8 @@ REVIEW_RESULT=review_mark_ignore
 
 本阶段不得输出缺陷，不得判断代码是否正确，不得裁剪主审的审计范围。
 - 不得因「变更简单」而暗示 2b/2c/2d 可跳过；是否 skip 由阶段 2 各 agent 在覆盖说明中论证。
-- 不得暗示非 `bugfix` / 非 `optimization/<子标签>` 变更可由 2b 代做全仓同类残留扫描（残留属 2d，仅含 `bugfix` 或 `optimization/<子标签>` 时委派）。
+- 不得暗示 2b 可代做 2d 全仓同类残留扫描或 2d 轻量同包缺陷模式扫描（残留属 2d，2d 始终委派）。
+- 不得因阶段 1 变更性质不含 bugfix/optimization 而暗示 2d 可跳过（2d 始终委派）。
 - 「涉及的主要文件」只列可审文件，不得包含已排除路径。
 - 变更性质以可审 diff 内容为准；不得因 PR 标题/描述提及 docs/vendor/test 而扩展审计范围。
 - 不得从已排除文件的变更推断缺陷或审计范围。
