@@ -1,7 +1,7 @@
 # productivity 插件 — caveman-chinese skill 设计
 
 **日期：** 2026-06-07  
-**状态：** 已确认（待用户审阅 spec 后进入 writing-plans）  
+**状态：** 已实现  
 **插件：** `plugins/productivity`（skill：`caveman-chinese`）
 
 ---
@@ -148,10 +148,10 @@ plugins/productivity/
 
 ## 8. 验收标准
 
-- [ ] `plugins/productivity/` 目录与 `plugin.json` 就位
-- [ ] `SKILL.md` ≤80 行，含双模式、触发、保真、禁区、自检、样例
-- [ ] 无 `examples.md`、无 agent、无脚本
-- [ ] 3 段测试文本（纯叙述、Markdown、含代码）验证改写模式仅输出结果、保真、代码区不动
+- [x] `plugins/productivity/` 目录与 `plugin.json` 就位
+- [x] `SKILL.md` ≤80 行，含双模式、触发、保真、禁区、自检、样例
+- [x] 无 `examples.md`、无 agent、无脚本
+- [x] 3 段测试文本（纯叙述、Markdown、含代码）验证改写模式仅输出结果、保真、代码区不动
 
 ---
 
