@@ -1,7 +1,7 @@
 # 设计文档：audit/review — 触发条件精简与非触发场景（T3 v3 / T4）
 
 - 日期：2026-06-07
-- 状态：approved（用户审阅通过，待 implementation plan）
+- 状态：implemented（2026-06-07，见 plan `2026-06-07-audit-review-trigger-simplification.md`）
 - 父文档：[`2026-06-07-audit-review-evidence-provenance-design.md`](2026-06-07-audit-review-evidence-provenance-design.md)
 - 背景：T1 v2 + T3 v2 落地后，实际输出中「顶层逻辑条件」与「参考触发场景」大量重复（同一配置/输入在抽象条件与具象场景中各写一遍）。用户侧只需一次说清：配了什么、外部 I/O 是什么、应用层发生什么。另需可选反例帮助读者理解「什么情况下不会出问题」。
 
