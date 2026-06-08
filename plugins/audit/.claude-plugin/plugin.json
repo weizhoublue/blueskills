@@ -1,8 +1,0 @@
-{
-  "name": "audit",
-  "displayName": "Audit",
-  "version": "1.0.4",
-  "description": "对 PR/commit/diff 做缺陷审计；2d 始终委派、内部全仓/轻量双模式；optimization 子标签 taxonomy；T3 v3 参考触发场景；可选 T4 非触发场景",
-  "keywords": ["code-review", "pr-review", "audit"],
-  "license": "MIT"
-}

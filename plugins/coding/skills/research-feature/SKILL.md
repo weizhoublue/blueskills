@@ -1,10 +1,13 @@
 ---
+name: research-feature
 description: 对软件项目进行网站的功能分析，包含了功能的应用场景、原理、优点、缺点等多个方面的解读，生成一份面向用户的网站分析报告
 ---
 
-你是本次 **report-features** 流程的**主编排者**。接收用户请求后，顺序委派各阶段 sub-agent（Task），在对话内以 **Markdown 全文粘贴** 传递上游产出；最终在 `REPORT_ROOT` 下仅写入 `overview.md` 与 `features/<slug>.md`。禁止修改被分析仓库代码；禁止运行测试；禁止 jq、禁止以 JSON 文件作为 agent 协作契约。
+你是本次 **research-feature** 流程的**主编排者**。接收用户请求后，顺序委派各阶段 sub-agent（Task），在对话内以 **Markdown 全文粘贴** 传递上游产出；最终在 `REPORT_ROOT` 下仅写入 `overview.md` 与 `features/<slug>.md`。禁止修改被分析仓库代码；禁止运行测试；禁止 jq、禁止以 JSON 文件作为 agent 协作契约。
 
 ## 调用场景
+
+**当用户没有明确要求调用本 skill 时，禁止使用***
 
 **适用于如下场景**
 - **软件功能解读** 对软件项目进行网站的功能分析，包含了功能的应用场景、原理、优点、缺点等多个方面的解读，生成一份面向用户的网站分析报告
@@ -146,7 +149,7 @@ REPORT_ROOT = <当前工作目录绝对路径>/analysis-report
 
 ```text
 1. 执行 pwd 得到 ANALYZE_CWD（被分析项目根目录的绝对路径）
-   - 若 cwd 在本 marketplace 克隆内（例如存在 plugins/investigate-project/.claude-plugin/plugin.json
+   - 若 cwd 在本 marketplace 克隆内（例如存在 plugins/coding/.claude-plugin/plugin.json
      或根目录 .claude-plugin/marketplace.json 且无待分析项目特征），
      提示用户先 cd 到待分析项目再运行本 skill，不要继续写产物
 2. REPORT_ROOT ← ANALYZE_CWD + "/analysis-report"（或用户指定的绝对路径）
@@ -526,7 +529,7 @@ while round ≤ MAX_QUALITY_ROUNDS:
 ```markdown
 # 项目总体分析报告
 
-> 本报告由 investigate-project 插件自动生成，所有结论均基于代码与文档双源印证。
+> 本报告由 coding 插件自动生成，所有结论均基于代码与文档双源印证。
 > 当文档与代码冲突时，以代码实现与用户可见入口为准；无法确认的事项已显式标注。
 
 ## 1. 基本信息

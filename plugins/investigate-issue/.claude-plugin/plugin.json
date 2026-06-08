@@ -1,8 +1,0 @@
-{
-  "name": "investigate-issue",
-  "displayName": "Investigate Issue",
-  "version": "0.9.0",
-  "description": "针对单个故障做深度分析，生成完整的功能和代码解读报告",
-  "keywords": ["issue-analysis", "code-tracing", "debugging"],
-  "license": "MIT"
-}

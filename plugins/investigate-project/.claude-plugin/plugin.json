@@ -1,8 +1,0 @@
-{
-  "name": "investigate-project",
-  "displayName": "Investigate Project",
-  "version": "0.7.0",
-  "description": "分析开源项目源码，输出功能分析报告",
-  "keywords": ["code-analysis", "project-investigation", "documentation"],
-  "license": "MIT"
-}
