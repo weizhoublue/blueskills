@@ -1,7 +1,7 @@
 {
   "name": "coding",
   "displayName": "Coding",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "代码审查、故障分析与项目功能研究：review-change / review-issue / research-feature",
   "keywords": ["code-review", "issue-analysis", "project-investigation", "coding"],
   "license": "MIT"
