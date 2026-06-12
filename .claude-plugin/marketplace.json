@@ -16,6 +16,11 @@
       "name": "productivity",
       "source": "./plugins/productivity",
       "description": "Chinese expression compression via /productivity:caveman-chinese; concise output style and explicit rewrite mode."
+    },
+    {
+      "name": "finance",
+      "source": "./plugins/finance",
+      "description": "Global market asset allocation report and debug statistics (global-market skill)."
     }
   ]
 }
