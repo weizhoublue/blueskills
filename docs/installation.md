@@ -1,26 +1,25 @@
 # 安装
 
-## coding
-
-**干什么**：代码相关分析与审查，包含三个 skill：
-
-| Skill | 用途 |
-|-------|------|
-| `review-change` | 对 PR、commit、patch 或 diff 做静态代码缺陷审计 |
-| `review-issue` | 针对某一个具体问题（bug、异常行为等）做深度分析 |
-| `research-feature` | 读懂整个项目有哪些业务功能，写出面向用户的功能分析报告 |
-
-**插件形态**：每个 skill 一个 `SKILL.md` 文件，主编排按阶段委派 Task sub-agent；阶段间 Markdown 在对话中传递（无中间 JSON、无 shell 脚本）。
-
-**怎么用**：
+## plugin
 
 ```text
-/plugin marketplace add weizhoublue/blueskills
-/plugin install coding@blueskills
-/reload-plugins
-```
+# 安装
+claude plugin marketplace add weizhoublue/blueskills
+claude plugin install coding@blueskills
+claude plugin install productivity@blueskills
+claude plugin install finance@blueskills
 
-在被分析/被审**项目根目录**执行（不要在 blueskills marketplace 仓库里跑）。
+# 更新
+claude plugin marketplace update blueskills
+claude plugin update coding@blueskills
+claude plugin update productivity@blueskills
+claude plugin update finance@blueskills
+
+#卸载
+/plugin uninstall coding@blueskills
+/plugin marketplace remove weizhoublue/blueskills
+
+```
 
 ### review-change
 
@@ -107,31 +106,8 @@ analysis-report/
 
 报告**不是** stdout。overview 禁止 Markdown 表格；§9 根据是否有质审未闭合项二选一表述（有未闭合项时须有 `### 质审未闭合项`，且不得写「全部通过」）。
 
----
 
-## 从旧 plugin 迁移
 
-以下 plugin 已合并为 `coding`，旧 slash 命令不再可用：
 
-| 旧命令 | 新命令 |
-|--------|--------|
-| `/audit:review` | `/coding:review-change` |
-| `/investigate-issue:investigate` | `/coding:review-issue` |
-| `/investigate-project:report-features` | `/coding:research-feature` |
+## coding plugin
 
-```text
-/plugin uninstall audit@blueskills
-/plugin uninstall investigate-issue@blueskills
-/plugin uninstall investigate-project@blueskills
-/plugin install coding@blueskills
-/reload-plugins
-```
-
----
-
-## 卸载
-
-```text
-/plugin uninstall coding@blueskills
-/plugin marketplace remove weizhoublue/blueskills
-```
