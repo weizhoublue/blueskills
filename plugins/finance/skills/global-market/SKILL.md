@@ -33,23 +33,29 @@ MemPalace MCP 用于存储、查询和清理关键结论。
 
 MemPalace MCP 提供了多个 tool, 常见操作方法：
 
-1. **读取最近记录**：
-   mempalace_diary_read(agent_name="claude", wing="financial", last_n=30)
-
-2. **搜索历史记录**：
-   mempalace_search(query="...", wing="financial", room="diary")
-
-3. **写入记录**（仅写入重要结论，不写完整报告）：
+1. **写入记录**（仅写入重要结论，不写完整报告）：
    mempalace_diary_write(
     agent_name="claude", 
     wing="financial", 
     topic="...", 
-    entry="[写入时间 YYYY.MM.DD.HH.MM.SS] <事件发生时间> <核心事实>；<影响判断>；<后续关注点>; <事件可参考性的时效区间 YYYY.MM.DD 至 YYYY.MM.DD>"
+    entry="[写入时间 YYYY.MM.DD.HH.MM.SS] <事件发生时间> <核心事实>；<影响判断>；<后续关注点>; <内容时效区间 YYYY.MM.DD 至 YYYY.MM.DD>"
   )
+
+2. **读取最近记录**：
+   mempalace_diary_read(agent_name="claude", wing="financial", topic="...", last_n=30)
+
+3. **搜索历史记录**：
+   mempalace_search(query="...", wing="financial", room="diary")
+
 
 4. **清理记录**：
    mempalace_list_drawers(wing="financial", limit=100, offset=0)
    mempalace_delete_drawer(drawer_id="xxx")
+
+**读取出的 MemPalace 记录使用原则**
+- 必须严格判断其中的 `内容时效区间`和当前的分析周期，禁止使用过期的信息
+- 如果有多条记录有效，优先使用`写入时间`最新的记录
+- 读取和写入的记录仅限于自身场景的 MemPalace topic，禁止跨 topic 读取和写入
 
 ---
 
@@ -86,7 +92,6 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 - Allow_MemPalace 代表本信息优先从 MemPalace 缓存记录来获取和更新，如果查询不到，则尝试联网查询。并最终把最新结论写入 MemPalace 以供下次查询。
 - Only_Search 代表本信息禁止使用 MemPalace， 必须通过联网搜索工具实时查询获取
 
-
 **联网搜索工具使用原则**
 - 所有联网搜索的行为，尤其是 subagent 的执行中，必须严格遵循如下调用优先级，当一个工具不可用时，再尝试使用低优先级的工具
   1. Tavily skill
@@ -97,7 +102,10 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 
 **每个子 Agent 的通用执行指令**：
 1. 根据信息的 Allow_MemPalace / Only_Search 等级标注，进行相关查询
-2. 提取最新关键结论，写入 MemPalace（属于 `memory_write`）。
+2. 如通过联网搜索获取了最新的补充信息，则提取最新关键结论，写入 MemPalace（属于 `memory_write`）。写入的原则是：
+   - 对于同一事件的相同时间周期内的信息更新，进行记录更新，而非追加新记录
+   - 对于同一事件的不同时间周期内的新信息，追加新记录，而不允许修改之前的记录
+   - 对于不同一事件的信息，追加新记录
 3. **Debug 日志落盘与计数**（当 `debug` 为 `true` 时）：
    - 子 Agent 在执行任一操作（网络搜索、本地记忆读取、本地记忆写入）后，必须将其以 JSON 格式追加/更新到调试文件 `/tmp/global_market_<yymmddhhmmss>/debug_<subagent>.json` 中。
    - 子 Agent 内部维护累计计数器，在每次操作后，更新 JSON 中的 `stats` 计数。
