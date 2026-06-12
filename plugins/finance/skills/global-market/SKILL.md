@@ -47,7 +47,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 
 ### 联网搜索工具
 
-优先级：
+**所有联网搜索的行为，尤其是 subagent 的执行中，必须严格遵循如下调用优先级，当一个工具不可用时，再尝试使用低优先级的工具**
 1. Tavily skill
 2. exa mcp
 3. firecrawl mcp
@@ -85,7 +85,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 使用独立的子 Agent 分别采集如下所有主题的信息，**禁止融入任何主观判断**。
 
 每个子 Agent 的通用执行指令：
-1. 优先读取 MemPalace 中的最近记录以获取上下文（属于 `memory_read`）。
+1. 优先读取 MemPalace 中的最近记录以获取上下文（属于 `memory_read`），尝试获取已记录信息。
 2. 若记录时效不足或缺失，执行联网搜索补充信息（属于 `web_search`）。
 3. 提取最新关键结论，写入 MemPalace（属于 `memory_write`）。
 4. **Debug 日志落盘与计数**（当 `debug` 为 `true` 时）：
@@ -112,19 +112,19 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 5. 输出指定的主题 markdown 报告。
 
 #### 主题列表与报告要求：
-1. **Employment Situation 就业形势报告** 
+1. **美国就业形势报告 Employment Situation** 
   MemPalace topic: `EmploymentSituation`
   报告内容：
     - 最近已发布报告解读：发布时间、对纳债金影响（非主观判断）
     - 下一次报告（发布时间、市场预判）
 
-2. **通胀数据 CPI** 
+2. **美国通胀数据 CPI** 
   MemPalace topic: `CPI`
   报告内容：
     - 最近已发布解读：发布时间、对纳债金影响（非主观判断）
     - 下一次报告（发布时间、市场预判）
 
-3. **PCE** 
+3. **美国个人消费支出价格指数 PCE** 
   MemPalace topic: `PCE`
   报告内容：
     - 最近已发布解读：发布时间、对纳债金影响（非主观判断）
@@ -159,7 +159,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - 市场对于根因的分析（非主观判断）
     - 市场对于短期内的买入/卖出投资建议（非主观判断）
 
-8. **能源** 
+8. **全球能源** 
   MemPalace topic: `Energy`
   分析范围：原油、天然气、煤矿
   报告内容：
@@ -177,7 +177,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 
 ### 第 4 步：整合报告
 
-使用  productivity:caveman-cn skill ， 整合所有子 Agent 输出，形成最终的资产配置参考报告， 表达简短，突出核心结论，严禁冗长叙述
+整合所有子 Agent 输出为一份完整的 markdown 格式的报告，禁止对 agent 输出报告进行总结和优化，
 
 **Debug 数据汇总**（当 `debug` 为 `true` 时）：
    - 主 Agent 读取 `/tmp/global_market_<yymmddhhmmss>/` 下所有 `debug_<subagent>.json` 文件。
