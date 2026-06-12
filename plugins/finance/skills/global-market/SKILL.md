@@ -52,7 +52,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
    mempalace_list_drawers(wing="financial", limit=100, offset=0)
    mempalace_delete_drawer(drawer_id="xxx")
 
-**读取出的 MemPalace 记录使用原则**
+**MemPalace 历史记录的使用原则**
 - 必须严格判断其中的 `内容时效区间`和当前的分析周期，禁止使用过期的信息
 - 如果有多条记录有效，优先使用`写入时间`最新的记录
 - 读取和写入的记录仅限于自身场景的 MemPalace topic，禁止跨 topic 读取和写入
@@ -88,12 +88,14 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 
 使用独立的子 Agent 分别采集如下所有主题的信息，**禁止融入任何主观判断**。
 
-**所有的信息收取，都标注了如下等级**
+**必须告知每个 agent 如下信息获取等级**
 - Allow_MemPalace 代表本信息优先从 MemPalace 缓存记录来获取和更新，如果查询不到，则尝试联网查询。并最终把最新结论写入 MemPalace 以供下次查询。
 - Only_Search 代表本信息禁止使用 MemPalace， 必须通过联网搜索工具实时查询获取
 
-**联网搜索工具使用原则**
-- 所有联网搜索的行为，尤其是 subagent 的执行中，必须严格遵循如下调用优先级，当一个工具不可用时，再尝试使用低优先级的工具
+**必须告知每个 MemPalace MCP 方法**
+
+**必须告知每个 agent 如下联网搜索工具使用原则**
+- 所有联网搜索的行为，必须严格遵循如下调用优先级，当一个工具不可用时，再尝试使用低优先级的工具
   1. Tavily skill
   2. exa mcp
   3. firecrawl mcp
@@ -109,7 +111,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 3. **Debug 日志落盘与计数**（当 `debug` 为 `true` 时）：
    - 子 Agent 在执行任一操作（网络搜索、本地记忆读取、本地记忆写入）后，必须将其以 JSON 格式追加/更新到调试文件 `/tmp/global_market_<yymmddhhmmss>/debug_<subagent>.json` 中。
    - 子 Agent 内部维护累计计数器，在每次操作后，更新 JSON 中的 `stats` 计数。
-   - 单个日志 JSON 格式必须为：
+   - **必须告知每个 agent 遵循如下日志 JSON 格式，避免格式不一致导致调试信息无法统一解析**：
      ```json
      {
        "logs": [
@@ -137,7 +139,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
   报告内容：
     - (Allow_MemPalace)最近已发布报告解读：发布时间、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）。非主观判断
     - (Allow_MemPalace)下一次报告发布时间
-    - (Only_Search)市场对于下一次报告的形势预判
+    - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
 
 2. **美国通胀数据 CPI** 
   MemPalace topic: `CPI`
@@ -145,7 +147,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
   报告内容：
     - (Allow_MemPalace)最近已发布解读：发布时间、对纳债金影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
     - (Allow_MemPalace)下一次报告发布时间
-    - (Only_Search)市场对于下一次报告的形势预判
+    - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
 
 3. **美国个人消费支出价格指数 PCE** 
   MemPalace topic: `PCE`
@@ -153,7 +155,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
   报告内容：
     - (Allow_MemPalace)最近已发布解读：发布时间、对纳债金影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
     - (Allow_MemPalace)下一次报告发布时间
-    - (Only_Search)市场对于下一次报告的形势预判
+    - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
 
 4. **美联储降息会议 FOMC** 
   MemPalace topic: `FOMC`
@@ -161,7 +163,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
   报告内容：
     - (Allow_MemPalace)最近一次解读：发布时间、对纳债金影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
     - (Allow_MemPalace)下一次会议时间
-    - (Only_Search)市场对于下一次报告的形势预判
+    - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
 
 5. **美债收益率** 
   MemPalace topic: `TreasuryYield`
@@ -169,7 +171,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
   报告内容：
     - (Allow_MemPalace)event_start 至 event_end 期间，10年期与2年期美债走势事实
     - (Allow_MemPalace)市场对于根因的分析（非主观判断）
-    - (Allow_MemPalace)市场对于短期内的投资建议，并明确指出结论买入或卖出（非主观判断）
+    - (Allow_MemPalace)市场对于短期内的长短债的投资建议，并明确指出结论买入或卖出（非主观判断）
     - (Only_Search)市场对 event_end 之后的美债走势判断，以及对纳债金影响的影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
 
 6. **纳斯达克指数** 
@@ -179,6 +181,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace) event_start 至 event_end 期间，指数走势事实阐述
     - (Allow_MemPalace) 涨跌幅前3行业
     - (Allow_MemPalace) 市场对于根因的分析（非主观判断）
+    - (Only_Search) event_end 之后短期内影响纳斯达克的事件，事件内容和发生时间
     - (Only_Search)市场对于 event_end 之后短期内的投资建议，并明确指出结论买入或卖出（非主观判断）
 
 7. **黄金** 
@@ -200,7 +203,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 
 9. **美股大型科技公司** 
   MemPalace topic: `TechEarnings`
-  联网搜索次数上限: 20
+  联网搜索次数上限: 30
   分析公司范围：Nvidia, Microsoft, Apple, Amazon, Meta, Google, Tesla, Broadcom, AMD
   报告内容：
     - (Allow_MemPalace)每个公司的上次财报时间、市场反应（非主观判断）
@@ -214,7 +217,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
   ```markdown
   # 全球市场资产配置分析报告
 
-  分析周期：xxx 时区  YYYY.MM.DD 至 YYYY.MM.DD
+  分析周期  YYYY.MM.DD 至 YYYY.MM.DD （本地时区）
 
   ## xxx 主题报告
 
@@ -233,7 +236,8 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
   - 每一个主题对于本地记忆写入的次数：Z
   - 总计联网搜索次数：X
   - 总计通过本地的记忆存储搜索的次数：Y
-  - 总计对于本地记忆写入的次数：Z     
+  - 总计对于本地记忆写入的次数：Z
+  - 中间产物路径: /tmp/global_market_<yymmddhhmmss>
   ```
 
 ### 第 5 步：清理 MemPalace 过时记录
@@ -244,8 +248,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 
 ---
 
-## 4. 执行原则
+## 执行原则
 - 优先获取本地当前真实时间。
 - 搜索词带上明确的时间范围。
 - 事实、判断、建议三者必须严格分离。
-- 仅将重要核心结论写入 MemPalace。
