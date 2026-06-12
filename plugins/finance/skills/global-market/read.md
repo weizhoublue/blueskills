@@ -67,18 +67,22 @@ topic 按照不同的分析内容设置对应的值
 
 - 优先使用 Tavily skill 
 - 如果寻找不到信息，尝试使用 exa mcp
-- 如果寻找不到信息，最终尝试使用  firecrawl mcp
+- 如果寻找不到信息，尝试使用  firecrawl mcp
+- 如果寻找不到信息，再尝试其他任意可进行联网搜索的工具
 
 ## 执行流程
 
-### 第 0 步：获取当前真实时间
+### 第 0 步：准备
 
-执行任何分析前，必须先获取本地时区的真实时间。
-
+**执行任何分析前，必须先获取本地时区的真实时间**
 禁止：
 - 禁止使用模型训练截止时间作为当前时间
 - 禁止凭记忆判断“最新 CPI / PCE / FOMC / 就业报告”
 - 禁止在未确认当前时间时判断“最近”“最新”“未来”
+
+**确认本地工具可用**
+- 具备 MemPalace MCP，如果缺失，终止流程
+- 具备至上一个联网工具可用，否则终止流程。不限于 Tavily skill 、exa mcp、firecrawl mcp
 
 ---
 
@@ -253,7 +257,7 @@ MemPalace topic: TreasuryYield
 MemPalace topic: NasdaqTrend
 
 输出 markdown 报告：
-- event_start 到 event_end 走势事实说明
+- event_start 到 event_end 期间，指数走势事实说明
 - 走势根因分析
 - 市场对于未来短期的预期
 - 上涨最多的 3 个行业和下跌最多的 3 个行业
