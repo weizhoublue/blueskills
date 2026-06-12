@@ -215,7 +215,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 整合所有子 Agent 输出为一份完整的 markdown 格式的报告，格式如下：
 
   ```markdown
-  # 全球市场资产配置分析报告
+  # Global Market Analysis Report
 
   分析周期  YYYY.MM.DD 至 YYYY.MM.DD （本地时区）
 
