@@ -21,6 +21,11 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Global market asset allocation report and debug statistics (global-market skill)."
+    },
+    {
+      "name": "news",
+      "source": "./plugins/news",
+      "description": "GitHub trending project daily digest and analysis (github-trend skill)."
     }
   ]
 }
