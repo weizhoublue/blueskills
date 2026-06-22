@@ -140,6 +140,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace)最近已发布报告解读：发布时间、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）。非主观判断
     - (Allow_MemPalace)下一次报告发布时间
     - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 2. **美国通胀数据 CPI** 
   MemPalace topic: `CPI`
@@ -148,6 +149,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace)最近已发布解读：发布时间、对纳债金影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
     - (Allow_MemPalace)下一次报告发布时间
     - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 3. **美国个人消费支出价格指数 PCE** 
   MemPalace topic: `PCE`
@@ -156,6 +158,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace)最近已发布解读：发布时间、对纳债金影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
     - (Allow_MemPalace)下一次报告发布时间
     - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 4. **美联储降息会议 FOMC** 
   MemPalace topic: `FOMC`
@@ -164,6 +167,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace)最近一次解读：发布时间、对纳债金影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
     - (Allow_MemPalace)下一次会议时间
     - (Only_Search)市场对于下一次报告的形势预判、对纳债金的影响（明确指出影响性质：刺激上涨或下跌）
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 5. **美债收益率** 
   MemPalace topic: `TreasuryYield`
@@ -173,6 +177,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace)市场对于根因的分析（非主观判断）
     - (Allow_MemPalace)市场对于短期内的长短债的投资建议，并明确指出结论买入或卖出（非主观判断）
     - (Only_Search)市场对 event_end 之后的美债走势判断，以及对纳债金影响的影响（明确指出影响性质：刺激上涨或下跌）。 非主观判断
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 6. **纳斯达克指数** 
   MemPalace topic: `NasdaqTrend`
@@ -183,6 +188,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace) 市场对于根因的分析（非主观判断）
     - (Only_Search) event_end 之后短期内影响纳斯达克的事件，事件内容和发生时间
     - (Only_Search)市场对于 event_end 之后短期内的投资建议，并明确指出结论买入或卖出（非主观判断）
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 7. **黄金** 
   MemPalace topic: `Gold`
@@ -191,6 +197,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace)event_start 至 event_end 期间，走势事实
     - (Allow_MemPalace) 市场对于根因的分析（非主观判断）
     - (Only_Search)市场对于 event_end 之后短期内的最新投资建议，并明确指出结论买入或卖出（非主观判断）
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 8. **全球能源** 
   MemPalace topic: `Energy`
@@ -200,6 +207,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace) event_start 至 event_end 期间，每个能源的走势事实
     - (Allow_MemPalace) 市场对于根因的分析（非主观判断）
     - (Only_Search) 市场对于 event_end 之后短期内的投资最新建议，并明确指出结论买入或卖出（非主观判断）
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 9. **美股大型科技公司** 
   MemPalace topic: `TechEarnings`
@@ -209,6 +217,7 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
     - (Allow_MemPalace)每个公司的上次财报时间、市场反应（非主观判断）
     - (Allow_MemPalace)每个公司的下次财报日期、市场预判（非主观判断）
     - (Only_Search) 市场对于 event_end 之后每个公司短期内的投资建议，并明确指出结论买入或卖出，每个公司用中文名称呼。非主观判断
+  **报告格式严格遵循: Debug 日志落盘与计数**
 
 ### 第 4 步：整合报告
 
@@ -252,3 +261,4 @@ MemPalace MCP 提供了多个 tool, 常见操作方法：
 - 优先获取本地当前真实时间。
 - 搜索词带上明确的时间范围。
 - 事实、判断、建议三者必须严格分离。
+- **必须告知每个 agent 遵循的日志 JSON 格式，避免格式不一致导致调试信息无法统一解析**：
