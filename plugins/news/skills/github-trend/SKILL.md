@@ -103,10 +103,7 @@ debug JSON 扩展字段：
 所有网页访问（OSS Insight、GitHub Trending、各仓库页）必须遵循：
 
 1. 优先使用 `agent-browser skills`， 使用 agent-browser CLI 进行导航、快照、数据提取
-2. agent-browser 失败时，按顺序降级：
-   - Tavily extract skill
-   - Exa web fetch MCP
-   - Firecrawl scrape MCP
+2. agent-browser 失败时，降级尝试使用其他工具
 
 **禁止**在未尝试 agent-browser 的情况下直接使用其他搜索/抓取工具。
 **禁止安装 npm i -g agent-browser**
