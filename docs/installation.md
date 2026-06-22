@@ -8,6 +8,7 @@ claude plugin marketplace add weizhoublue/blueskills
 claude plugin install coding@blueskills
 claude plugin install productivity@blueskills
 claude plugin install finance@blueskills
+claude plugin install news@blueskills
 
 # 更新
 claude plugin marketplace update blueskills

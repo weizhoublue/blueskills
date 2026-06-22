@@ -49,7 +49,7 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 | 字段 | 说明 |
 |------|------|
 | `severity` | `info`（提示）\| `warning`（受阻但已绕过）\| `error`（导致该步骤/项目失败） |
-| `stage` | 如 `1.1_trending` `1.2_history` `1.3_stars` `1.4_mempalace` `2_analyze` |
+| `stage` | 如 `1.1_trending` `1.2_history` `1.3_stars` `2_analyze` `4_mempalace_write` |
 | `url` | 相关仓库 URL；与具体仓库无关时留空 |
 | `message` | 遇到了什么困难（一句话，中文） |
 | `action_taken` | 采取了什么措施（如「降级 Tavily」「跳过该项目」「重试 2 次后成功」） |
@@ -113,7 +113,12 @@ debug JSON 扩展字段：
 
 ### MemPalace MCP 使用
 
-MemPalace 用于历史去重与记录已分析仓库。
+MemPalace 用于**读取**历史记录（去重）与在**全流程成功结束后**记录已分析仓库。
+
+**读写时机（强约束）**
+- **读取**：仅第 1.2 步历史过滤时调用 `mempalace_search`
+- **写入**：仅第 4 步、最终报告已输出到 stdout **之后**，由主 Agent 对**分析成功**的项目调用 `mempalace_diary_write`
+- **禁止**在采集阶段或分析完成前写入 MemPalace（避免 skill 未跑完即标记为已分析，导致下次被误过滤）
 
 固定参数：
 - `agent_name`: `"claude"`
@@ -129,7 +134,7 @@ MemPalace 用于历史去重与记录已分析仓库。
    ```
    命中则视为已分析，从候选名单移除。
 
-2. **写入已分析记录**：
+2. **写入已分析记录**（仅第 4 步，且该项目第 2 步分析成功时）：
    ```
    mempalace_diary_write(
      agent_name="claude",
@@ -138,9 +143,9 @@ MemPalace 用于历史去重与记录已分析仓库。
      entry="[YYYY.MM.DD.HH.MM.SS] https://github.com/<owner>/<repo>"
    )
    ```
-   时间戳使用本地真实时间，禁止用模型截止时间。
+   时间戳使用本地真实时间，禁止用模型截止时间。**分析失败的项目禁止写入。**
 
-MemPalace 不可用时终止流程（无法完成去重与记录）。
+MemPalace 不可用时：第 1 步无法去重则终止；第 4 步无法写入则上报 `[error]` 困难，但不影响已输出的 stdout 报告。
 
 ### Debug 日志格式
 
@@ -191,7 +196,7 @@ MemPalace 不可用时终止流程（无法完成去重与记录）。
 
 ### 第 1 步：采集子 Agent
 
-主 Agent 启动**一个**采集子 Agent（Task），完成 1.1–1.4 全流程。子 Agent prompt 必须包含：`TMP_DIR`、`debug`、MemPalace 参数、agent-browser 优先原则、debug JSON 格式、困难上报规范。
+主 Agent 启动**一个**采集子 Agent（Task），完成 1.1–1.3 全流程。子 Agent prompt 必须包含：`TMP_DIR`、`debug`、MemPalace **只读**参数、agent-browser 优先原则、debug JSON 格式、困难上报规范。
 
 #### 1.1 趋势榜采集
 
@@ -236,18 +241,6 @@ mempalace_search(query="<owner>/<repo>", wing="github-trending", room="diary")
   {"kept": [{"url": "...", "stars": 12345}], "removed": [{"url": "...", "stars": 100, "reason": "below_threshold"}], "kept_count": Z}
   ```
 
-#### 1.4 写入 MemPalace
-
-对最终 kept 列表每个 URL：
-```
-mempalace_diary_write(
-  agent_name="claude",
-  wing="github-trending",
-  topic="analyzed-repos",
-  entry="[YYYY.MM.DD.HH.MM.SS] https://github.com/<owner>/<repo>"
-)
-```
-
 #### 采集子 Agent 输出（返回主 Agent）
 
   ```markdown
@@ -265,11 +258,15 @@ mempalace_diary_write(
   （按困难上报规范填写；无则写「无」）
   ```
 
-若 `after_stars_count` 为 0，主 Agent 跳至第 3 步输出「今日无新项目」并结束（仍须附带执行困难汇总）。
+若 `after_stars_count` 为 0，主 Agent 跳至第 3 步输出「今日无新项目」并结束（仍须附带执行困难汇总；**跳过第 4 步 MemPalace 写入**）。
 
 ### 第 2 步：串行项目分析
 
 主 Agent 对 `final_urls` **逐个、串行**启动分析子 Agent（**禁止并行**）。
+
+每个分析子 Agent 结束时，主 Agent 须标记该项目为 `analysis_status: success` 或 `analysis_status: failed`：
+- **success**：子 Agent 正常输出分析内容（含「未能从公开页面确认」等部分信息，但未标注「分析失败」）
+- **failed**：子 Agent 输出含「分析失败」或中途无法完成分析
 
 每个分析子 Agent prompt 必须包含：目标 URL、`TMP_DIR`、`debug`、报告格式、语言要求（技术名词英文、说明中文）、禁止克隆代码、困难上报规范。
 
@@ -297,28 +294,43 @@ mempalace_diary_write(
   （按困难上报规范填写；无则写「无」）
   ```
 
+分析失败时（`analysis_status: failed`）：
+
+  ```markdown
+  ## <owner>/<repo>
+
+  - **仓库地址**: https://github.com/<owner>/<repo>
+  - **要解决的问题**: 分析失败：<错误原因>
+  - **功能**: 分析失败
+
+  ## 执行困难
+
+  （必须包含导致失败的困难记录）
+  ```
+
 #### 落盘（仅 debug=true）
 
 - `TMP_DIR/analyze/<owner>__<repo>.md` — 写入上述 markdown（含「执行困难」块）
 - `TMP_DIR/debug/analyze_<owner>__<repo>.json` — 操作日志（含 `difficulties`）
 - `TMP_DIR/difficulties/analyze_<owner>__<repo>.json` — 困难记录
 
-主 Agent 收集每个子 Agent 的 markdown 输出，按 `final_urls` 顺序排列，供第 3 步拼接；同时收集各「执行困难」块供汇总。
+主 Agent 收集每个子 Agent 的 markdown 输出及 `analysis_status`，按 `final_urls` 顺序排列，供第 3 步拼接；同时收集各「执行困难」块供汇总。
 
-### 第 3 步：整合报告
+### 第 3 步：整合报告并输出 stdout
 
-主 Agent 将所有分析子 Agent 的 markdown **原样拼接**（禁止改写、禁止总结），输出到 **stdout**。
+主 Agent 将所有**分析成功**子 Agent 的 markdown **原样拼接**（禁止改写、禁止总结），输出到 **stdout**。分析失败的项目在报告中单独标注失败，但不计入「总共分析项目」计数。
 最终报告格式使用如下 markdown 格式
 
   ```markdown
   # GitHub Trending 日报
 
   生成时间: YYYY.MM.DD（本地时区）
-  总共分析项目：xx 个
+  总共分析项目：xx 个（仅计 analysis_status: success）
+  分析失败项目：yy 个（如有）
 
   ## https://github.com/<owner>/<repo>
 
-  该项目的分析报告（含各项目「执行困难」块，原样保留）
+  该项目的分析报告（含各项目「执行困难」块，原样保留；失败项目单独列出并标注）
 
   ## 执行困难汇总
 
@@ -339,16 +351,33 @@ mempalace_diary_write(
 
   ```
 
+### 第 4 步：写入 MemPalace（报告输出之后）
+
+**必须在第 3 步 stdout 报告已完整输出之后执行。** 由主 Agent 执行（不委派子 Agent）。
+
+对第 2 步中 `analysis_status: success` 的每个 URL 调用 `mempalace_diary_write`（格式见 MemPalace 章节）。**禁止**写入 `failed` 项目。
+
+- 逐个写入；单条失败时上报 `[warning]` 困难并继续下一条，不回滚已输出报告
+- `debug=true` 时写入 `TMP_DIR/collect/mempalace_written.json`：
+  ```json
+  {"written": [...], "skipped_failed": [...], "write_errors": [...]}
+  ```
+- 全部完成后，在困难汇总中可追加 MemPalace 写入结果摘要（成功 N 条、跳过 M 条失败项目、写入错误 K 条）
+
+若本次无任何 `success` 项目（全失败或无候选），跳过本步。
+
 ## 异常处理
 
 | 场景 | 处理 |
 |------|------|
 | agent-browser 不可用 | 终止，提示安装命令 |
-| MemPalace 不可用 | 终止 |
+| MemPalace 不可用（第 1 步） | 终止（无法历史去重） |
+| MemPalace 不可用（第 4 步） | 报告已输出；上报困难，跳过写入 |
 | 单源采集失败 | 继续另一源 |
 | 两源均失败 | 终止 |
-| 过滤后名单为空 | 输出「今日无新项目」，正常结束 |
-| 单项目分析失败 | 记录错误，继续下一个 |
+| 过滤后名单为空 | 输出「今日无新项目」，正常结束；跳过第 4 步 |
+| 单项目分析失败 | 记录错误，继续下一个；**不写入 MemPalace** |
+| 第 4 步单条 MemPalace 写入失败 | 上报困难，继续下一条 |
 | TMP_DIR 创建失败 | 降级 `./tmp/...` |
 | debug JSON 缺失 | 统计时忽略 |
 
@@ -362,4 +391,5 @@ mempalace_diary_write(
 - 最终报告仅 stdout，中间产物仅 debug 模式落盘
 - 事实描述基于页面可见信息，不足时明确标注，禁止编造
 - 遇到困难必须上报，禁止静默降级或静默跳过
+- MemPalace 写入必须在报告输出之后，且仅写入分析成功的项目
 - **禁止安装 npm i -g agent-browser**
