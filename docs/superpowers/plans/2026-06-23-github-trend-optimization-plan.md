@@ -291,3 +291,52 @@
   git add plugins/news/skills/github-trend/SKILL.md
   git commit -s -S -m "docs(github-trend): complete github-trend skill optimization"
   ```
+
+---
+
+### Task 6: 重构报告保存路径解析与 Stdout 抑制逻辑
+
+**Files:**
+- Modify: `plugins/news/skills/github-trend/SKILL.md`
+
+**Interfaces:**
+- Consumes: Task 5 的输出内容
+- Produces: 支持灵活路径及仅输出提示位置的优化技能文档
+
+- [ ] **Step 1: 修改 SKILL.md 中关于 TMP_DIR 创建、Step 4 最终报告输出与 Stdout 的描述**
+  修改 `SKILL.md`，规定路径解析规则、无论 `debug` 何值当未指定输出路径时均创建 `TMP_DIR` 写入 `report.md`，Step 4 禁止将正文打印至 stdout 并仅输出一行路径提示。
+
+  ```markdown
+  ## 配置与全局变量
+  
+  `debug`: 默认为 `true`。
+  
+  `TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yyyymmdd_hhmmss>/`（如 `20260622_143000`）。
+  
+  **无论 `debug` 是 `true` 还是 `false`**，若用户未在提示词中指定保存路径，主 Agent 均会创建 `TMP_DIR` 并在该目录下写入 `report.md`。若指定了其他路径，当 `debug=true` 时，仍会在 `TMP_DIR/` 下保存一份 `report.md` 副本以备调试。
+  ```
+
+  修改 Step 4 的保存与输出逻辑：
+  ```markdown
+  ### 第 4 步：整合报告并输出
+  
+  主 Agent 将收集到的 Markdown 报告合并，生成最终日报。
+  
+  1. **保存最终报告**：主 Agent 将拼接后的 Markdown 报告保存到已解析的目标路径。
+  2. **标准输出限制**：主 Agent **禁止**将报告正文打印到 stdout，仅在 stdout 打印一行提示：“报告已保存至：<绝对路径>”。
+  ```
+
+  修改“待分析项目为空”的异常处理：
+  ```markdown
+  | 待分析项目列表为空 | 跳过 Step 2/3。在 Step 4 日报头部显示“今日无新项目”，并继续拼接收集阶段的“剔除已分析项目”与“采集困难与统计”写入最终报告文件，并在 stdout 输出保存位置提示。 |
+  ```
+
+- [ ] **Step 2: 自检确保无矛盾**
+  确认配置节、初始化节、第 4 步和异常处理等关于输出的描述已完全统一，没有旧的直接打印 stdout 逻辑残留。
+
+- [ ] **Step 3: 提交代码**
+  运行：
+  ```bash
+  git add plugins/news/skills/github-trend/SKILL.md
+  git commit -s -S -m "docs(github-trend): add report path extraction and stdout suppression"
+  ```
