@@ -21,7 +21,7 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 
 **启用条件**：用户如在运行指令中明确要求（如包含「关闭 debug」「debug=false」「关闭调试」等类似表述）时，将 `debug` 置为 `false`；用户说「开启 debug」「debug=true」时置为 `true`；否则保持默认值。
 
-`TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yymmddhhmmss>/`（如 `260622143000`）
+`TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yyyymmdd_hhmmss>/`（如 `20260622_143000`）
 
 **仅在 `debug=true` 时**创建 `TMP_DIR` 并落盘中间产物；`debug=false` 时不创建目录、不写中间文件。
 
@@ -92,7 +92,8 @@ debug JSON 扩展字段：
 }
 ```
 
-主 Agent 汇总所有子 Agent 的困难块，写入最终 stdout 报告的 **「执行困难汇总」** 节（见第 4 步）。**无论 `debug` 是否开启，该节都必须输出**（无困难时写「本次执行未上报困难」）。
+主 Agent 汇总所有子 Agent 的困难块，写入最终 stdout 报告的 **「执行困难汇总」** 节（见第 4 步）。
+**无论 `debug` 是否开启，该节都必须输出**（无困难时写「本次执行未上报困难」）。
 
 ---
 
@@ -100,11 +101,17 @@ debug JSON 扩展字段：
 
 ### agent-browser 
 
-所有网页访问（OSS Insight、GitHub Trending、各仓库页），使用 `agent-browser skills`， 使用 agent-browser CLI 进行导航、快照、数据提取
+**agent-browser CLI 进行网页访问，包括导航、快照、数据提取**
 
-**在未尝试 agent-browser 的情况下，禁止直接使用其他搜索/抓取工具**
-**禁止安装 npm i -g agent-browser**
-**agent-browser CLI 调用命令，必须写全路径 `/usr/sbin/agent-browser`**
+- **在未尝试 agent-browser 的情况下，禁止直接使用其他搜索/抓取工具**
+- **禁止运行安装命令 npm i -g agent-browser**
+- **agent-browser CLI 调用命令，必须写全路径 `/usr/sbin/agent-browser`**
+- **Before running any agent-browser command, load the actual workflow content from the CLI**
+```bash
+agent-browser skills get core             # start here — workflows, common patterns, troubleshooting
+agent-browser skills get core --full      # include full command reference and templates
+agent-browser skills list                 # Load a specialized skill when the task falls outside browser web pages
+```
 
 ### MemPalace MCP 使用
 
@@ -277,19 +284,24 @@ mempalace_search(query="<owner>/<repo>", wing="github-trending", room="diary")
 
 1. /usr/sbin/agent-browser 访问 `https://github.com/<owner>/<repo>`
 2. 从 README、About、仓库描述等**公开页面信息**提取：
-  输出如下单项目报告格式
+  输出如下单项目的中文报告
 
   ```markdown
   ## <owner>/<repo>
 
-  - **仓库地址**: https://github.com/<owner>/<repo>
-  - **github star 数量**
-  - **适用场景**: 必须大于 100 字
-  - **要解决的问题**: 详细说明其要解决的问题，且必须大于 100 字（中文说明，技术名词保留英文）
-  - **功能**: 详细说明其各个功能，每个功能文字至少大于 50 字（中文说明）
+  **仓库地址**: https://github.com/<owner>/<repo>
+  **github star 数量**
+  
+  ### 适用场景
+  详细说明它项目适用的实际问题场景，描述必须大于 100 字
+  
+  ### 要解决的问题 
+  详细说明其要解决的技术问题，且必须大于 100 字
+  
+  ### 功能 
+  详细说明该项目的各个功能，每个功能文字至少大于 50 字
 
-  ## 执行困难
-
+  ### 执行困难
   （按困难上报规范填写；无则写「无」）
   ```
 
@@ -300,13 +312,7 @@ mempalace_search(query="<owner>/<repo>", wing="github-trending", room="diary")
 
   - **仓库地址**: https://github.com/<owner>/<repo>
   - **github star 数量**
-  - **适用场景**: 分析失败：<错误原因>
-  - **要解决的问题**: 分析失败：<错误原因>
-  - **功能**: 分析失败
-
-  ## 执行困难
-
-  （必须包含导致失败的困难记录）
+  - **分析失败**：说明分析失败的原因（如仓库页面无法访问、工具调用失败等）
   ```
 
 执行原则：
@@ -340,14 +346,14 @@ mempalace_search(query="<owner>/<repo>", wing="github-trending", room="diary")
 ### 第 4 步：整合报告并输出 
 
 主 Agent 将所有子 Agent 的项目 markdown **原样拼接**（禁止改写、禁止总结），输出到 **stdout**。分析失败的项目在报告中单独标注失败；`success` 项目计入「总共分析项目」计数。
-最终报告格式使用如下 markdown 格式
+最终输出中文报告，格式使用如下 markdown 格式
 
   ```markdown
   # GitHub Trending 日报
 
   生成时间: YYYY.MM.DD（本地时区）
-  总共分析项目：xx 个（仅计 analysis_status: success）
-  分析失败项目：yy 个（如有）
+  总共分析项目：xx 个
+  分析失败项目：yy 个
 
   ## https://github.com/<owner>/<repo>
 
