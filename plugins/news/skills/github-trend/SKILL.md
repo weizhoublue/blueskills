@@ -99,8 +99,9 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 ### 第 0 步：准备与初始化
 
 1. **获取当前真实时间**：本地时区当前时间。
-2. **检查工具**：确认 `/usr/sbin/agent-browser` 与 MemPalace MCP 可用。
-3. **创建目录**：
+2. **检查工具**：确认 `/usr/sbin/agent-browser`
+3. **确认 MemPalace MCP 可用，刚启动时，该 mcp 需要启动时间，可尝试等待它可用为止。如果不可用，终止整个流程，拒绝执行后续所有流程**
+4. **创建目录**：
    - 无论 `debug` 是 `true` 还是 `false`，若用户未在提示词中指定保存路径，主 Agent 均需创建 `TMP_DIR` 目录。
    - 若 `debug=true`，主 Agent 必须创建 `TMP_DIR` 目录及 `TMP_DIR/analyze/` 子目录。
 
@@ -113,7 +114,9 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 - 提取 `https://github.com/<owner>/<repo>` 格式 URL，统一小写去重。
 
 #### 1.2 MemPalace 历史过滤
-- 调用 `mempalace_search` 对 URL 进行历史去重，并把已被分析过（去重命中）的 URL 记录在 `collect_result.md` 的 `## 剔除已分析项目` 中，未命中的记录在 `## 待分析项目` 中。
+调用 `mempalace_search` 对 URL 进行历史去重，并把已被分析过（去重命中）的 URL 记录在 `collect_result.md` 的 `## 剔除已分析项目` 中，未命中的记录在 `## 待分析项目` 中。
+
+**必须严格完成本步骤，不允许跳过。如果 MemPalace MCP不可用，则终止整个流程**
 
 #### 1.3 输出最终候选者列表
 子 Agent 格式化并返回 `collect_result.md` 的文本内容（若 `debug=true`，主 Agent 将该文本写入 `TMP_DIR/collect_result.md`）：
@@ -185,6 +188,8 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
     ## 写入困难与统计
     （由主 Agent 自由发挥编写）
     ```
+
+**必须严格完成本步骤，不允许跳过。如果 MemPalace MCP不可用，则终止整个流程**
 
 ### 第 4 步：整合报告并输出
 
