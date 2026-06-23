@@ -106,13 +106,28 @@ debug JSON 扩展字段：
 - **禁止运行安装命令 `npm i -g agent-browser`**
 - **agent-browser CLI 调用命令，必须写全路径 `/usr/sbin/agent-browser`**
 - **严格串行操作页面，避免并行同时操作多个页面，防止浏览器使用冲突**
+- **CLI 使用例子**
+```
+    # 清空 agent-browser 的 daemon 的状态，避免历史状态干扰新网页的访问
+    agent-browser close
+    # 打开一个新的 tab 并访问网页
+    agent-browser open https://huggingface.co
+    # 等待网页加载完毕
+    agent-browser wait --load networkidle
+    # 查看当前在操作哪个 tab
+    agent-browser tab
+    # 查看当前网页的内容快照
+    agent-browser snapshot
+    # 提确页面的 主要内容区的 文本 。 使用 <main>、<article> 或 <div id="content"> 标签
+    agent-browser get text main
+    # 关闭网页，确保网页浏览器的状态干净
+    agent-browser tab close
+```
 - **运行如下命令，可加载 CLI 的使用说明**
 ```bash
 agent-browser skills get core             # start here — workflows, common patterns, troubleshooting
 agent-browser skills get core --full      # include full command reference and templates
 ```
-- **开始一轮新的网页浏览前，运行 `agent-browser close` 清空历史状态**
-- **完成网页浏览后，运行`agent-browser tab close`关闭网页**
 
 ### MemPalace MCP 使用
 
@@ -343,6 +358,7 @@ Star 不足或无法解析时（`analysis_status: skipped_low_stars`）：
 - **上报困难** agent-browser 降级、页面异常、重试时，按困难上报规范记录
 - **严格优先使用 agent-browser 获取信息**
 - **禁止安装 npm i -g agent-browser**
+- **禁止使用模型的自身知识编造内容，所有事实必须基于网页获取**
 
 **落盘（仅 debug=true**
 - `TMP_DIR/analyze/<owner>__<repo>.md` — 写入上述 markdown（含「执行困难」块）
@@ -444,3 +460,4 @@ Star 不足或无法解析时（`analysis_status: skipped_low_stars`）：
 - **禁止安装 npm i -g agent-browser**
 - **agent-browser CLI 调用命令，必须写全路径 `/usr/sbin/agent-browser`**
 - Star 过滤在 Step 2 分析门禁执行，采集阶段禁止批量访问仓库页读 Star
+- **禁止使用模型的自身知识编造内容，所有事实必须基于网页获取**
