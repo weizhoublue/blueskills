@@ -32,7 +32,7 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 **agent-browser CLI 进行网页访问，包括导航、快照、数据提取**
 
 - **禁止运行安装命令 `npm i -g agent-browser`**
-- **agent-browser CLI 调用命令，必须写全路径 `/usr/sbin/agent-browser`**
+- **调用 agent-browser CLI 必须写全路径， 确认 agent-browser CLI 命令路径，它存在于 `/usr/sbin/agent-browser` 或 `/usr/local/bin/agent-browser`, 禁止该 CLI 是其他路径**
 - **严格串行操作页面，避免并行同时操作多个页面，防止浏览器使用冲突**
 - **CLI 使用例子**
 ```
@@ -99,8 +99,8 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 ### 第 0 步：准备与初始化
 
 1. **获取当前真实时间**：本地时区当前时间。
-2. **检查工具**：确认 `/usr/sbin/agent-browser`
-3. **确认 MemPalace MCP 可用，刚启动时，该 mcp 需要启动时间，可尝试等待最多 1 min。如果不可用，终止整个流程，拒绝执行后续所有流程**
+2. **检查工具**：确认 `agent-browser`存在于指定的路径，如果不存在，直接跳到第 4 步，输出一份失败的原因解释报告，并终止整个流程
+3. **确认 MemPalace MCP 可用，刚启动时，该 mcp 需要启动时间，可尝试等待最多 1 min。如果不可用，直接跳到第 4 步，输出一份失败原因解释报告，并终止整个流程**
 4. **创建目录**：
    - 无论 `debug` 是 `true` 还是 `false`，若用户未在提示词中指定保存路径，主 Agent 均需创建 `TMP_DIR` 目录。
    - 若 `debug=true`，主 Agent 必须创建 `TMP_DIR` 目录及 `TMP_DIR/analyze/` 子目录。
@@ -116,7 +116,7 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 #### 1.2 MemPalace 历史过滤
 调用 `mempalace_search` 对 URL 进行历史去重，并把已被分析过（去重命中）的 URL 记录在 `collect_result.md` 的 `## 剔除已分析项目` 中，未命中的记录在 `## 待分析项目` 中。
 
-**必须严格完成本步骤，不允许跳过。如果 MemPalace MCP不可用，则终止整个流程**
+**必须严格完成本步骤，不允许跳过。如果 MemPalace MCP不可用，直接跳到第 4 步，输出一份失败原因解释报告，并终止整个流程**
 
 #### 1.3 输出最终候选者列表
 子 Agent 格式化并返回 `collect_result.md` 的文本内容（若 `debug=true`，主 Agent 将该文本写入 `TMP_DIR/collect_result.md`）：
@@ -189,7 +189,7 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
     （由主 Agent 自由发挥编写）
     ```
 
-**必须严格完成本步骤，不允许跳过。如果 MemPalace MCP不可用，则终止整个流程**
+**必须严格完成本步骤，不允许跳过。如果 MemPalace MCP不可用，则在第 4 步报告中体现出 MemPalace 写入失败**
 
 ### 第 4 步：整合报告并输出
 
@@ -220,25 +220,17 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
     （来自 analyze_result.md 的 star 不足项目，无则写 - 无）
 
     ## 执行困难与调试统计
-    （按顺序拼接 collect_result.md、analyze_result.md、mempalace_result.md 中的困难与统计内容）
+    如遇 MemPalace 操作失败、CLI 操作失败等事件
+    按顺序拼接 collect_result.md、analyze_result.md、mempalace_result.md 中的困难与统计内容
+    
     ```
-
-## 异常处理
-
-| 场景 | 处理 |
-|------|------|
-| agent-browser 不可用 | 终止，提示安装 |
-| MemPalace 不可用（第 1 步） | 终止（无法历史去重） |
-| MemPalace 不可用（第 3 步） | 记录困难，跳过写入，继续 Step 4 保存最终报告并在 stdout 输出位置提示 |
-| 待分析项目列表为空 | 跳过 Step 2/3。在 Step 4 日报头部显示“今日无新项目”，并继续拼接收集阶段的“剔除已分析项目”与“采集困难与统计”写入最终报告文件，并在 stdout 输出保存位置提示。 |
-| 分析子 Agent 异常中断 | 拼接已完成部分的报告，未完成的项目记录为分析失败 |
 
 ## 执行原则
 
-- 网页操作优先使用 `/usr/sbin/agent-browser`
+- 网页操作优先使用 `agent-browser`
 - 采集和分析子 Agent 各仅启动一个，串行处理
 - 数据同步与传递完全基于 Markdown 协议
 - 事实描述基于页面可见信息，不足时明确标注，禁止编造
 - 遇到困难必须在“困难与统计”中上报
 - **禁止安装 npm i -g agent-browser**
-- **agent-browser CLI 调用命令，必须写全路径 `/usr/sbin/agent-browser`**
+- **agent-browser CLI 调用命令，必须写全路径， 它只存在于`/usr/sbin/agent-browser` 或 `/usr/local/bin/agent-browser`**
