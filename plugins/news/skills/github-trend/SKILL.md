@@ -21,7 +21,7 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 
 `TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yyyymmdd_hhmmss>/`（如 `20260622_143000`）。
 
-**无论 `debug` 是 `true` 还是 `false`**，若用户未在提示词中指定最终报告的保存路径，主 Agent 均会创建 `TMP_DIR` 并在该目录下写入 `report.md`。若指定了其他路径，当 `debug=true` 时，仍会在 `TMP_DIR/` 下保存一份 `report.md` 副本以备调试。
+**`TMP_DIR` 仅用于 `debug=true` 时保存中间产物**（`collect_result.md`、`analyze_result.md`、`mempalace_result.md` 及各项目详情文件。
 
 ---
 
@@ -193,12 +193,9 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 
 ### 第 4 步：整合报告并输出
 
-主 Agent 将收集到的 Markdown 报告合并，生成最终日报。
+主 Agent 将收集到的 Markdown 报告合并, 如没有明确要求，则直接打印到 stdout 即可
 
-1. **保存最终报告**：主 Agent 将拼接后的 Markdown 报告保存到已解析的目标路径。
-2. **标准输出限制**：在没有用户明确要求情况下，主 Agent **禁止**将报告正文打印到 stdout，仅在 stdout 打印一行提示：“报告已保存至：<绝对路径>”。
-
-格式如下：
+报告格式如下：
 
     ```markdown
     # GitHub Trending 日报
