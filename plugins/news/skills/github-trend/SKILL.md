@@ -233,5 +233,5 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 - 数据同步与传递完全基于 Markdown 协议
 - 事实描述基于页面可见信息，不足时明确标注，禁止编造
 - 遇到困难必须在“困难与统计”中上报
-- **禁止安装 npm i -g agent-browser-cdp**
 - **agent-browser-cdp CLI 调用命令，必须写全路径， 它只存在于`/usr/sbin/agent-browser-cdp` 或 `/usr/local/bin/agent-browser-cdp`**
+- **禁止使用 agent-browser  CLI  来完成任务，必须使用 agent-browser-cdp CLI 来完成任务**
