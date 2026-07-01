@@ -27,35 +27,35 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 
 ## 工具使用规范
 
-### agent-browser 
+### agent-browser-cdp
 
-**agent-browser CLI 进行网页访问，包括导航、快照、数据提取**
+**agent-browser-cdp CLI 进行网页访问，包括导航、快照、数据提取**
 
-- **禁止运行安装命令 `npm i -g agent-browser`**
-- **调用 agent-browser CLI 必须写全路径， 确认 agent-browser CLI 命令路径，它存在于 `/usr/sbin/agent-browser` 或 `/usr/local/bin/agent-browser`, 禁止该 CLI 是其他路径**
+- **调用 agent-browser-cdp CLI 必须写全路径， 确认 agent-browser-cdp CLI 命令路径，它存在于 `/usr/sbin/agent-browser-cdp` 或 `/usr/local/bin/agent-browser-cdp`, 禁止该 CLI 是其他路径**
 - **严格串行操作页面，避免并行同时操作多个页面，防止浏览器使用冲突**
 - **CLI 使用例子**
 ```
-    # 清空 agent-browser 的 daemon 的状态，避免历史状态干扰新网页的访问
-    /usr/sbin/agent-browser close
+    # 清空 agent-browser-cdp 的 daemon 的状态，避免历史状态干扰新网页的访问
+    /usr/sbin/agent-browser-cdp close
     # 打开一个新的 tab 并访问网页
-    /usr/sbin/agent-browser open https://huggingface.co
+    /usr/sbin/agent-browser-cdp open https://huggingface.co
     # 等待网页加载完毕
-    /usr/sbin/agent-browser wait --load networkidle
+    /usr/sbin/agent-browser-cdp wait --load networkidle
     # 查看当前在操作哪个 tab
-    /usr/sbin/agent-browser tab
+    /usr/sbin/agent-browser-cdp tab
     # 查看当前网页的内容快照
-    /usr/sbin/agent-browser snapshot
+    /usr/sbin/agent-browser-cdp snapshot
     # 提取页面的 主要内容区的 文本 。 使用 <main>、<article> 或 <div id="content"> 标签
-    /usr/sbin/agent-browser get text main
+    /usr/sbin/agent-browser-cdp get text main
     # 关闭网页，确保网页浏览器的状态干净
-    /usr/sbin/agent-browser tab close
+    /usr/sbin/agent-browser-cdp tab close
 ```
-- **运行如下命令，可加载 CLI 的使用说明**
+- **关于 agent-browser-cdp CLI 的使用用法，他和 agent-browser CLI 的用法是一致的，可以参考  agent-browser CLI 的用法说明**
 ```bash
-/usr/sbin/agent-browser skills get core             # start here — workflows, common patterns, troubleshooting
-/usr/sbin/agent-browser skills get core --full      # include full command reference and templates
+agent-browser skills get core             # start here — workflows, common patterns, troubleshooting
+agent-browser skills get core --full      # include full command reference and templates
 ```
+- **在后续整个任务执行过程中，禁止使用 agent-browser CLI，必须使用 agent-browser-cdp CLI 来完成**
 
 ### MemPalace MCP 使用
 
@@ -99,7 +99,7 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 ### 第 0 步：准备与初始化
 
 1. **获取当前真实时间**：本地时区当前时间。
-2. **检查工具**：确认 `agent-browser`存在于指定的路径，如果不存在，直接跳到第 4 步，输出一份失败的原因解释报告，并终止整个流程
+2. **检查工具**：确认 `agent-browser-cdp`存在于指定的路径，如果不存在，直接跳到第 4 步，输出一份失败的原因解释报告，并终止整个流程
 3. **确认 MemPalace MCP 可用，刚启动时，该 mcp 需要启动时间，可尝试等待最多 1 min。如果不可用，直接跳到第 4 步，输出一份失败原因解释报告，并终止整个流程**
 4. **创建目录**：
    - 无论 `debug` 是 `true` 还是 `false`，若用户未在提示词中指定保存路径，主 Agent 均需创建 `TMP_DIR` 目录。
@@ -110,7 +110,7 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 主 Agent 启动**一个**采集子 Agent，完成以下流程。
 
 #### 1.1 趋势榜采集
-- 使用 `/usr/sbin/agent-browser` 访问 `https://github.com/trending`。
+- 使用 `/usr/sbin/agent-browser-cdp` 访问 `https://github.com/trending`。
 - 提取 `https://github.com/<owner>/<repo>` 格式 URL，统一小写去重。
 
 #### 1.2 MemPalace 历史过滤
@@ -138,7 +138,7 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 
 主 Agent 提取 `collect_result.md` 中 `## 待分析项目` 的 URL 列表。启动**一个**分析子 Agent，在 Prompt 中传入该列表、以及 `debug` 状态与 `TMP_DIR` 路径，由该子 Agent 串行执行以下分析流程：
 
-1. 使用 `/usr/sbin/agent-browser` 访问 `https://github.com/<owner>/<repo>`。
+1. 使用 `/usr/sbin/agent-browser-cdp` 访问 `https://github.com/<owner>/<repo>`。
 2. **Star 门禁**：获取 Star 数。
    - 若 Star < 5000，归类到 `## 剔除 star 不足项目`。
    - 若 Star ≥ 5000，从 README 等公开页面提取信息，生成符合下方模板的项目分析报告正文，包含“适用场景”（描述必须大于 100 字）、“要解决的问题”（描述必须大于 100 字）及“功能”（每个功能说明文字必须大于 50 字）。
@@ -224,10 +224,10 @@ MemPalace 用于**读取**历史记录（去重）、记录已分析仓库。
 
 ## 执行原则
 
-- 网页操作优先使用 `agent-browser`
+- 网页操作优先使用 `agent-browser-cdp`
 - 采集和分析子 Agent 各仅启动一个，串行处理
 - 数据同步与传递完全基于 Markdown 协议
 - 事实描述基于页面可见信息，不足时明确标注，禁止编造
 - 遇到困难必须在“困难与统计”中上报
-- **禁止安装 npm i -g agent-browser**
-- **agent-browser CLI 调用命令，必须写全路径， 它只存在于`/usr/sbin/agent-browser` 或 `/usr/local/bin/agent-browser`**
+- **禁止安装 npm i -g agent-browser-cdp**
+- **agent-browser-cdp CLI 调用命令，必须写全路径， 它只存在于`/usr/sbin/agent-browser-cdp` 或 `/usr/local/bin/agent-browser-cdp`**
