@@ -249,3 +249,4 @@ agent-browser skills get core --full      # include full command reference and t
 - `grep` 用于只读查询；`echo >>` 用于追加写入；禁止用其他任何方式修改 history 文件
 - URL 读写均保持页面/报告中的原始字符串，与 history 文件中已有行整行精确匹配
 - **如果文件 HISTORY_FILE 不存在，禁止创建该文件，终止整个流程, 直接宣告任务失败**
+- 中间产物 `collect_result.md`、`analyze_result.md`、`history_result.md` 等禁止写在当前工作目录，必须写入 `TMP_DIR` 下（仅 `debug=true` 时）
