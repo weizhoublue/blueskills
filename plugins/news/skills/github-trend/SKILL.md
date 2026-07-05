@@ -21,7 +21,7 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 
 `TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yyyymmdd_hhmmss>/`（如 `20260622_143000`）。
 
-`HISTORY_FILE`: 历史记录文件路径。默认为主 Agent 启动 skill 时**当前工作目录（CWD）**下的 `history.txt`。用户如在提示词中指定历史文件路径（如「历史文件用 `./my-history.txt`」「history 文件 `/path/to/history.txt`」），则使用用户指定路径。
+`HISTORY_FILE`: 历史记录文件路径。默认为**当前工作目录**下的 `./history.txt`（相对路径，禁止凭 skill 名称 `github-trend` 推断目录名）。用户如在提示词中指定历史文件路径（如「历史文件用 `./my-history.txt`」「history 文件 `/path/to/history.txt`」），则使用用户指定路径。
 
 **`TMP_DIR` 仅用于 `debug=true` 时保存中间产物**（`collect_result.md`、`analyze_result.md`、`history_result.md` 及各项目详情文件）。
 
@@ -100,6 +100,7 @@ agent-browser skills get core --full      # include full command reference and t
    - 退出码 `0`：命中，归入「剔除已分析项目」
    - 退出码 `1`：未命中，归入「待分析项目」
    - 其他退出码：grep 异常，记入采集困难与统计，该 URL 暂归入待分析
+   - **`-q` 静默无输出属正常**：必须检查 `$?` 判断命中与否，**禁止**因终端无输出而判定未命中
 
 2. **追加已分析记录**（仅 Step 3，且该项目 Step 2 分析成功时；**仅允许追加，禁止其他任何写操作**）：
    ```bash
@@ -115,8 +116,12 @@ agent-browser skills get core --full      # include full command reference and t
 ### 第 0 步：准备与初始化
 
 1. **获取当前真实时间**：本地时区当前时间。
-2. **检查工具**：确认 `agent-browser-cdp`存在于指定的路径，如果不存在，直接跳到第 4 步，输出一份失败的原因解释报告，并终止整个流程
-3. **解析并校验 `HISTORY_FILE`**：默认 CWD 下 `history.txt`；用户提示词指定路径时使用用户路径。**如果文件不存在，禁止创建该文件，终止整个流程, 直接宣告任务失败**
+2. **确定 CWD 与 `HISTORY_FILE`（强约束）**：
+   - 执行 `pwd`，将输出原样记为 `CWD`（**必须读取命令输出**，禁止凭记忆或 skill 名称拼路径）
+   - **禁止**根据 skill 名 `github-trend` 推断工作目录（实际目录可能是 `github-trending` 等任意名称）
+   - 默认 `HISTORY_FILE=./history.txt`（相对 CWD）；用户提示词指定路径时使用用户路径
+   - 校验：`test -f "$HISTORY_FILE"` 或 `grep -c . "$HISTORY_FILE"`；失败则终止流程，**禁止创建该文件**
+3. **检查工具**：确认 `agent-browser-cdp`存在于指定的路径，如果不存在，直接跳到第 4 步，输出一份失败的原因解释报告，并终止整个流程
 4. **创建目录**：
    - 无论 `debug` 是 `true` 还是 `false`，若用户未在提示词中指定保存路径，主 Agent 均需创建 `TMP_DIR` 目录。
    - 若 `debug=true`，主 Agent 必须创建 `TMP_DIR` 目录及 `TMP_DIR/analyze/` 子目录。
@@ -131,7 +136,7 @@ agent-browser skills get core --full      # include full command reference and t
 
 #### 1.2 history 历史过滤
 
-对每个采集 URL（已去重）串行执行 `grep -Fixq -- "$url" "$HISTORY_FILE"`。命中（退出码 0）的 URL 记入 `collect_result.md` 的 `## 剔除已分析项目`；未命中（退出码 1）的记入 `## 待分析项目`；grep 异常（其他退出码）记入 `## 采集困难与统计`，该 URL 暂归入待分析。
+对每个采集 URL（已去重）串行执行 `grep -Fixq -- "$url" "$HISTORY_FILE"`，**以退出码 `$?` 判断**（`-q` 无终端输出）。命中（退出码 0）的 URL 记入 `collect_result.md` 的 `## 剔除已分析项目`；未命中（退出码 1）的记入 `## 待分析项目`；grep 异常（其他退出码）记入 `## 采集困难与统计`，该 URL 暂归入待分析。
 
 **必须严格完成本步骤，不允许跳过。**
 
@@ -255,5 +260,7 @@ agent-browser skills get core --full      # include full command reference and t
 - **`HISTORY_FILE` 仅允许末尾追加（`echo >>`），禁止删除、清空、覆盖、原地修改 history 文件中已有内容**
 - `grep -Fixq` 用于只读去重查询（固定字符串 + 整行 + 大小写不敏感）；`echo >>` 用于追加写入；禁止用其他任何方式修改 history 文件
 - URL 写入保留原始大小写；去重查询时以 `-i` 大小写不敏感匹配，与 GitHub URL 行为一致
-- **如果文件 HISTORY_FILE 不存在，禁止创建该文件，终止整个流程, 直接宣告任务失败**
+- **路径禁止臆造**：`CWD`、`HISTORY_FILE` 必须来自 `pwd` 输出或用户指定；禁止用 skill 名 `github-trend` 拼目录名
+- **所有 shell 路径命令**：优先使用 `./history.txt`、`"$HISTORY_FILE"` 等变量，禁止硬编码类似 `.../github-trend/...` 的猜测路径
+- **`HISTORY_FILE` 不存在时禁止创建**，终止流程并宣告任务失败
 - 中间产物 `collect_result.md`、`analyze_result.md`、`history_result.md` 等禁止写在当前工作目录，必须写入 `TMP_DIR` 下（仅 `debug=true` 时）
