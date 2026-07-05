@@ -69,9 +69,20 @@ agent-browser skills get core --full      # include full command reference and t
 - **写入**：仅第 3 步、第 2 步全部分析完成之后、保存最终报告与 stdout 输出**之前**，由主 Agent 对**分析成功**的项目执行 `echo "$url" >> "$HISTORY_FILE"`
 - **禁止**在采集阶段或分析完成前写入 history 文件（避免 skill 未跑完即标记为已分析，导致下次被误过滤）
 
+**文件编辑约束（强约束）**
+- **仅允许追加**：对 `HISTORY_FILE` 的唯一合法写操作是 `echo "$url" >> "$HISTORY_FILE"`，在文件末尾追加新行
+- **禁止任何其他形式的编辑**，包括但不限于：
+  - 删除、清空、截断文件内容
+  - 覆盖写入（`>`、`tee` 无追加模式等）
+  - 原地修改（`sed -i`、`awk -i`、编辑器保存等）
+  - 重排、去重、合并 history 文件中已有行
+- **禁止**在本 skill 流程内创建空文件替代已有 history（Step 0 仅校验文件存在，不创建、不重建）
+- 读取仅允许 `grep` 等只读命令，**禁止**读取后写回同一文件
+
 **文件格式**
-- 每行一个 URL：`https://github.com/<owner>/<repo>`（小写）
+- 每行一个 URL：`https://github.com/<owner>/<repo>`，保留页面提取时的原始大小写
 - 禁止空行、注释或其他格式
+- `grep`/`echo` 使用与采集、分析相同的 URL 字符串，禁止自行转换大小写
 
 **常见操作**
 
@@ -83,7 +94,7 @@ agent-browser skills get core --full      # include full command reference and t
    - 退出码 `1`：未命中，归入「待分析项目」
    - 其他退出码：grep 异常，记入采集困难与统计，该 URL 暂归入待分析
 
-2. **追加已分析记录**（仅 Step 3，且该项目 Step 2 分析成功时）：
+2. **追加已分析记录**（仅 Step 3，且该项目 Step 2 分析成功时；**仅允许追加，禁止其他任何写操作**）：
    ```bash
    echo "https://github.com/owner/repo" >> "$HISTORY_FILE"
    ```
@@ -109,11 +120,11 @@ agent-browser skills get core --full      # include full command reference and t
 
 #### 1.1 趋势榜采集
 - 使用 `/usr/sbin/agent-browser-cdp` 访问 `https://github.com/trending`。
-- 提取 `https://github.com/<owner>/<repo>` 格式 URL，统一小写去重。
+- 提取 `https://github.com/<owner>/<repo>` 格式 URL，按页面原始字符串去重。
 
 #### 1.2 history 历史过滤
 
-对每个采集 URL（已小写、去重）串行执行 `grep -Fxq "$url" "$HISTORY_FILE"`。命中（退出码 0）的 URL 记入 `collect_result.md` 的 `## 剔除已分析项目`；未命中（退出码 1）的记入 `## 待分析项目`；grep 异常（其他退出码）记入 `## 采集困难与统计`，该 URL 暂归入待分析。
+对每个采集 URL（已去重）串行执行 `grep -Fxq "$url" "$HISTORY_FILE"`。命中（退出码 0）的 URL 记入 `collect_result.md` 的 `## 剔除已分析项目`；未命中（退出码 1）的记入 `## 待分析项目`；grep 异常（其他退出码）记入 `## 采集困难与统计`，该 URL 暂归入待分析。
 
 **必须严格完成本步骤，不允许跳过。**
 
@@ -179,7 +190,7 @@ agent-browser skills get core --full      # include full command reference and t
 
 由主 Agent 执行（不委派子 Agent）。
 1. 主 Agent 提取 `analyze_result.md` 中 `## 分析报告` 下的成功项目 URL 列表。
-2. 对每个 URL 串行执行 `echo "$url" >> "$HISTORY_FILE"`（URL 须小写规范化）。
+2. 对每个 URL 串行执行 `echo "$url" >> "$HISTORY_FILE"`（使用分析报告中的原始 URL 字符串）。
 3. 生成并返回 `history_result.md` 文本。若 `debug=true`，落盘至 `TMP_DIR/history_result.md`。
 
     ```markdown
@@ -191,7 +202,7 @@ agent-browser skills get core --full      # include full command reference and t
     （写入失败、权限问题等，由主 Agent 自由发挥编写）
     ```
 
-**必须严格完成本步骤，不允许跳过。若 `echo >>` 失败，在第 4 步报告中体现 history 写入失败，但不终止流程。**
+**必须严格完成本步骤，不允许跳过。若 `echo >>` 失败，在第 4 步报告中体现 history 写入失败，但不终止流程。禁止对 `HISTORY_FILE` 执行除追加以外的任何写操作。**
 
 ### 第 4 步：整合报告并输出
 
@@ -234,5 +245,6 @@ agent-browser skills get core --full      # include full command reference and t
 - **agent-browser-cdp CLI 调用命令，必须写全路径， 它只存在于`/usr/sbin/agent-browser-cdp` 或 `/usr/local/bin/agent-browser-cdp`**
 - **禁止使用 agent-browser  CLI  来完成任务，必须使用 agent-browser-cdp CLI 来完成任务**
 - 历史去重与记录**仅通过 `HISTORY_FILE` 完成**，禁止使用 MCP 或其他外部存储替代
-- `grep` 用于读取判断，`echo >>` 用于写入；禁止用其他方式修改 history 文件
-- URL 写入前必须小写规范化，与 history 文件中已有格式一致
+- **`HISTORY_FILE` 仅允许末尾追加（`echo >>`），禁止删除、清空、覆盖、原地修改 history 文件中已有内容**
+- `grep` 用于只读查询；`echo >>` 用于追加写入；禁止用其他任何方式修改 history 文件
+- URL 读写均保持页面/报告中的原始字符串，与 history 文件中已有行整行精确匹配
