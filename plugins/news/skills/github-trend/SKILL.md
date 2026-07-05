@@ -109,7 +109,7 @@ agent-browser skills get core --full      # include full command reference and t
 
 1. **获取当前真实时间**：本地时区当前时间。
 2. **检查工具**：确认 `agent-browser-cdp`存在于指定的路径，如果不存在，直接跳到第 4 步，输出一份失败的原因解释报告，并终止整个流程
-3. **解析并校验 `HISTORY_FILE`**：默认 CWD 下 `history.txt`；用户提示词指定路径时使用用户路径。**如果文件不存在，直接报错退出，并终止整个流程**
+3. **解析并校验 `HISTORY_FILE`**：默认 CWD 下 `history.txt`；用户提示词指定路径时使用用户路径。**如果文件不存在，禁止创建该文件，终止整个流程, 直接宣告任务失败**
 4. **创建目录**：
    - 无论 `debug` 是 `true` 还是 `false`，若用户未在提示词中指定保存路径，主 Agent 均需创建 `TMP_DIR` 目录。
    - 若 `debug=true`，主 Agent 必须创建 `TMP_DIR` 目录及 `TMP_DIR/analyze/` 子目录。
@@ -248,3 +248,4 @@ agent-browser skills get core --full      # include full command reference and t
 - **`HISTORY_FILE` 仅允许末尾追加（`echo >>`），禁止删除、清空、覆盖、原地修改 history 文件中已有内容**
 - `grep` 用于只读查询；`echo >>` 用于追加写入；禁止用其他任何方式修改 history 文件
 - URL 读写均保持页面/报告中的原始字符串，与 history 文件中已有行整行精确匹配
+- **如果文件 HISTORY_FILE 不存在，禁止创建该文件，终止整个流程, 直接宣告任务失败**
