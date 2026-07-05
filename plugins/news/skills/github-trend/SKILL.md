@@ -65,7 +65,7 @@ agent-browser skills get core --full      # include full command reference and t
 `HISTORY_FILE` 用于**读取**历史记录（去重）、**追加**已分析仓库 URL。
 
 **读写时机（强约束）**
-- **读取**：仅第 1.2 步历史过滤时，对每个 URL 执行 `grep -Fxq "$url" "$HISTORY_FILE"`
+- **读取**：仅第 1.2 步历史过滤时，对每个 URL 执行 `grep -Fixq -- "$url" "$HISTORY_FILE"`
 - **写入**：仅第 3 步、第 2 步全部分析完成之后、保存最终报告与 stdout 输出**之前**，由主 Agent 对**分析成功**的项目执行 `echo "$url" >> "$HISTORY_FILE"`
 - **禁止**在采集阶段或分析完成前写入 history 文件（避免 skill 未跑完即标记为已分析，导致下次被误过滤）
 
@@ -79,17 +79,24 @@ agent-browser skills get core --full      # include full command reference and t
 - **禁止**在本 skill 流程内创建空文件替代已有 history（Step 0 仅校验文件存在，不创建、不重建）
 - 读取仅允许 `grep` 等只读命令，**禁止**读取后写回同一文件
 
+**grep 参数说明**
+- `-F`：固定字符串匹配，URL 中的 `.` `/` `-` 等按字面量处理，**不会**被当成正则
+- `-i`：大小写不敏感。GitHub 的 owner/repo 路径访问时不区分大小写（如 `CoplayDev` 与 `coplaydev` 为同一仓库），去重查询必须加 `-i`，否则易漏判
+- `-x`：整行精确匹配，避免 `unity-mcp` 误命中其他含相同子串的行
+- `--`：防止 URL 以 `-` 开头时被 grep 误解析为选项
+
 **文件格式**
-- 每行一个 URL：`https://github.com/<owner>/<repo>`，保留页面提取时的原始大小写
+- 每行一个 URL：`https://github.com/<owner>/<repo>`，写入时保留页面/报告中的原始大小写
 - 禁止空行、注释或其他格式
-- `grep`/`echo` 使用与采集、分析相同的 URL 字符串，禁止自行转换大小写
+- 查询时用 `grep -Fixq`（大小写不敏感整行匹配）；写入时用 `echo >>` 追加原始 URL 字符串，禁止自行转换大小写
 
 **常见操作**
 
 1. **查询是否已分析**（去重用，Step 1.2）：
    ```bash
-   grep -Fxq "https://github.com/owner/repo" "$HISTORY_FILE"
+   grep -Fixq -- "https://github.com/CoplayDev/unity-mcp" "$HISTORY_FILE"
    ```
+   若 history 中已有 `https://github.com/coplaydev/unity-mcp`，仍应命中（退出码 `0`）。
    - 退出码 `0`：命中，归入「剔除已分析项目」
    - 退出码 `1`：未命中，归入「待分析项目」
    - 其他退出码：grep 异常，记入采集困难与统计，该 URL 暂归入待分析
@@ -124,7 +131,7 @@ agent-browser skills get core --full      # include full command reference and t
 
 #### 1.2 history 历史过滤
 
-对每个采集 URL（已去重）串行执行 `grep -Fxq "$url" "$HISTORY_FILE"`。命中（退出码 0）的 URL 记入 `collect_result.md` 的 `## 剔除已分析项目`；未命中（退出码 1）的记入 `## 待分析项目`；grep 异常（其他退出码）记入 `## 采集困难与统计`，该 URL 暂归入待分析。
+对每个采集 URL（已去重）串行执行 `grep -Fixq -- "$url" "$HISTORY_FILE"`。命中（退出码 0）的 URL 记入 `collect_result.md` 的 `## 剔除已分析项目`；未命中（退出码 1）的记入 `## 待分析项目`；grep 异常（其他退出码）记入 `## 采集困难与统计`，该 URL 暂归入待分析。
 
 **必须严格完成本步骤，不允许跳过。**
 
@@ -246,7 +253,7 @@ agent-browser skills get core --full      # include full command reference and t
 - **禁止使用 agent-browser  CLI  来完成任务，必须使用 agent-browser-cdp CLI 来完成任务**
 - 历史去重与记录**仅通过 `HISTORY_FILE` 完成**，禁止使用 MCP 或其他外部存储替代
 - **`HISTORY_FILE` 仅允许末尾追加（`echo >>`），禁止删除、清空、覆盖、原地修改 history 文件中已有内容**
-- `grep` 用于只读查询；`echo >>` 用于追加写入；禁止用其他任何方式修改 history 文件
-- URL 读写均保持页面/报告中的原始字符串，与 history 文件中已有行整行精确匹配
+- `grep -Fixq` 用于只读去重查询（固定字符串 + 整行 + 大小写不敏感）；`echo >>` 用于追加写入；禁止用其他任何方式修改 history 文件
+- URL 写入保留原始大小写；去重查询时以 `-i` 大小写不敏感匹配，与 GitHub URL 行为一致
 - **如果文件 HISTORY_FILE 不存在，禁止创建该文件，终止整个流程, 直接宣告任务失败**
 - 中间产物 `collect_result.md`、`analyze_result.md`、`history_result.md` 等禁止写在当前工作目录，必须写入 `TMP_DIR` 下（仅 `debug=true` 时）
