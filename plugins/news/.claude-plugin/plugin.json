@@ -1,13 +1,12 @@
 {
   "name": "news",
   "displayName": "News",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "GitHub 趋势项目日报采集与分析；github-trend skill",
   "keywords": [
     "news",
     "github",
-    "trending",
-    "mempalace"
+    "trending"
   ],
   "license": "MIT"
 }
