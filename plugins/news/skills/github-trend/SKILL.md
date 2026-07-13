@@ -229,16 +229,16 @@ Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FIL
     ## owner2/repo2
     来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中成功分析的项目的完整报告内容
 
-    ## 分析失败项目
+    ## 所有分析失败项目
     来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中分析失败项目，输出如下列表：
     - owner/repo，分析失败原因
 
-    ## 剔除 star 不足项目
+    ## 所有 star 不足项目
     来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中体现了因为 star 不足的项目的项目，输出如下列表：
     - owner/repo， star 数量 xx 不足，忽略分析
     - owner/repo， star 数量 xx 不足，忽略分析
 
-    ## 剔除已分析项目
+    ## 所有跳过的已分析项目
     来自 `TMP_DIR/collect_result.md` 中 `## 剔除已分析项目`，输出如下列表：
     - owner/repo， ，已经被分析过，忽略分析
     - owner/repo， ，已经被分析过，忽略分析
