@@ -17,13 +17,9 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 
 ## 配置与全局变量
 
-`debug`: 默认为 `true`。用户如在运行指令中明确要求（如包含「关闭 debug」「debug=false」「关闭调试」等类似表述）时，将 `debug` 置为 `false`；用户说「开启 debug」「debug=true」时置为 `true`；否则保持默认值。
-
 `TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yyyymmdd_hhmmss>/`（如 `20260622_143000`）。
 
 `HISTORY_FILE`: 历史记录文件路径。默认为**当前工作目录**下的 `./history.txt`（相对路径，禁止凭 skill 名称 `github-trend` 推断目录名）。用户如在提示词中指定历史文件路径（如「历史文件用 `./my-history.txt`」「history 文件 `/path/to/history.txt`」），则使用用户指定路径。
-
-**`TMP_DIR` 仅用于 `debug=true` 时保存中间产物**（`collect_result.md`、`analyze_result.md`、`history_result.md` 及各项目详情文件）。
 
 ---
 
@@ -121,14 +117,11 @@ agent-browser skills get core --full      # include full command reference and t
    - **禁止**根据 skill 名 `github-trend` 推断工作目录（实际目录可能是 `github-trending` 等任意名称）
    - 默认 `HISTORY_FILE=./history.txt`（相对 CWD）；用户提示词指定路径时使用用户路径
    - 校验：`test -f "$HISTORY_FILE"` 或 `grep -c . "$HISTORY_FILE"`；失败则终止流程，**禁止创建该文件**
-3. **检查工具**：确认 `agent-browser-cdp`存在于指定的路径，如果不存在，直接跳到第 4 步，输出一份失败的原因解释报告，并终止整个流程
+3. **检查工具**：确认 `agent-browser-cdp`存在于指定的路径；如果不存在，直接跳到第 4 步，输出失败原因解释报告，并终止整个流程
 4. **创建目录**：
-   - 无论 `debug` 是 `true` 还是 `false`，若用户未在提示词中指定保存路径，主 Agent 均需创建 `TMP_DIR` 目录。
-   - 若 `debug=true`，主 Agent 必须创建 `TMP_DIR` 目录及 `TMP_DIR/analyze/` 子目录。
+   - 主 Agent 创建 `TMP_DIR` 目录及 `TMP_DIR/analyze/` 子目录。
 
-### 第 1 步：采集子 Agent
-
-主 Agent 启动**一个**采集子 Agent，完成以下流程。
+### 第 1 步：采集项目
 
 #### 1.1 趋势榜采集
 - 使用 `/usr/sbin/agent-browser-cdp` 访问 `https://github.com/trending`。
@@ -136,12 +129,12 @@ agent-browser skills get core --full      # include full command reference and t
 
 #### 1.2 history 历史过滤
 
-对每个采集 URL（已去重）串行执行 `grep -Fixq -- "$url" "$HISTORY_FILE"`，**以退出码 `$?` 判断**（`-q` 无终端输出）。命中（退出码 0）的 URL 记入 `collect_result.md` 的 `## 剔除已分析项目`；未命中（退出码 1）的记入 `## 待分析项目`；grep 异常（其他退出码）记入 `## 采集困难与统计`，该 URL 暂归入待分析。
+对每个采集 URL（已去重）串行执行 `grep -Fixq -- "$url" "$HISTORY_FILE"`，**以退出码 `$?` 判断**（`-q` 无终端输出）。
+- 命中（退出码 0）的 URL 记入 `剔除已分析项目`；
+- 未命中（退出码 1）的记入 `待分析项目`；
+- grep 异常（其他退出码）记入 `采集困难与统计`，该 URL 暂归入待分析。
 
-**必须严格完成本步骤，不允许跳过。**
-
-#### 1.3 输出最终候选者列表
-子 Agent 格式化并返回 `collect_result.md` 的文本内容（若 `debug=true`，主 Agent 将该文本写入 `TMP_DIR/collect_result.md`）：
+最终，把如上结论写入 `TMP_DIR/collect_result.md`，格式如下
 
     ```markdown
     ## 待分析项目
@@ -155,24 +148,29 @@ agent-browser skills get core --full      # include full command reference and t
     在本步骤执行过程中，反应出遇到了什么执行困难和不合理的地方
     ```
 
-
 ### 第 2 步：项目分析
 
-主 Agent 提取 `collect_result.md` 中 `## 待分析项目` 的 URL 列表。启动**一个**分析子 Agent，在 Prompt 中传入该列表、以及 `debug` 状态与 `TMP_DIR` 路径，由该子 Agent 串行执行以下分析流程：
+主 Agent 提取 `collect_result.md` 中 `## 待分析项目` 的 URL 列表。 对每个成员项目，顺序完成如下分析步骤：
 
 1. 使用 `/usr/sbin/agent-browser-cdp` 访问 `https://github.com/<owner>/<repo>`。
-2. **Star 门禁**：获取 Star 数。
-   - 若 Star < 5000，归类到 `## 剔除 star 不足项目`。
-   - 若 Star ≥ 5000，从 README 等公开页面提取信息，生成符合下方模板的项目分析报告正文。
-   - 若处理异常或解析失败，归类到 `## 分析失败项目`。
-3. **单项目报告落盘**（仅 `debug=true`）：将分析成功的项目报告内容单独写入 `TMP_DIR/analyze/<owner>__<repo>.md`。
 
-分析子 Agent 运行结束后返回 `analyze_result.md` 文本内容（若 `debug=true`，主 Agent 将该文本写入 `TMP_DIR/analyze_result.md`）：
+2. 获取项目页面中的 Star 数，进行如下区别实施：
+
+   2.1 若 Star < 5000
+    生成符合下方模板的项目分析报告正文，写入 `TMP_DIR/analyze/<owner>__<repo>.md`
 
     ```markdown
-    ## 分析报告
+    ### owner/repo
+    **仓库地址**: https://github.com/owner1/repo1
+    **github star 数量**: xxx
+    **star 不足，不予分析**
+    ```
 
-    ### owner1/repo1
+   2.2 若 Star ≥ 5000
+    从该项目的 README 等公开页面提取信息，生成符合下方模板的项目分析报告正文，写入 `TMP_DIR/analyze/<owner>__<repo>.md`。
+
+    ```markdown
+    ### owner/repo
     **仓库地址**: https://github.com/owner1/repo1
     **github star 数量**: 12000
 
@@ -188,37 +186,33 @@ agent-browser skills get core --full      # include full command reference and t
     **功能**
     （各个功能说明，每项 > 50 字， 每项 < 100 字 ）
 
-    ## 分析失败项目
-    - https://github.com/owner2/repo2 ， 分析失败的原因
-
-    ## 剔除 star 不足项目
-    - https://github.com/owner3/repo3 ， star 只有 xx 个，不满足 xxx 数量要求
-
     ## 分析困难与统计
     在本步骤执行过程中，反应出遇到了什么执行困难和不合理的地方
     ```
 
-### 第 3 步：写入 history
-
-由主 Agent 执行（不委派子 Agent）。
-1. 主 Agent 提取 `analyze_result.md` 中 `## 分析报告` 下的成功项目 URL 列表。
-2. 对每个 URL 串行执行 `echo "$url" >> "$HISTORY_FILE"`（使用分析报告中的原始 URL 字符串）。
-3. 生成并返回 `history_result.md` 文本。若 `debug=true`，落盘至 `TMP_DIR/history_result.md`。
+   2.3 若页面访问、Star 获取或 README 解析失败
+    将失败原因写入 `TMP_DIR/analyze/<owner>__<repo>.md`，归类为分析失败项目。
 
     ```markdown
-    ## 写入摘要
-    成功写入 history 的项目：
-    - https://github.com/owner1/repo1
-
-    ## 写入困难与统计
-    （写入失败、权限问题等，由主 Agent 自由发挥编写）
+    ### owner/repo
+    **仓库地址**: https://github.com/owner1/repo1
+    **分析失败**: 失败原因
     ```
 
-**必须严格完成本步骤，不允许跳过。若 `echo >>` 失败，在第 4 步报告中体现 history 写入失败，但不终止流程。禁止对 `HISTORY_FILE` 执行除追加以外的任何写操作。**
+
+### 第 3 步：写入 history
+
+第 2 步全部分析完成后，由主 Agent 执行：
+
+1. 从 `TMP_DIR/analyze/<owner>__<repo>.md` 中提取分析成功项目的原始 URL。
+2. 对每个成功项目的 URL 串行执行 `echo "$url" >> "$HISTORY_FILE"`。
+3. 若写入失败，在第 4 步报告的“执行困难与统计”中记录失败原因，但不终止流程。
+
+Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FILE` 执行除追加以外的任何写操作。
 
 ### 第 4 步：整合报告并输出
 
-主 Agent 将收集到的 Markdown 报告合并, 如没有明确要求，则直接打印到 stdout 即可
+主 Agent 收集所有 `TMP_DIR/analyze/<owner>__<repo>.md` 报告并合并, 如没有明确要求，则直接打印到 stdout 即可
 
 报告格式如下：
 
@@ -229,29 +223,36 @@ agent-browser skills get core --full      # include full command reference and t
     总共分析项目：xx 个
     分析失败项目：yy 个
 
-    ## 分析报告
-    （直接包含从 analyze_result.md 提取的分析成功的项目段落）
+    ## owner1/repo1
+    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中成功分析的项目的完整报告内容
+
+    ## owner2/repo2
+    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中成功分析的项目的完整报告内容
 
     ## 分析失败项目
-    （直接包含从 analyze_result.md 提取的分析失败项目段落，无则写无）
-
-    ## 剔除已分析项目
-    （来自 collect_result.md 的已分析项目，无则写 - 无）
+    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中分析失败项目，输出如下列表：
+    - owner/repo，分析失败原因
 
     ## 剔除 star 不足项目
-    （来自 analyze_result.md 的 star 不足项目，无则写 - 无）
+    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中体现了因为 star 不足的项目的项目，输出如下列表：
+    - owner/repo， star 数量 xx 不足，忽略分析
+    - owner/repo， star 数量 xx 不足，忽略分析
 
-    ## 执行困难与调试统计
+    ## 剔除已分析项目
+    来自 `TMP_DIR/collect_result.md` 中 `## 剔除已分析项目`，输出如下列表：
+    - owner/repo， ，已经被分析过，忽略分析
+    - owner/repo， ，已经被分析过，忽略分析
+
+    ## 执行困难与统计
     如遇 history 文件操作失败、CLI 操作失败等事件
-    按顺序拼接 collect_result.md、analyze_result.md、history_result.md 中的困难与统计内容
-    
+
     ```
 
 ## 执行原则
 
 - 网页操作优先使用 `agent-browser-cdp`
-- 采集和分析子 Agent 各仅启动一个，串行处理
-- 数据同步与传递完全基于 Markdown 协议
+- 主 Agent 串行完成采集、过滤、分析、history 写入和报告整合
+- 阶段性结果统一存放在 `TMP_DIR` 下的 Markdown 文件中
 - 事实描述基于页面可见信息，不足时明确标注，禁止编造
 - 遇到困难必须在“困难与统计”中上报
 - **agent-browser-cdp CLI 调用命令，必须写全路径， 它只存在于`/usr/sbin/agent-browser-cdp` 或 `/usr/local/bin/agent-browser-cdp`**
@@ -263,4 +264,3 @@ agent-browser skills get core --full      # include full command reference and t
 - **路径禁止臆造**：`CWD`、`HISTORY_FILE` 必须来自 `pwd` 输出或用户指定；禁止用 skill 名 `github-trend` 拼目录名
 - **所有 shell 路径命令**：优先使用 `./history.txt`、`"$HISTORY_FILE"` 等变量，禁止硬编码类似 `.../github-trend/...` 的猜测路径
 - **`HISTORY_FILE` 不存在时禁止创建**，终止流程并宣告任务失败
-- 中间产物 `collect_result.md`、`analyze_result.md`、`history_result.md` 等禁止写在当前工作目录，必须写入 `TMP_DIR` 下（仅 `debug=true` 时）
