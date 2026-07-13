@@ -250,7 +250,6 @@ Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FIL
 
 ## 执行原则
 
-- 网页操作优先使用 `agent-browser-cdp`
 - 主 Agent 串行完成采集、过滤、分析、history 写入和报告整合
 - 成功、失败、跳过项目分别存放在 `TMP_DIR/success/`、`TMP_DIR/failed/`、`TMP_DIR/skipped/` 下
 - 事实描述基于页面可见信息，不足时明确标注，禁止编造
