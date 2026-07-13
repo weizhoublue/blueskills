@@ -1,13 +1,11 @@
 {
   "name": "finance",
   "displayName": "Finance",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "全球市场资产配置分析；global-market skill",
   "keywords": [
     "finance",
-    "market",
-    "asset-allocation",
-    "mempalace"
+    "market"
   ],
   "license": "MIT"
 }
