@@ -17,7 +17,7 @@ description: 采集 GitHub Trending 当日热门仓库，输出日报。
 
 ## 配置与全局变量
 
-`TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yyyymmdd_hhmmss>/`（如 `20260622_143000`）。
+`TMP_DIR`: 主 Agent 初始化时根据本地真实时间生成 `/tmp/github_trend_<yyyymmdd_hhmmss>/`（如 `20260622_143000`）， 该目录禁止在当前目录下生成，必须在 `/tmp/` 目录路径下生成
 
 `HISTORY_FILE`: 历史记录文件路径。默认为**当前工作目录**下的 `./history.txt`（相对路径，禁止凭 skill 名称 `github-trend` 推断目录名）。用户如在提示词中指定历史文件路径（如「历史文件用 `./my-history.txt`」「history 文件 `/path/to/history.txt`」），则使用用户指定路径。
 
@@ -119,7 +119,7 @@ agent-browser skills get core --full      # include full command reference and t
    - 校验：`test -f "$HISTORY_FILE"` 或 `grep -c . "$HISTORY_FILE"`；失败则终止流程，**禁止创建该文件**
 3. **检查工具**：确认 `agent-browser-cdp`存在于指定的路径；如果不存在，直接跳到第 4 步，输出失败原因解释报告，并终止整个流程
 4. **创建目录**：
-   - 主 Agent 创建 `TMP_DIR` 目录及 `TMP_DIR/analyze/` 子目录。
+   - 主 Agent 创建 `TMP_DIR` 目录及 `TMP_DIR/success/`、`TMP_DIR/failed/`、`TMP_DIR/skipped/` 子目录。
 
 ### 第 1 步：采集项目
 
@@ -157,7 +157,7 @@ agent-browser skills get core --full      # include full command reference and t
 2. 获取项目页面中的 Star 数，进行如下区别实施：
 
    2.1 若 Star < 5000
-    生成符合下方模板的项目分析报告正文，写入 `TMP_DIR/analyze/<owner>__<repo>.md`
+    生成符合下方模板的项目分析报告正文，写入 `TMP_DIR/skipped/<owner>__<repo>.md`
 
     ```markdown
     ### owner/repo
@@ -167,7 +167,7 @@ agent-browser skills get core --full      # include full command reference and t
     ```
 
    2.2 若 Star ≥ 5000
-    从该项目的 README 等公开页面提取信息，生成符合下方模板的项目分析报告正文，写入 `TMP_DIR/analyze/<owner>__<repo>.md`。
+    从该项目的 README 等公开页面提取信息，生成符合下方模板的项目分析报告正文，写入 `TMP_DIR/success/<owner>__<repo>.md`。
 
     ```markdown
     ### owner/repo
@@ -191,7 +191,7 @@ agent-browser skills get core --full      # include full command reference and t
     ```
 
    2.3 若页面访问、Star 获取或 README 解析失败
-    将失败原因写入 `TMP_DIR/analyze/<owner>__<repo>.md`，归类为分析失败项目。
+    将失败原因写入 `TMP_DIR/failed/<owner>__<repo>.md`，归类为分析失败项目。
 
     ```markdown
     ### owner/repo
@@ -204,7 +204,7 @@ agent-browser skills get core --full      # include full command reference and t
 
 第 2 步全部分析完成后，由主 Agent 执行：
 
-1. 从 `TMP_DIR/analyze/<owner>__<repo>.md` 中提取分析成功项目的原始 URL。
+1. 从 `TMP_DIR/success/<owner>__<repo>.md` 中提取分析成功项目的原始 URL。
 2. 对每个成功项目的 URL 串行执行 `echo "$url" >> "$HISTORY_FILE"`。
 3. 若写入失败，在第 4 步报告的“执行困难与统计”中记录失败原因，但不终止流程。
 
@@ -212,7 +212,7 @@ Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FIL
 
 ### 第 4 步：整合报告并输出
 
-主 Agent 收集所有 `TMP_DIR/analyze/<owner>__<repo>.md` 报告并合并, 如没有明确要求，则直接打印到 stdout 即可
+主 Agent 分别收集 `TMP_DIR/success/`、`TMP_DIR/failed/`、`TMP_DIR/skipped/` 下的报告并合并，如没有明确要求，则直接打印到 stdout 即可
 
 报告格式如下：
 
@@ -224,17 +224,17 @@ Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FIL
     分析失败项目：yy 个
 
     ## owner1/repo1
-    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中成功分析的项目的完整报告内容
+    来自 `TMP_DIR/success/<owner>__<repo>.md` 中成功分析的项目的完整报告内容
 
     ## owner2/repo2
-    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中成功分析的项目的完整报告内容
+    来自 `TMP_DIR/success/<owner>__<repo>.md` 中成功分析的项目的完整报告内容
 
     ## 所有分析失败项目
-    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中分析失败项目，输出如下列表：
+    来自 `TMP_DIR/failed/<owner>__<repo>.md` 中分析失败项目，输出如下列表：
     - owner/repo，分析失败原因
 
     ## 所有 star 不足项目
-    来自 `TMP_DIR/analyze/<owner>__<repo>.md` 中体现了因为 star 不足的项目的项目，输出如下列表：
+    来自 `TMP_DIR/skipped/<owner>__<repo>.md` 中因 star 不足跳过的项目，输出如下列表：
     - owner/repo， star 数量 xx 不足，忽略分析
     - owner/repo， star 数量 xx 不足，忽略分析
 
@@ -252,7 +252,7 @@ Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FIL
 
 - 网页操作优先使用 `agent-browser-cdp`
 - 主 Agent 串行完成采集、过滤、分析、history 写入和报告整合
-- 阶段性结果统一存放在 `TMP_DIR` 下的 Markdown 文件中
+- 成功、失败、跳过项目分别存放在 `TMP_DIR/success/`、`TMP_DIR/failed/`、`TMP_DIR/skipped/` 下
 - 事实描述基于页面可见信息，不足时明确标注，禁止编造
 - 遇到困难必须在“困难与统计”中上报
 - **agent-browser-cdp CLI 调用命令，必须写全路径， 它只存在于`/usr/sbin/agent-browser-cdp` 或 `/usr/local/bin/agent-browser-cdp`**

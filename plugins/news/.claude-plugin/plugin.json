@@ -1,7 +1,7 @@
 {
   "name": "news",
   "displayName": "News",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "GitHub 趋势项目日报采集与分析；github-trend skill",
   "keywords": [
     "news",
