@@ -212,7 +212,9 @@ Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FIL
 
 ### 第 4 步：整合报告并输出
 
-主 Agent 分别收集 `TMP_DIR/success/`、`TMP_DIR/failed/`、`TMP_DIR/skipped/` 下的报告并合并，如没有明确要求，则直接打印到 stdout 即可
+主 Agent 分别收集 `TMP_DIR/success/`、`TMP_DIR/failed/`、`TMP_DIR/skipped/` 下的报告并合
+
+**如没有明确要求，最终报告内容必须输出在你的回复文本中**
 
 报告格式如下：
 
@@ -263,3 +265,4 @@ Star 不足或分析失败的项目禁止写入 history。禁止对 `HISTORY_FIL
 - **路径禁止臆造**：`CWD`、`HISTORY_FILE` 必须来自 `pwd` 输出或用户指定；禁止用 skill 名 `github-trend` 拼目录名
 - **所有 shell 路径命令**：优先使用 `./history.txt`、`"$HISTORY_FILE"` 等变量，禁止硬编码类似 `.../github-trend/...` 的猜测路径
 - **`HISTORY_FILE` 不存在时禁止创建**，终止流程并宣告任务失败
+- **如没有明确要求，最终报告内容必须输出在你的回复文本中**
